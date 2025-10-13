@@ -34,10 +34,10 @@
                 <option 
                     value="{{ student.id }}" 
                     data-name="{{ student.name|escapejs }}"
-                    data-class="{{ student.class_section|default_if_none:''|escapejs }}"
-                    data-school="{{ student.school_name|default_if_none:''|escapejs }}"
+                    data-class="{{ student.current_class_section|default_if_none:''|escapejs }}"
+                    data-school="{{ student.current_school|default_if_none:''|escapejs }}"
                 >
-                    {{ student.name }} ({{ student.class_section|default_if_none:'—' }}) - {{ student.school_name|default_if_none:'—' }}
+                    {{ student.name }} ({{ student.current_class_section|default_if_none:'—' }}) - {{ student.current_school|default_if_none:'—' }}
                 </option>
             {% endfor %}
         </select>
@@ -59,13 +59,94 @@
         </div>
     </div>
 
-    <!-- New Student Form -->
-    <div id="newStudentForm" class="collapse card mb-3">
-        <div class="card-body">
-            <h5 class="card-title">New Student Information</h5>
-            {{ student_form.as_p }}
-        </div>
-    </div>
+  <!-- New Student Form -->
+<div id="newStudentForm" class="collapse card mb-3">
+  <div class="card-body">
+      <h5 class="card-title">New Student Information</h5>
+
+      <div class="mb-3">
+          {{ student_form.name.label_tag }}
+          {{ student_form.name }}
+      </div>
+
+      <div class="mb-3">
+          {{ student_form.date_of_birth.label_tag }}
+          {{ student_form.date_of_birth }}
+      </div>
+
+      <div class="mb-3">
+          {{ student_form.gender.label_tag }}
+          {{ student_form.gender }}
+      </div>
+
+      <div class="mb-3">
+          {{ student_form.roll_no.label_tag }}
+          {{ student_form.roll_no }}
+      </div>
+
+      <div class="mb-3">
+          {{ student_form.aadhaar_no.label_tag }}
+          {{ student_form.aadhaar_no }}
+      </div>
+
+      <div class="mb-3">
+          {{ student_form.father_or_guardian_name.label_tag }}
+          {{ student_form.father_or_guardian_name }}
+      </div>
+
+      <div class="mb-3">
+          {{ student_form.mother_name.label_tag }}
+          {{ student_form.mother_name }}
+      </div>
+
+      <div class="mb-3">
+          {{ student_form.contact_number.label_tag }}
+          {{ student_form.contact_number }}
+      </div>
+
+      <div class="mb-3">
+          {{ student_form.address.label_tag }}
+          {{ student_form.address }}
+      </div>
+
+      <div class="mb-3">
+          {{ student_form.email.label_tag }}
+          {{ student_form.email }}
+      </div>
+
+      <div class="mb-3">
+          {{ student_form.last_school_name.label_tag }}
+          {{ student_form.last_school_name }}
+      </div>
+
+      <div class="mb-3">
+          {{ student_form.place_of_birth.label_tag }}
+          {{ student_form.place_of_birth }}
+      </div>
+
+      <div class="mb-3">
+          {{ student_form.known_earlier_disease.label_tag }}
+          {{ student_form.known_earlier_disease }}
+      </div>
+
+      <!-- **School Dropdown** -->
+      <div class="mb-3">
+          {{ student_form.school.label_tag }}
+          {{ student_form.school }}
+      </div>
+
+      <div class="mb-3">
+          {{ student_form.current_class_section.label_tag }}
+          {{ student_form.current_class_section }}
+      </div>
+
+      <div class="mb-3">
+          {{ student_form.current_teacher.label_tag }}
+          {{ student_form.current_teacher }}
+      </div>
+
+  </div>
+</div>
 
     <!-- Screening Info -->
     <hr class="my-4">
@@ -104,7 +185,7 @@ function filterStudents() {
 
     for (const opt of select.options) {
         if (!opt.value) continue;
-        const matchesName = opt.text.toLowerCase().includes(searchText);
+        const matchesName = opt.dataset.name.toLowerCase().includes(searchText);
         const matchesSchool = !schoolName || opt.dataset.school.toLowerCase().includes(schoolName);
         opt.hidden = !(matchesName && matchesSchool);
     }

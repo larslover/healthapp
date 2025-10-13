@@ -8,30 +8,61 @@ from core.models import Student, Screening
 from django import forms
 from .models import Student, Screening, School
 
+from django import forms
+from .models import Student
+
+
+from django import forms
+from .models import Student
+from django import forms
+from .models import Student, School
+from django import forms
+from .models import Student, School
 class StudentForm(forms.ModelForm):
+    GENDER_CHOICES = [
+        ('Male', 'Male'),
+        ('Female', 'Female'),
+        ('Other', 'Other'),
+    ]
+
+    gender = forms.ChoiceField(
+        choices=GENDER_CHOICES,
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+
+    school = forms.ModelChoiceField(
+        queryset=School.objects.all().order_by('name'),
+        required=False,
+        empty_label='Select School',
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+
     class Meta:
         model = Student
         fields = [
             'name', 'date_of_birth', 'gender', 'roll_no', 'aadhaar_no',
             'father_or_guardian_name', 'mother_name', 'contact_number',
-            'address', 'email', 'last_school_name', 'place_of_birth', 'known_earlier_disease'
+            'address', 'email', 'last_school_name', 'place_of_birth',
+            'known_earlier_disease', 'school', 'current_class_section',
+            'current_teacher'
         ]
         widgets = {
-            'date_of_birth': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'gender': forms.TextInput(attrs={'class': 'form-control'}),
+            'date_of_birth': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'roll_no': forms.NumberInput(attrs={'class': 'form-control'}),
             'aadhaar_no': forms.TextInput(attrs={'class': 'form-control'}),
             'father_or_guardian_name': forms.TextInput(attrs={'class': 'form-control'}),
             'mother_name': forms.TextInput(attrs={'class': 'form-control'}),
             'contact_number': forms.TextInput(attrs={'class': 'form-control'}),
-            'address': forms.Textarea(attrs={'class': 'form-control'}),
+            'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
             'email': forms.EmailInput(attrs={'class': 'form-control'}),
             'last_school_name': forms.TextInput(attrs={'class': 'form-control'}),
             'place_of_birth': forms.TextInput(attrs={'class': 'form-control'}),
-            'known_earlier_disease': forms.Textarea(attrs={'class': 'form-control'}),
+            'known_earlier_disease': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+            'current_class_section': forms.TextInput(attrs={'class': 'form-control'}),
+            'current_teacher': forms.TextInput(attrs={'class': 'form-control'}),
         }
-
 
 class ScreeningForm(forms.ModelForm):
     class Meta:

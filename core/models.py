@@ -93,11 +93,12 @@ class School(models.Model):
     def __str__(self):
         return self.name
 
+from django.db import models
 
 class Student(models.Model):
-    # modern, cleaned-up student model (permanent info only)
+    # Basic student info
     name = models.CharField(max_length=255)
-    date_of_birth = models.DateField(null=True, blank=True)
+    date_of_birth = models.DateField()
     gender = models.CharField(max_length=20, null=True, blank=True)
     roll_no = models.IntegerField(null=True, blank=True)
     aadhaar_no = models.CharField(max_length=20, null=True, blank=True)
@@ -110,9 +111,19 @@ class Student(models.Model):
     place_of_birth = models.CharField(max_length=255, null=True, blank=True)
     known_earlier_disease = models.TextField(null=True, blank=True)
 
+    # Use a ForeignKey to School
+    school = models.ForeignKey(
+        'School',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='students'
+    )
+    current_class_section = models.CharField(max_length=50, null=True, blank=True)
+    current_teacher = models.CharField(max_length=255, null=True, blank=True)
+
     def __str__(self):
         return self.name
-
 
 class Screening(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='screenings')
