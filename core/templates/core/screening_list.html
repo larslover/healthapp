@@ -11,19 +11,23 @@
     <div class="mb-4">
         <label class="form-label">Select Existing Student</label>
         <div class="row g-2 mb-2">
+            <!-- Search by Name -->
             <div class="col-6 col-md-4">
                 <input type="text" id="studentSearch" class="form-control" placeholder="Search by name..." onkeyup="filterStudents()">
             </div>
+
+            <!-- Filter by School -->
             <div class="col-6 col-md-4">
                 <select id="schoolFilter" class="form-select" onchange="filterStudents()">
                     <option value="">All Schools</option>
                     {% for school in schools %}
-                        <option value="{{ school.name }}">{{ school.name }}</option>
+                        <option value="{{ school }}">{{ school }}</option>
                     {% endfor %}
                 </select>
             </div>
         </div>
 
+        <!-- Student Dropdown -->
         <select id="studentSelect" name="student" class="form-select" onchange="showStudentInfo()">
             <option value="">-- Select a student --</option>
             {% for student in students %}
@@ -31,9 +35,9 @@
                     value="{{ student.id }}" 
                     data-name="{{ student.name|escapejs }}"
                     data-class="{{ student.class_section|default_if_none:''|escapejs }}"
-                    data-school="{{ student.school.name|default_if_none:''|escapejs }}"
+                    data-school="{{ student.school_name|default_if_none:''|escapejs }}"
                 >
-                    {{ student.name }} ({{ student.class_section }}) - {{ student.school.name }}
+                    {{ student.name }} ({{ student.class_section|default_if_none:'—' }}) - {{ student.school_name|default_if_none:'—' }}
                 </option>
             {% endfor %}
         </select>

@@ -32,17 +32,15 @@ from .forms import ScreeningForm
 from django.shortcuts import render, redirect
 from .models import LegacyStudent
 from .forms import StudentForm, ScreeningForm
-
 def add_screening(request):
-    # Fetch first 50 legacy students for dropdown
-    students = LegacyStudent.objects.using('legacy').all()[:50]
+    # Fetch all legacy students (or apply reasonable limit)
+    students = LegacyStudent.objects.using('legacy').all()
 
-    # Fetch unique schools from legacy DB
+    # Unique schools
     schools = LegacyStudent.objects.using('legacy') \
-             .values_list('school_name', flat=True) \
-             .distinct().order_by('school_name')
+              .values_list('school_name', flat=True) \
+              .distinct().order_by('school_name')
 
-    # Initialize forms
     student_form = StudentForm()
     screening_form = ScreeningForm()
 
@@ -52,16 +50,8 @@ def add_screening(request):
         if selected_student_id:
             # Existing student selected
             student = students.filter(id=selected_student_id).first()
-            if not student:
-                return render(request, "core/screening_list.html", {
-                    'students': students,
-                    'schools': schools,
-                    'student_form': student_form,
-                    'screening_form': screening_form,
-                    'error': "Selected student not found."
-                })
         else:
-            # New student submitted
+            # New student
             student_form = StudentForm(request.POST)
             if student_form.is_valid():
                 student = student_form.save()
