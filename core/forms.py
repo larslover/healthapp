@@ -22,7 +22,7 @@ class StudentForm(forms.ModelForm):
     GENDER_CHOICES = [
         ('Male', 'Male'),
         ('Female', 'Female'),
-        ('Other', 'Other'),
+       
     ]
 
     gender = forms.ChoiceField(
