@@ -1,0 +1,51 @@
+{% extends "core/base.html" %}
+
+{% block title %}Report Summary{% endblock %}
+
+{% block content %}
+<h2 class="mb-4 fw-bold">Report Summary</h2>
+
+<p class="mb-4">Filter and view reports for individual students or aggregate statistics.</p>
+
+<!-- Filter form placeholder -->
+<form class="mb-4 row g-3">
+    <div class="col-12 col-sm-6 col-md-3">
+        <input type="text" class="form-control" placeholder="Student Name">
+    </div>
+    <div class="col-12 col-sm-6 col-md-3">
+        <input type="text" class="form-control" placeholder="School">
+    </div>
+    <div class="col-12 col-sm-6 col-md-3">
+        <input type="date" class="form-control" placeholder="Start Date">
+    </div>
+    <div class="col-12 col-sm-6 col-md-3">
+        <input type="date" class="form-control" placeholder="End Date">
+    </div>
+    <div class="col-12 text-start">
+        <button type="submit" class="btn btn-primary">Search</button>
+    </div>
+</form>
+
+<div class="table-responsive">
+    <table class="table table-bordered table-hover shadow-sm bg-white">
+        <thead class="table-light">
+            <tr>
+                <th>Student</th>
+                <th>School</th>
+                <th>BMI</th>
+                <th>Vision</th>
+                <th>Screen Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>John Doe</td>
+                <td>Greenwood School</td>
+                <td>18.5</td>
+                <td>Normal</td>
+                <td>2025-10-11</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+{% endblock %}

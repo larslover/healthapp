@@ -1,0 +1,110 @@
+{% extends "core/base.html" %}
+{% block title %}Add Screening{% endblock %}
+
+{% block content %}
+<h2 class="mb-4 fw-bold">Add Screening</h2>
+
+<form method="POST" class="needs-validation" novalidate>
+    {% csrf_token %}
+
+    <!-- Existing Student Selection -->
+    <div class="mb-4">
+        <label class="form-label">Select Existing Student</label>
+        <div class="row g-2 mb-2">
+            <div class="col-6 col-md-4">
+                <input type="text" id="studentSearch" class="form-control" placeholder="Search by name..." onkeyup="filterStudents()">
+            </div>
+            <div class="col-6 col-md-4">
+                <select id="schoolFilter" class="form-select" onchange="filterStudents()">
+                    <option value="">All Schools</option>
+                    {% for school in schools %}
+                        <option value="{{ school.name }}">{{ school.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <select id="studentSelect" name="student" class="form-select" onchange="showStudentInfo()">
+            <option value="">-- Select a student --</option>
+            {% for student in students %}
+                <option 
+                    value="{{ student.id }}" 
+                    data-name="{{ student.name|escapejs }}"
+                    data-class="{{ student.class_section|default_if_none:''|escapejs }}"
+                    data-school="{{ student.school.name|default_if_none:''|escapejs }}"
+                >
+                    {{ student.name }} ({{ student.class_section }}) - {{ student.school.name }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <!-- Button to Add New Student -->
+    <button type="button" class="btn btn-outline-primary mb-3" 
+            data-bs-toggle="collapse" data-bs-target="#newStudentForm">
+        + Add New Student
+    </button>
+
+    <!-- Existing Student Info Card -->
+    <div id="studentInfoCard" class="collapse card mb-3">
+        <div class="card-body">
+            <h5 class="card-title">Student Information</h5>
+            <p><strong>Name:</strong> <span id="infoName"></span></p>
+            <p><strong>Class/Section:</strong> <span id="infoClass"></span></p>
+            <p><strong>School:</strong> <span id="infoSchool"></span></p>
+        </div>
+    </div>
+
+    <!-- New Student Form -->
+    <div id="newStudentForm" class="collapse card mb-3">
+        <div class="card-body">
+            <h5 class="card-title">New Student Information</h5>
+            {{ student_form.as_p }}
+        </div>
+    </div>
+
+    <!-- Screening Info -->
+    <hr class="my-4">
+    <h5 class="mb-3">Screening Details</h5>
+    <div class="row g-3">
+        {{ screening_form.as_p }}
+    </div>
+
+    <div class="mt-4">
+        <button type="submit" class="btn btn-primary">Save Screening</button>
+    </div>
+</form>
+
+<script>
+const select = document.getElementById('studentSelect');
+const infoCard = document.getElementById('studentInfoCard');
+
+function showStudentInfo() {
+    const selectedOption = select.selectedOptions[0];
+    const selectedId = select.value;
+    const infoCollapse = bootstrap.Collapse.getOrCreateInstance(infoCard, {toggle:false});
+
+    if (!selectedId) {
+        infoCollapse.hide();
+    } else {
+        document.getElementById('infoName').textContent = selectedOption.dataset.name;
+        document.getElementById('infoClass').textContent = selectedOption.dataset.class || '—';
+        document.getElementById('infoSchool').textContent = selectedOption.dataset.school || '—';
+        infoCollapse.show();
+    }
+}
+
+function filterStudents() {
+    const searchText = document.getElementById('studentSearch').value.toLowerCase();
+    const schoolName = document.getElementById('schoolFilter').value.toLowerCase();
+
+    for (const opt of select.options) {
+        if (!opt.value) continue;
+        const matchesName = opt.text.toLowerCase().includes(searchText);
+        const matchesSchool = !schoolName || opt.dataset.school.toLowerCase().includes(schoolName);
+        opt.hidden = !(matchesName && matchesSchool);
+    }
+}
+</script>
+
+{% endblock %}

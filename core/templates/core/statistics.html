@@ -1,0 +1,35 @@
+{% extends "core/base.html" %}
+
+{% block title %}Statistics{% endblock %}
+
+{% block content %}
+<h2 class="mb-4 fw-bold">Statistics</h2>
+
+<p class="mb-4">This page will display charts and graphs for BMI, MUAC, vision, anemia, and more.</p>
+
+<div class="row g-3">
+    <div class="col-12 col-sm-6">
+        <div class="card shadow-sm text-center">
+            <div class="card-body">
+                <h5 class="card-title mb-3">BMI Distribution</h5>
+                <div class="bg-light d-flex align-items-center justify-content-center" style="height: 12rem;">
+                    [Graph Placeholder]
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-sm-6">
+        <div class="card shadow-sm text-center">
+            <div class="card-body">
+                <h5 class="card-title mb-3">Vision Screening</h5>
+                <div class="bg-light d-flex align-items-center justify-content-center" style="height: 12rem;">
+                    [Graph Placeholder]
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add more statistic cards as needed -->
+</div>
+{% endblock %}

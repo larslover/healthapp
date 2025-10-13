@@ -1,0 +1,41 @@
+# macOS system files
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+*.log
+
+# Virtual environment
+venv/
+.env
+*.env
+
+# SQLite databases
+*.sqlite3
+*.db
+
+# Django specific
+/media/
+staticfiles/
+static_root/
+db.sqlite3
+gracehealth_mock.db
+client_data.db
+
+# IDE / Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Migrations (optional — uncomment if you don’t want to commit them)
+# */migrations/
+# !*/migrations/__init__.py
