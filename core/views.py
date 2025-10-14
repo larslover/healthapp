@@ -32,11 +32,9 @@ from .forms import ScreeningForm
 from django.shortcuts import render, redirect
 from .models import LegacyStudent
 from .forms import StudentForm, ScreeningForm
-def add_screening(request):
-    # Fetch all legacy students (or apply reasonable limit)
-    students = LegacyStudent.objects.using('legacy').all()
 
-    # Unique schools
+def add_screening(request):
+    students = LegacyStudent.objects.using('legacy').all()
     schools = LegacyStudent.objects.using('legacy') \
               .values_list('school_name', flat=True) \
               .distinct().order_by('school_name')
@@ -48,10 +46,8 @@ def add_screening(request):
         selected_student_id = request.POST.get("student")
 
         if selected_student_id:
-            # Existing student selected
             student = students.filter(id=selected_student_id).first()
         else:
-            # New student
             student_form = StudentForm(request.POST)
             if student_form.is_valid():
                 student = student_form.save()
@@ -63,13 +59,23 @@ def add_screening(request):
                     'screening_form': screening_form,
                 })
 
-        # Save screening
         screening_form = ScreeningForm(request.POST)
         if screening_form.is_valid():
             screening = screening_form.save(commit=False)
             screening.student = student
+            screening.calculate_bmi()  # calculate BMI
             screening.save()
-            return redirect('screening_list')
+
+            # **Re-bind the form to the saved instance**
+            screening_form = ScreeningForm(instance=screening)
+
+            return render(request, "core/screening_list.html", {
+                'students': students,
+                'schools': schools,
+                'student_form': student_form,
+                'screening_form': screening_form,
+                'success': True
+            })
 
     return render(request, "core/screening_list.html", {
         'students': students,

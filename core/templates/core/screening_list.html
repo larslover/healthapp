@@ -179,17 +179,54 @@ function showStudentInfo() {
     }
 }
 
-function filterStudents() {
-    const searchText = document.getElementById('studentSearch').value.toLowerCase();
-    const schoolName = document.getElementById('schoolFilter').value.toLowerCase();
 
-    for (const opt of select.options) {
-        if (!opt.value) continue;
-        const matchesName = opt.dataset.name.toLowerCase().includes(searchText);
-        const matchesSchool = !schoolName || opt.dataset.school.toLowerCase().includes(schoolName);
-        opt.hidden = !(matchesName && matchesSchool);
+function filterStudents() {
+    const searchInput = document.getElementById("studentSearch").value.toLowerCase();
+    const schoolFilter = document.getElementById("schoolFilter").value;
+    const select = document.getElementById("studentSelect");
+    const options = select.getElementsByTagName("option");
+
+    for (let i = 0; i < options.length; i++) {
+        const option = options[i];
+        const name = (option.getAttribute("data-name") || "").toLowerCase();
+        const school = option.getAttribute("data-school") || "";
+
+        const matchesSearch = name.includes(searchInput);
+        const matchesSchool =
+            !schoolFilter || school === schoolFilter || school === "";
+
+        if (matchesSearch && matchesSchool) {
+            option.style.display = "";
+        } else {
+            option.style.display = "none";
+        }
     }
 }
-</script>
 
+
+</script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+      const weightInput = document.getElementById('id_weight');
+      const heightInput = document.getElementById('id_height');
+      const bmiInput = document.getElementById('id_bmi');
+  
+      function calculateBMI() {
+          const weight = parseFloat(weightInput.value);
+          const height = parseFloat(heightInput.value);
+  
+          if (!weight || !height) {
+              bmiInput.value = '';
+              return;
+          }
+  
+          const bmi = weight / ((height / 100) ** 2);
+          bmiInput.value = bmi.toFixed(2);  // show 2 decimals
+      }
+  
+      weightInput.addEventListener('input', calculateBMI);
+      heightInput.addEventListener('input', calculateBMI);
+  });
+  </script>
+  
 {% endblock %}

@@ -76,9 +76,10 @@ class ScreeningForm(forms.ModelForm):
             'screen_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'class_section': forms.TextInput(attrs={'class': 'form-control'}),
             'school': forms.Select(attrs={'class': 'form-control'}),
-            'weight': forms.NumberInput(attrs={'step': '0.1', 'class': 'form-control'}),
-            'height': forms.NumberInput(attrs={'step': '0.1', 'class': 'form-control'}),
-            'bmi': forms.NumberInput(attrs={'step': '0.1', 'readonly': True, 'class': 'form-control'}),
+           'weight': forms.NumberInput(attrs={'step': '0.1', 'class': 'form-control', 'id': 'id_weight'}),
+            'height': forms.NumberInput(attrs={'step': '0.1', 'class': 'form-control', 'id': 'id_height'}),
+            'bmi': forms.NumberInput(attrs={'step': '0.1', 'readonly': True, 'class': 'form-control', 'id': 'id_bmi'}),
+
             'bmi_category': forms.TextInput(attrs={'class': 'form-control'}),
             'muac': forms.NumberInput(attrs={'step': '0.1', 'class': 'form-control'}),
             'muac_sam': forms.TextInput(attrs={'class': 'form-control'}),
@@ -94,6 +95,12 @@ class ScreeningForm(forms.ModelForm):
             'status': forms.TextInput(attrs={'class': 'form-control'}),
             'age_screening': forms.TextInput(attrs={'class': 'form-control'}),
         }
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        instance.calculate_bmi()  # automatically calculates and stores BMI
+        if commit:
+            instance.save()
+        return instance
 
 
 

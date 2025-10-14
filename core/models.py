@@ -153,6 +153,13 @@ class Screening(models.Model):
     tea_garden = models.CharField(max_length=255, null=True, blank=True)
     status = models.CharField(max_length=50, default='active')
     age_screening = models.CharField(max_length=50, null=True, blank=True)
+    def calculate_bmi(self):
+        """Calculate BMI based on weight and height."""
+        if not self.weight or not self.height or self.height == 0:
+            return None  # Cannot calculate
+        bmi = self.weight / ((self.height / 100) ** 2)
+        self.bmi = round(bmi, 2)  # store BMI rounded to 2 decimal places
+        return self.bmi
 
     class Meta:
         ordering = ['-screen_date']
