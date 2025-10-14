@@ -1,5 +1,5 @@
 from django.db import models
-
+from core.utils.bmi_processor import bmi_category
 # ------------------------------
 # Legacy table (existing data)
 # ------------------------------
@@ -154,11 +154,23 @@ class Screening(models.Model):
     status = models.CharField(max_length=50, default='active')
     age_screening = models.CharField(max_length=50, null=True, blank=True)
     def calculate_bmi(self):
-        """Calculate BMI based on weight and height."""
+        """Calculate BMI based on weight and height, and set category."""
         if not self.weight or not self.height or self.height == 0:
-            return None  # Cannot calculate
+            self.bmi = None
+            self.bmi_category = ""
+            return None
+
         bmi = self.weight / ((self.height / 100) ** 2)
-        self.bmi = round(bmi, 2)  # store BMI rounded to 2 decimal places
+        self.bmi = round(bmi, 2)
+
+        # Also calculate BMI category
+        month = str(self.age_in_month or "")
+        gender = getattr(self.student, "gender", "")
+        if month and gender:
+            self.bmi_category = bmi_category(gender, month, self.bmi)
+        else:
+            self.bmi_category = ""
+
         return self.bmi
 
     class Meta:

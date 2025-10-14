@@ -32,6 +32,9 @@ from .forms import ScreeningForm
 from django.shortcuts import render, redirect
 from .models import LegacyStudent
 from .forms import StudentForm, ScreeningForm
+from django.shortcuts import render, redirect
+from .models import LegacyStudent, Student, Screening, School
+from .forms import StudentForm, ScreeningForm
 
 def add_screening(request):
     students = LegacyStudent.objects.using('legacy').all()
@@ -41,40 +44,50 @@ def add_screening(request):
 
     student_form = StudentForm()
     screening_form = ScreeningForm()
+    selected_student = None
 
     if request.method == "POST":
         selected_student_id = request.POST.get("student")
 
         if selected_student_id:
-            student = students.filter(id=selected_student_id).first()
+            # Existing student selected
+            selected_student = students.filter(id=selected_student_id).first()
+            if not selected_student:
+                return render(request, "core/screening_list.html", {
+                    'students': students,
+                    'schools': schools,
+                    'student_form': student_form,
+                    'screening_form': screening_form,
+                    'error': "Selected student not found."
+                })
         else:
+            # Save new student first
             student_form = StudentForm(request.POST)
             if student_form.is_valid():
-                student = student_form.save()
+                selected_student = student_form.save()
             else:
                 return render(request, "core/screening_list.html", {
                     'students': students,
                     'schools': schools,
                     'student_form': student_form,
                     'screening_form': screening_form,
+                    'error': "Please correct the errors in the student form."
                 })
 
+        # Only now allow screening to be saved
         screening_form = ScreeningForm(request.POST)
         if screening_form.is_valid():
             screening = screening_form.save(commit=False)
-            screening.student = student
-            screening.calculate_bmi()  # calculate BMI
+            screening.student = selected_student  # link student
             screening.save()
-
-            # **Re-bind the form to the saved instance**
-            screening_form = ScreeningForm(instance=screening)
-
+            return redirect('screening_list')
+        else:
             return render(request, "core/screening_list.html", {
                 'students': students,
                 'schools': schools,
                 'student_form': student_form,
                 'screening_form': screening_form,
-                'success': True
+                'error': "Please correct the errors in the screening form."
             })
 
     return render(request, "core/screening_list.html", {

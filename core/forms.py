@@ -80,7 +80,9 @@ class ScreeningForm(forms.ModelForm):
             'height': forms.NumberInput(attrs={'step': '0.1', 'class': 'form-control', 'id': 'id_height'}),
             'bmi': forms.NumberInput(attrs={'step': '0.1', 'readonly': True, 'class': 'form-control', 'id': 'id_bmi'}),
 
-            'bmi_category': forms.TextInput(attrs={'class': 'form-control'}),
+            'bmi_category': forms.TextInput(attrs={'readonly': True,
+            'class': 'form-control',
+        '   id': 'id_bmi_category'    }),
             'muac': forms.NumberInput(attrs={'step': '0.1', 'class': 'form-control'}),
             'muac_sam': forms.TextInput(attrs={'class': 'form-control'}),
             'vision_both': forms.TextInput(attrs={'class': 'form-control'}),
