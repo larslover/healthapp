@@ -10,143 +10,18 @@
     <!-- Existing Student Selection -->
     <div class="mb-4">
         <label class="form-label">Select Existing Student</label>
-        <div class="row g-2 mb-2">
-            <!-- Search by Name -->
-            <div class="col-6 col-md-4">
-                <input type="text" id="studentSearch" class="form-control" placeholder="Search by name..." onkeyup="filterStudents()">
-            </div>
-
-            <!-- Filter by School -->
-            <div class="col-6 col-md-4">
-                <select id="schoolFilter" class="form-select" onchange="filterStudents()">
-                    <option value="">All Schools</option>
-                    {% for school in schools %}
-                        <option value="{{ school }}">{{ school }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-        </div>
-
-        <!-- Student Dropdown -->
-        <select id="studentSelect" name="student" class="form-select" onchange="showStudentInfo()">
+        <select id="studentSelect" name="student" class="form-select">
             <option value="">-- Select a student --</option>
             {% for student in students %}
                 <option 
                     value="{{ student.id }}" 
-                    data-name="{{ student.name|escapejs }}"
-                    data-class="{{ student.current_class_section|default_if_none:''|escapejs }}"
-                    data-school="{{ student.current_school|default_if_none:''|escapejs }}"
+                    data-gender="{{ student.gender|default_if_none:''|escapejs }}"
                 >
-                    {{ student.name }} ({{ student.current_class_section|default_if_none:'—' }}) - {{ student.current_school|default_if_none:'—' }}
+                    {{ student.name }} ({{ student.current_class_section|default_if_none:'—' }})
                 </option>
             {% endfor %}
         </select>
     </div>
-
-    <!-- Button to Add New Student -->
-    <button type="button" class="btn btn-outline-primary mb-3" 
-            data-bs-toggle="collapse" data-bs-target="#newStudentForm">
-        + Add New Student
-    </button>
-
-    <!-- Existing Student Info Card -->
-    <div id="studentInfoCard" class="collapse card mb-3">
-        <div class="card-body">
-            <h5 class="card-title">Student Information</h5>
-            <p><strong>Name:</strong> <span id="infoName"></span></p>
-            <p><strong>Class/Section:</strong> <span id="infoClass"></span></p>
-            <p><strong>School:</strong> <span id="infoSchool"></span></p>
-        </div>
-    </div>
-
-  <!-- New Student Form -->
-<div id="newStudentForm" class="collapse card mb-3">
-  <div class="card-body">
-      <h5 class="card-title">New Student Information</h5>
-
-      <div class="mb-3">
-          {{ student_form.name.label_tag }}
-          {{ student_form.name }}
-      </div>
-
-      <div class="mb-3">
-          {{ student_form.date_of_birth.label_tag }}
-          {{ student_form.date_of_birth }}
-      </div>
-
-      <div class="mb-3">
-          {{ student_form.gender.label_tag }}
-          {{ student_form.gender }}
-      </div>
-
-      <div class="mb-3">
-          {{ student_form.roll_no.label_tag }}
-          {{ student_form.roll_no }}
-      </div>
-
-      <div class="mb-3">
-          {{ student_form.aadhaar_no.label_tag }}
-          {{ student_form.aadhaar_no }}
-      </div>
-
-      <div class="mb-3">
-          {{ student_form.father_or_guardian_name.label_tag }}
-          {{ student_form.father_or_guardian_name }}
-      </div>
-
-      <div class="mb-3">
-          {{ student_form.mother_name.label_tag }}
-          {{ student_form.mother_name }}
-      </div>
-
-      <div class="mb-3">
-          {{ student_form.contact_number.label_tag }}
-          {{ student_form.contact_number }}
-      </div>
-
-      <div class="mb-3">
-          {{ student_form.address.label_tag }}
-          {{ student_form.address }}
-      </div>
-
-      <div class="mb-3">
-          {{ student_form.email.label_tag }}
-          {{ student_form.email }}
-      </div>
-
-      <div class="mb-3">
-          {{ student_form.last_school_name.label_tag }}
-          {{ student_form.last_school_name }}
-      </div>
-
-      <div class="mb-3">
-          {{ student_form.place_of_birth.label_tag }}
-          {{ student_form.place_of_birth }}
-      </div>
-
-      <div class="mb-3">
-          {{ student_form.known_earlier_disease.label_tag }}
-          {{ student_form.known_earlier_disease }}
-      </div>
-
-      <!-- **School Dropdown** -->
-      <div class="mb-3">
-          {{ student_form.school.label_tag }}
-          {{ student_form.school }}
-      </div>
-
-      <div class="mb-3">
-          {{ student_form.current_class_section.label_tag }}
-          {{ student_form.current_class_section }}
-      </div>
-
-      <div class="mb-3">
-          {{ student_form.current_teacher.label_tag }}
-          {{ student_form.current_teacher }}
-      </div>
-
-  </div>
-</div>
 
     <!-- Screening Info -->
     <hr class="my-4">
@@ -159,74 +34,47 @@
         <button type="submit" class="btn btn-primary">Save Screening</button>
     </div>
 </form>
-
-<script>
-const select = document.getElementById('studentSelect');
-const infoCard = document.getElementById('studentInfoCard');
-
-function showStudentInfo() {
-    const selectedOption = select.selectedOptions[0];
-    const selectedId = select.value;
-    const infoCollapse = bootstrap.Collapse.getOrCreateInstance(infoCard, {toggle:false});
-
-    if (!selectedId) {
-        infoCollapse.hide();
-    } else {
-        document.getElementById('infoName').textContent = selectedOption.dataset.name;
-        document.getElementById('infoClass').textContent = selectedOption.dataset.class || '—';
-        document.getElementById('infoSchool').textContent = selectedOption.dataset.school || '—';
-        infoCollapse.show();
-    }
-}
-
-
-function filterStudents() {
-    const searchInput = document.getElementById("studentSearch").value.toLowerCase();
-    const schoolFilter = document.getElementById("schoolFilter").value;
-    const select = document.getElementById("studentSelect");
-    const options = select.getElementsByTagName("option");
-
-    for (let i = 0; i < options.length; i++) {
-        const option = options[i];
-        const name = (option.getAttribute("data-name") || "").toLowerCase();
-        const school = option.getAttribute("data-school") || "";
-
-        const matchesSearch = name.includes(searchInput);
-        const matchesSchool =
-            !schoolFilter || school === schoolFilter || school === "";
-
-        if (matchesSearch && matchesSchool) {
-            option.style.display = "";
-        } else {
-            option.style.display = "none";
-        }
-    }
-}
-
-
-</script>
 <script>
   document.addEventListener('DOMContentLoaded', function() {
+      const select = document.getElementById('studentSelect');
       const weightInput = document.getElementById('id_weight');
       const heightInput = document.getElementById('id_height');
-      const bmiInput = document.getElementById('id_bmi');
+      const bmiInput = document.getElementById('id_bmi');  // the numeric BMI field
+      const bmiCategoryInput = document.getElementById('id_bmi_category'); // category field
   
-      function calculateBMI() {
+      function getBmiCategory(gender, month, bmiValue) {
+          if (!gender || !month || !bmiValue) return '';
+          gender = gender.toLowerCase();
+          // Replace with your real thresholds
+          if (bmiValue < 14) return 'Severe Underweight';
+          if (bmiValue < 16) return 'Underweight';
+          if (bmiValue < 20) return 'Normal';
+          if (bmiValue < 25) return 'Overweight';
+          return 'Obese';
+      }
+  
+      function updateBmiAndCategory() {
           const weight = parseFloat(weightInput.value);
           const height = parseFloat(heightInput.value);
+          const selectedOption = select.selectedOptions[0];
+          const gender = selectedOption ? selectedOption.dataset.gender : '';
+          const month = 60; // or fetch actual age_in_month if available
   
           if (!weight || !height) {
               bmiInput.value = '';
+              bmiCategoryInput.value = '';
               return;
           }
   
           const bmi = weight / ((height / 100) ** 2);
-          bmiInput.value = bmi.toFixed(2);  // show 2 decimals
+          bmiInput.value = bmi.toFixed(2); // update BMI numeric value
+          bmiCategoryInput.value = getBmiCategory(gender, month, bmi); // update category
       }
   
-      weightInput.addEventListener('input', calculateBMI);
-      heightInput.addEventListener('input', calculateBMI);
+      weightInput.addEventListener('input', updateBmiAndCategory);
+      heightInput.addEventListener('input', updateBmiAndCategory);
+      select.addEventListener('change', updateBmiAndCategory);
   });
   </script>
-      
+  
 {% endblock %}
