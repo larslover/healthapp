@@ -10,12 +10,13 @@
     <!-- Existing Student Selection -->
     <div class="mb-4">
         <label class="form-label">Select Existing Student</label>
-        <select id="studentSelect" name="student" class="form-select">
+        <select id="studentSelect" name="student" class="form-select" required>
             <option value="">-- Select a student --</option>
             {% for student in students %}
                 <option 
                     value="{{ student.id }}" 
                     data-gender="{{ student.gender|default_if_none:''|escapejs }}"
+                    data-dob="{{ student.date_of_birth|date:'Y-m-d'|default_if_none:'' }}"
                 >
                     {{ student.name }} ({{ student.current_class_section|default_if_none:'—' }})
                 </option>
@@ -34,47 +35,104 @@
         <button type="submit" class="btn btn-primary">Save Screening</button>
     </div>
 </form>
+
+<!-- =========================
+     JS: Real-time Calculations
+========================= -->
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-      const select = document.getElementById('studentSelect');
-      const weightInput = document.getElementById('id_weight');
-      const heightInput = document.getElementById('id_height');
-      const bmiInput = document.getElementById('id_bmi');  // the numeric BMI field
-      const bmiCategoryInput = document.getElementById('id_bmi_category'); // category field
-  
-      function getBmiCategory(gender, month, bmiValue) {
-          if (!gender || !month || !bmiValue) return '';
-          gender = gender.toLowerCase();
-          // Replace with your real thresholds
-          if (bmiValue < 14) return 'Severe Underweight';
-          if (bmiValue < 16) return 'Underweight';
-          if (bmiValue < 20) return 'Normal';
-          if (bmiValue < 25) return 'Overweight';
-          return 'Obese';
-      }
-  
-      function updateBmiAndCategory() {
-          const weight = parseFloat(weightInput.value);
-          const height = parseFloat(heightInput.value);
-          const selectedOption = select.selectedOptions[0];
-          const gender = selectedOption ? selectedOption.dataset.gender : '';
-          const month = 60; // or fetch actual age_in_month if available
-  
-          if (!weight || !height) {
-              bmiInput.value = '';
-              bmiCategoryInput.value = '';
-              return;
-          }
-  
-          const bmi = weight / ((height / 100) ** 2);
-          bmiInput.value = bmi.toFixed(2); // update BMI numeric value
-          bmiCategoryInput.value = getBmiCategory(gender, month, bmi); // update category
-      }
-  
-      weightInput.addEventListener('input', updateBmiAndCategory);
-      heightInput.addEventListener('input', updateBmiAndCategory);
-      select.addEventListener('change', updateBmiAndCategory);
-  });
-  </script>
-  
+document.addEventListener('DOMContentLoaded', function() {
+    const select = document.getElementById('studentSelect');
+    const screenDateInput = document.getElementById('id_screen_date');
+    const ageMonthsInput = document.getElementById('id_age_in_month');
+    const weightInput = document.getElementById('id_weight');
+    const heightInput = document.getElementById('id_height');
+    const bmiInput = document.getElementById('id_bmi');
+    const bmiCategoryInput = document.getElementById('id_bmi_category');
+    const muacInput = document.getElementById('id_muac');
+    const muacCategoryInput = document.getElementById('id_muac_sam');
+
+    // --------------------------
+    // AGE in Months Calculation
+    // --------------------------
+    function calculateAgeInMonths(dob, screenDate) {
+        if (!dob || !screenDate) return '';
+        const d1 = new Date(dob);
+        const d2 = new Date(screenDate);
+        let months = (d2.getFullYear() - d1.getFullYear()) * 12 + (d2.getMonth() - d1.getMonth());
+        if (d2.getDate() < d1.getDate()) months -= 1;
+        return months > 0 ? months : 0;
+    }
+
+    function updateAgeInMonths() {
+        const selected = select.selectedOptions[0];
+        const dob = selected ? selected.dataset.dob : null;
+        const screenDate = screenDateInput.value;
+        const months = calculateAgeInMonths(dob, screenDate);
+        ageMonthsInput.value = months || '';
+        updateBmiAndCategory();
+        updateMuacCategory();
+    }
+
+    // --------------------------
+    // BMI Calculation
+    // --------------------------
+    function getBmiCategory(gender, month, bmiValue) {
+        if (!gender || !month || !bmiValue) return 'N/A';
+        gender = gender.toLowerCase();
+        if (bmiValue < 14) return 'Severe Underweight';
+        if (bmiValue < 16) return 'Underweight';
+        if (bmiValue < 20) return 'Normal';
+        if (bmiValue < 25) return 'Overweight';
+        return 'Obese';
+    }
+
+    function updateBmiAndCategory() {
+        const weight = parseFloat(weightInput.value);
+        const height = parseFloat(heightInput.value);
+        const selected = select.selectedOptions[0];
+        const gender = selected ? selected.dataset.gender : '';
+        const month = parseInt(ageMonthsInput.value);
+
+        if (!weight || !height) {
+            bmiInput.value = '';
+            bmiCategoryInput.value = '';
+            return;
+        }
+
+        const bmi = weight / ((height / 100) ** 2);
+        bmiInput.value = bmi.toFixed(2);
+        bmiCategoryInput.value = getBmiCategory(gender, month, bmi);
+    }
+
+    // --------------------------
+    // MUAC Category
+    // --------------------------
+    function updateMuacCategory() {
+        const muacValue = parseFloat(muacInput.value);
+        const ageMonths = parseInt(ageMonthsInput.value);
+
+        if (isNaN(muacValue) || isNaN(ageMonths)) {
+            muacCategoryInput.value = '';
+            return;
+        }
+
+        if (ageMonths >= 6 && ageMonths <= 60) {
+            muacCategoryInput.value = (muacValue >= 11.5)
+                ? "Normal"
+                : "Severe Acute Malnutrition";
+        } else {
+            muacCategoryInput.value = "N/A";
+        }
+    }
+
+    // --------------------------
+    // Event Listeners
+    // --------------------------
+    select.addEventListener('change', updateAgeInMonths);
+    screenDateInput.addEventListener('input', updateAgeInMonths);
+    weightInput.addEventListener('input', updateBmiAndCategory);
+    heightInput.addEventListener('input', updateBmiAndCategory);
+    muacInput.addEventListener('input', updateMuacCategory);
+});
+</script>
 {% endblock %}

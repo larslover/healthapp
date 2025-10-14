@@ -1,5 +1,5 @@
 from django.db import models
-from core.utils.bmi_processor import bmi_category
+from core.utils.processor import bmi_category
 # ------------------------------
 # Legacy table (existing data)
 # ------------------------------
@@ -125,13 +125,15 @@ class Student(models.Model):
     def __str__(self):
         return self.name
 
+from django.db import models
+from .utils.processor import calculate_age_in_months, calculate_bmi, bmi_category, muac_category
 class Screening(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='screenings')
     screen_date = models.DateField(null=True, blank=True)
-    class_section = models.CharField(max_length=50, null=True, blank=True)  # moved here
-    school = models.ForeignKey(School, on_delete=models.SET_NULL, null=True, blank=True)  # optional
+    class_section = models.CharField(max_length=50, null=True, blank=True)
+    school = models.ForeignKey(School, on_delete=models.SET_NULL, null=True, blank=True)
 
-    # health measurements
+    # Health measurements
     weight = models.FloatField(null=True, blank=True)
     height = models.FloatField(null=True, blank=True)
     bmi = models.FloatField(null=True, blank=True)
@@ -139,13 +141,13 @@ class Screening(models.Model):
     muac = models.FloatField(null=True, blank=True)
     muac_sam = models.CharField(max_length=50, null=True, blank=True)
 
-    # additional health/vision fields
+    # Vision
     vision_both = models.CharField(max_length=50, null=True, blank=True)
     vison_left = models.IntegerField(null=True, blank=True)
     vison_right = models.IntegerField(null=True, blank=True)
     vision_problem = models.TextField(null=True, blank=True)
 
-    # optional tracking
+    # Optional tracking
     age_in_month = models.IntegerField(null=True, blank=True)
     deworming = models.CharField(max_length=50, null=True, blank=True)
     vaccination = models.CharField(max_length=255, null=True, blank=True)
@@ -153,28 +155,35 @@ class Screening(models.Model):
     tea_garden = models.CharField(max_length=255, null=True, blank=True)
     status = models.CharField(max_length=50, default='active')
     age_screening = models.CharField(max_length=50, null=True, blank=True)
-    def calculate_bmi(self):
-      """Calculate BMI based on weight and height, and set category."""
-      if not self.weight or not self.height or self.height == 0:
-          self.bmi = None
-          self.bmi_category = ""
-          return None
-
-      bmi = self.weight / ((self.height / 100) ** 2)
-      self.bmi = round(bmi, 2)
-
-      # safe BMI category
-      month = str(self.age_in_month or "")
-      gender = getattr(self.student, "gender", "") if getattr(self, "student", None) else ""
-      if month and gender:
-          self.bmi_category = bmi_category(gender, month, self.bmi)
-      else:
-          self.bmi_category = ""
-
-      return self.bmi
 
     class Meta:
         ordering = ['-screen_date']
 
     def __str__(self):
         return f"{self.student.name} - {self.screen_date} ({self.class_section})"
+
+    def calculate_metrics(self):
+        """Calculate age in months, BMI, BMI category, and MUAC category."""
+        dob = getattr(self.student, "date_of_birth", None)
+        if dob and self.screen_date:
+            self.age_in_month = calculate_age_in_months(dob, self.screen_date)
+        else:
+            self.age_in_month = None
+
+        self.bmi = calculate_bmi(self.weight, self.height)
+
+        self.bmi_category = (
+            bmi_category(getattr(self.student, "gender", ""), self.age_in_month, self.bmi)
+            if self.bmi is not None and self.age_in_month is not None
+            else "N/A"
+        )
+
+        self.muac_sam = (
+            muac_category(self.muac, self.age_in_month)
+            if self.muac is not None and self.age_in_month is not None
+            else "N/A"
+        )
+
+    def save(self, *args, **kwargs):
+        self.calculate_metrics()
+        super().save(*args, **kwargs)

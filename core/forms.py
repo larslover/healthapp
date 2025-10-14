@@ -9,14 +9,14 @@ from django import forms
 from .models import Student, Screening, School
 
 from django import forms
-from .models import Student
 
 
-from django import forms
-from .models import Student
-from django import forms
-from .models import Student, School
-from django import forms
+
+
+
+
+
+
 from .models import Student, School
 class StudentForm(forms.ModelForm):
     GENDER_CHOICES = [
@@ -83,8 +83,16 @@ class ScreeningForm(forms.ModelForm):
             'bmi_category': forms.TextInput(attrs={'readonly': True,
             'class': 'form-control',
         '   id': 'id_bmi_category'    }),
-            'muac': forms.NumberInput(attrs={'step': '0.1', 'class': 'form-control'}),
-            'muac_sam': forms.TextInput(attrs={'class': 'form-control'}),
+            'muac': forms.NumberInput(attrs={
+            'step': '0.1',
+            'class': 'form-control',
+            'id': 'id_muac'            # make sure JS matches this ID
+                    }),
+            'muac_sam': forms.TextInput(attrs={
+                'readonly': True,          # auto-populated like BMI category
+                'class': 'form-control',
+                'id': 'id_muac_sam'        # match JS
+            }),
             'vision_both': forms.TextInput(attrs={'class': 'form-control'}),
             'vison_left': forms.NumberInput(attrs={'class': 'form-control'}),
             'vison_right': forms.NumberInput(attrs={'class': 'form-control'}),
@@ -97,12 +105,12 @@ class ScreeningForm(forms.ModelForm):
             'status': forms.TextInput(attrs={'class': 'form-control'}),
             'age_screening': forms.TextInput(attrs={'class': 'form-control'}),
         }
-    def save(self, commit=True):
-        instance = super().save(commit=False)
-        instance.calculate_bmi()  # automatically calculates and stores BMI
-        if commit:
-            instance.save()
-        return instance
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Make age_in_month read-only
+        if 'age_in_month' in self.fields:
+            self.fields['age_in_month'].disabled = True
 
 
 

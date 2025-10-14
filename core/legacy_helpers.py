@@ -1,7 +1,6 @@
-from .models import LegacyStudent
-
+from core.models import LegacyStudent
 def get_all_students():
-    return LegacyStudent.objects.all()  # legacy table
+    return LegacyStudent.objects.all()
 
 def search_students(query='', school_name=None, limit=20):
     students = LegacyStudent.objects.all()

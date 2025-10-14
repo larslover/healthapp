@@ -1,11 +1,12 @@
 
-from core.utils.bmi_processor import bmi_category
+from core.utils.processor import bmi_category
 from django.shortcuts import render, get_object_or_404, redirect
 from .models import Student, Screening, School,LegacyStudent
 from .forms import StudentForm, ScreeningForm, SchoolForm
 from django.http import JsonResponse
-from .processor import search_students, get_all_students  # we'll add get_all_students
-from .processor import get_all_students, search_students
+from core.legacy_helpers import get_all_students, search_students
+from core.utils.processor import calculate_bmi, bmi_category, muac_category, calculate_age_in_months
+
 from django.contrib import messages
 
 def legacy_students_view(request):
@@ -23,43 +24,37 @@ def student_create(request):
 
     return render(request, 'core/student_create.html', {'form': form})
 
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib import messages
+from .models import Student, Screening
+from .forms import ScreeningForm
 
 def add_screening(request):
-    students = Student.objects.all().order_by('name')  # existing students
+    students = Student.objects.all().order_by('name')
     screening_form = ScreeningForm()
 
     if request.method == "POST":
         selected_student_id = request.POST.get("student")
+
         if not selected_student_id:
-            # No student selected
             return render(request, "core/screening_list.html", {
                 "students": students,
                 "screening_form": screening_form,
                 "error": "Please select a student first."
             })
 
-        # Fetch the student first
         student = get_object_or_404(Student, id=selected_student_id)
-
-        # Bind the form
         screening_form = ScreeningForm(request.POST)
+
         if screening_form.is_valid():
-            # Save without committing
             screening = screening_form.save(commit=False)
             screening.student = student  # assign student first
 
-            # Calculate BMI and category
-            screening.calculate_bmi()  # calculates BMI and sets bmi_category if student is present
+            # Automatically calculate all metrics: age, BMI, BMI category, MUAC
+            screening.calculate_metrics()
 
-            # Optional: override bmi_category explicitly using the utility function
-            if screening.bmi and student.gender:
-                screening.bmi_category = bmi_category(
-                    gender=student.gender,
-                    month=str(screening.age_in_month or ""),
-                    bmi_value=screening.bmi
-                )
+            screening.save()
 
-            screening.save()  # now safe to save
             messages.success(request, f"Screening for {student.name} saved successfully!")
             return redirect('screening_list')
 
@@ -67,7 +62,6 @@ def add_screening(request):
         "students": students,
         "screening_form": screening_form
     })
-
 def ajax_student_search(request):
     q = request.GET.get('q', '')
     school_id = request.GET.get('school')
