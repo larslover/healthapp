@@ -248,3 +248,48 @@ class Screening(models.Model):
     def save(self, *args, **kwargs):
         self.calculate_metrics()
         super().save(*args, **kwargs)
+from django.db import models
+from core.models import Screening
+
+class ScreeningCheck(models.Model):
+    screening = models.OneToOneField(Screening, on_delete=models.CASCADE, related_name="checklist")
+
+    # Nutritional / medical conditions
+    B1_severe_anemia = models.BooleanField(default=False)
+    B2_vitA_deficiency = models.BooleanField(default=False)
+    B3_vitD_deficiency = models.BooleanField(default=False)
+    B4_goitre = models.BooleanField(default=False)
+    B5_oedema = models.BooleanField(default=False)
+
+    # Other medical conditions
+    C1_convulsive_dis = models.BooleanField(default=False)
+    C2_otitis_media = models.BooleanField(default=False)
+    C3_dental_condition = models.BooleanField(default=False)
+    C4_skin_condition = models.BooleanField(default=False)
+    C5_rheumatic_heart_disease = models.BooleanField(default=False)
+    C6_others_TB_asthma = models.BooleanField(default=False)
+
+    # Development / learning difficulties
+    D1_difficulty_seeing = models.BooleanField(default=False)
+    D2_delay_in_walking = models.BooleanField(default=False)
+    D3_stiffness_floppiness = models.BooleanField(default=False)
+    D5_reading_writing_calculatory_difficulty = models.BooleanField(default=False)
+    D6_speaking_difficulty = models.BooleanField(default=False)
+    D7_hearing_problems = models.BooleanField(default=False)
+    D8_learning_difficulties = models.BooleanField(default=False)
+    D9_attention_difficulties = models.BooleanField(default=False)
+
+    # Other observations
+    E3_depression_sleep = models.BooleanField(default=False)
+    E4_menarke = models.BooleanField(default=False)
+    E5_regularity_period_difficulties = models.BooleanField(default=False)
+    E6_UTI_STI = models.BooleanField(default=False)
+    E7_discharge = models.BooleanField(default=False)
+    E8_menstrual_pain = models.BooleanField(default=False)
+
+    class Meta:
+        verbose_name = "Screening Check"
+        verbose_name_plural = "Screening Checks"
+
+    def __str__(self):
+        return f"{self.screening.student.name} - {self.screening.screen_date}"
