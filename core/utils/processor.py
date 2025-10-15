@@ -33,7 +33,7 @@ def evaluate_vision(left_vision: str, right_vision: str) -> str:
     except ValueError:
         return "invalid"
 
-    if left_vision in critical_vision_set or right_vision in critical_vison_set:
+    if left_vision in critical_vision_set or right_vision in critical_vision_set:
         return "yes"
 
     # If difference between eyes > 2 steps, also considered problematic

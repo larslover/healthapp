@@ -34,49 +34,46 @@ from django.contrib import messages
 from .forms import ScreeningForm, ScreeningCheckForm
 from .models import Student
 
+from datetime import date
+from core.utils.processor import calculate_age_in_months
+from core.utils.processor import calculate_age_in_months
+
 def add_screening(request):
     students = Student.objects.all().order_by('name')
     selected_student_id = request.POST.get("student") or request.GET.get("student")
     student = None
+    age_in_months = None
 
-    # Prefill school if student selected
     initial_data = {}
     if selected_student_id:
         student = get_object_or_404(Student, id=selected_student_id)
         initial_data['school'] = student.school.id if student.school else None
 
-    if request.method == "POST":
-        if not selected_student_id:
-            screening_form = ScreeningForm()
-            screening_check_form = ScreeningCheckForm()
-            return render(request, "core/screening_list.html", {
-                "students": students,
-                "screening_form": screening_form,
-                "screening_check_form": screening_check_form,
-                "error": "Please select a student first."
-            })
+        # calculate age if screening date is provided
+        screen_date_str = request.POST.get("screen_date") or request.GET.get("screen_date")
+        if student.date_of_birth and screen_date_str:
+            from datetime import datetime
+            screen_date = datetime.strptime(screen_date_str, "%Y-%m-%d").date()
+            age_in_months = calculate_age_in_months(student.date_of_birth, screen_date)
 
-        # Bind forms
+    # Initialize forms
+    if request.method == "POST":
         screening_form = ScreeningForm(request.POST, initial=initial_data)
         screening_check_form = ScreeningCheckForm(request.POST)
-
         if screening_form.is_valid() and screening_check_form.is_valid():
-            # Save Screening
             screening = screening_form.save(commit=False)
             screening.student = student
-            screening.calculate_metrics()  # backend metrics
+            screening.calculate_metrics()
             screening.save()
 
-            # Save ScreeningCheck linked to Screening
-            screening_check = screening_check_form.save(commit=False)
-            screening_check.screening = screening
-            screening_check.save()
+            check = screening_check_form.save(commit=False)
+            check.student = student
+            check.screen_date = screening.screen_date
+            check.save()
 
             messages.success(request, f"Screening for {student.name} saved successfully!")
-            return redirect('screening_list')
-
+            return redirect("screening_list")
     else:
-        # GET request
         screening_form = ScreeningForm(initial=initial_data)
         screening_check_form = ScreeningCheckForm()
 
@@ -84,6 +81,7 @@ def add_screening(request):
         "students": students,
         "screening_form": screening_form,
         "screening_check_form": screening_check_form,
+        "age_in_months": age_in_months
     })
 
 def ajax_student_search(request):

@@ -13,7 +13,7 @@
         <select id="studentSelect" name="student" class="form-select" required>
             <option value="">-- Select a student --</option>
             {% for student in students %}
-                <option value="{{ student.id }}">
+                <option value="{{ student.id }}" data-dob="{{ student.date_of_birth|date:'Y-m-d' }}">
                     {{ student.name }} ({{ student.current_class_section|default_if_none:'—' }})
                 </option>
             {% endfor %}
@@ -31,11 +31,75 @@
     <hr class="my-4">
     <h5 class="mb-3">Screening Checklist</h5>
     <div class="row g-3">
-        {{ screening_check_form.as_p }}
+        {% for field in screening_check_form %}
+            {% if field.name == 'B5_oedema' %}
+                <div class="mb-3" id="B5Wrapper" style="display:none;">
+                    {{ field.label_tag }} {{ field }}
+                </div>
+            {% else %}
+                <div class="mb-3">
+                    {{ field.label_tag }} {{ field }}
+                </div>
+            {% endif %}
+        {% endfor %}
     </div>
 
     <div class="mt-4">
         <button type="submit" class="btn btn-primary">Save Screening</button>
     </div>
 </form>
+
+<!-- =========================
+     JS: Dynamic B5 Visibility
+========================= -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const studentSelect = document.getElementById('studentSelect');
+    const screenDateInput = document.getElementById('id_screen_date');
+    const B5Wrapper = document.getElementById('B5Wrapper');
+
+    if (!B5Wrapper) return;
+
+    function calculateAgeInMonths(dob, screenDate) {
+        if (!dob || !screenDate) return null;
+        const birth = new Date(dob);
+        const screen = new Date(screenDate);
+        let months = (screen.getFullYear() - birth.getFullYear()) * 12 + (screen.getMonth() - birth.getMonth());
+        if (screen.getDate() < birth.getDate()) months -= 1;
+        return months;
+    }
+
+    function toggleB5() {
+        const selectedOption = studentSelect.selectedOptions[0];
+        if (!selectedOption || !screenDateInput.value) {
+            B5Wrapper.style.display = 'none';
+            return;
+        }
+
+        const dob = selectedOption.dataset.dob;
+        const screenDate = screenDateInput.value;
+
+        if (!dob || !screenDate) {
+            B5Wrapper.style.display = 'none';
+            return;
+        }
+
+        const ageInMonths = calculateAgeInMonths(dob, screenDate);
+
+        if (ageInMonths >= 24 && ageInMonths <= 72) {
+            B5Wrapper.style.display = 'block';
+        } else {
+            B5Wrapper.style.display = 'none';
+        }
+    }
+
+    studentSelect.addEventListener('change', toggleB5);
+    if (screenDateInput) {
+        screenDateInput.addEventListener('input', toggleB5);
+        screenDateInput.addEventListener('change', toggleB5);
+    }
+
+    toggleB5(); // initial check
+});
+</script>
 {% endblock %}
