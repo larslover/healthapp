@@ -12,6 +12,9 @@
 # =========================
 from datetime import date
 from .thresholds import bmi_thresholds_female, bmi_thresholds_male
+# Before using in processor, convert keys to int
+bmi_thresholds_female = {int(k): v for k, v in bmi_thresholds_female.items()}
+bmi_thresholds_male   = {int(k): v for k, v in bmi_thresholds_male.items()}
 
 def calculate_age_in_months(dob: date, reference_date: date) -> int:
     months = (reference_date.year - dob.year) * 12 + (reference_date.month - dob.month)
@@ -23,16 +26,28 @@ def calculate_bmi(weight: float, height_cm: float) -> float | None:
     if not weight or not height_cm or height_cm == 0:
         return None
     return round(weight / ((height_cm / 100) ** 2), 2)
-
 def bmi_category(gender: str, age_months: int, bmi_value: float) -> str:
+    """
+    Calculate BMI category based on WHO thresholds.
+    Returns: 'severe underweight', 'underweight', 'normal', 'overweight', or 'obese'.
+    """
     gender = (gender or "").lower()
     if gender not in ["male", "female"]:
         return "N/A"
+
     thresholds = bmi_thresholds_female if gender == "female" else bmi_thresholds_male
-    age_str = str(age_months)
-    if age_months < 61 or age_months > 228 or age_str not in thresholds:
+
+    try:
+        age_months = int(age_months)
+    except (TypeError, ValueError):
         return "N/A"
-    severe, underweight, overweight, obese = thresholds[age_str]
+
+    # Only support ages 61–228 months (5–19 years)
+    if age_months < 61 or age_months > 228 or age_months not in thresholds:
+        return "N/A"
+
+    severe, underweight, overweight, obese = thresholds[age_months]
+
     if bmi_value <= severe:
         return "severe underweight"
     elif bmi_value <= underweight:
