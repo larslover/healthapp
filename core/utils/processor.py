@@ -12,6 +12,36 @@
 # =========================
 from datetime import date
 from .thresholds import bmi_thresholds_female, bmi_thresholds_male
+
+# core/utils/processor.py
+from core.utils.thresholds import vision_list, critical_vision_set
+
+def evaluate_vision(left_vision: str, right_vision: str) -> str:
+    """
+    Determine if a student's vision is problematic.
+
+    Args:
+        left_vision (str): Left eye vision string from VISION_LIST.
+        right_vision (str): Right eye vision string from VISION_LIST.
+
+    Returns:
+        str: 'yes' if vision is problematic, 'no' if normal, 'invalid' if inputs are invalid.
+    """
+    try:
+        left_index = vision_list.index(left_vision)
+        right_index = vision_list.index(right_vision)
+    except ValueError:
+        return "invalid"
+
+    if left_vision in critical_vision_set or right_vision in critical_vison_set:
+        return "yes"
+
+    # If difference between eyes > 2 steps, also considered problematic
+    if abs(left_index - right_index) > 2:
+        return "yes"
+
+    return "no"
+
 # Before using in processor, convert keys to int
 bmi_thresholds_female = {int(k): v for k, v in bmi_thresholds_female.items()}
 bmi_thresholds_male   = {int(k): v for k, v in bmi_thresholds_male.items()}

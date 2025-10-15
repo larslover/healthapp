@@ -1,3 +1,10 @@
+vision_list = [
+    "3/30", "3/24", "3/19", "3/15", "3/12", "3/9.5", "3/7.5", "3/6", "3/4.8",
+    "3/3.8", "3/3", "3/2.4", "3/1.9", "3/1.5", "3/1.2"
+]
+
+# Set of vision values considered "critical" (worse than 3/4.8)
+critical_vision_set = set(vision_list[:9])  # From "3/30" to "3/4.8"
 
 bmi_thresholds_male = {
             "61": (12.1, 13.0, 18.3, 20.2),

@@ -167,70 +167,83 @@ class Screening(models.Model):
     def __str__(self):
         return f"{self.student.name} - {self.screen_date} ({self.class_section})"
 
-    def calculate_metrics(self):
-      """Calculate all WHO metrics safely."""
-      if not self.student:
-          self.age_in_month = None
-          self.bmi = None
-          self.bmi_category = "N/A"
-          self.muac_sam = "N/A"
-          self.weight_age = "N/A"
-          self.length_age = "N/A"
-          self.weight_height = "N/A"
-          return
-
-      dob = getattr(self.student, "date_of_birth", None)
-      if dob and self.screen_date:
-          self.age_in_month = calculate_age_in_months(dob, self.screen_date)
-      else:
-          self.age_in_month = None
-
-      # Convert to float safely
-      weight = float(self.weight) if self.weight else None
-      height = float(self.height) if self.height else None
-
-      self.bmi = calculate_bmi(weight, height)
-
-      self.bmi_category = (
-          bmi_category(getattr(self.student, "gender", ""), self.age_in_month, self.bmi)
-          if self.bmi is not None and self.age_in_month is not None
-          else "N/A"
-      )
-
-      self.muac_sam = (
-          muac_category(self.muac, self.age_in_month)
-          if self.muac is not None and self.age_in_month is not None
-          else "N/A"
-      )
-
-      from core.utils.processor import weight_age_category, height_age_category, weight_height_category
-      gender = getattr(self.student, "gender", "")
-
-      self.weight_age = (
-          weight_age_category(weight, self.age_in_month, gender)
-          if weight is not None and self.age_in_month is not None
-          else "N/A"
-      )
-
-      self.length_age = (
-          height_age_category(height, self.age_in_month, gender)
-          if height is not None and self.age_in_month is not None
-          else "N/A"
-      )
-
-      self.weight_height = (
-          weight_height_category(weight, height, self.age_in_month, gender)
-          if weight is not None and height is not None and self.age_in_month is not None
-          else "N/A"
-      )
     
 
-      self.weight_height = weight_height_category(
-          weight=self.weight,
-          height=self.height,
-          age_in_months=self.age_in_month,
-          gender=getattr(self.student, "gender", "")
-          )
+    def calculate_metrics(self):
+        from core.utils.processor import (
+        weight_age_category,
+        height_age_category,
+        weight_height_category,
+        evaluate_vision
+    )
+        """Calculate all WHO metrics safely."""
+        if not self.student:
+            self.age_in_month = None
+            self.bmi = None
+            self.bmi_category = "N/A"
+            self.muac_sam = "N/A"
+            self.weight_age = "N/A"
+            self.length_age = "N/A"
+            self.weight_height = "N/A"
+            self.vision_problem = "N/A"
+            return
+
+        dob = getattr(self.student, "date_of_birth", None)
+        if dob and self.screen_date:
+            self.age_in_month = calculate_age_in_months(dob, self.screen_date)
+        else:
+            self.age_in_month = None
+
+        # Convert to float safely
+        weight = float(self.weight) if self.weight else None
+        height = float(self.height) if self.height else None
+
+        self.bmi = calculate_bmi(weight, height)
+
+        self.bmi_category = (
+            bmi_category(getattr(self.student, "gender", ""), self.age_in_month, self.bmi)
+            if self.bmi is not None and self.age_in_month is not None
+            else "N/A"
+        )
+
+        self.muac_sam = (
+            muac_category(self.muac, self.age_in_month)
+            if self.muac is not None and self.age_in_month is not None
+            else "N/A"
+        )
+
+        gender = getattr(self.student, "gender", "")
+
+        self.weight_age = (
+            weight_age_category(weight, self.age_in_month, gender)
+            if weight is not None and self.age_in_month is not None
+            else "N/A"
+        )
+
+        self.length_age = (
+            height_age_category(height, self.age_in_month, gender)
+            if height is not None and self.age_in_month is not None
+            else "N/A"
+        )
+
+        self.weight_height = (
+            weight_height_category(weight, height, self.age_in_month, gender)
+            if weight is not None and height is not None and self.age_in_month is not None
+            else "N/A"
+        )
+
+        # -------------------------
+        # Vision logic
+        # -------------------------
+        try:
+            left_vision = getattr(self, "vison_left", None)
+            right_vision = getattr(self, "vison_right", None)
+            if left_vision is not None and right_vision is not None:
+                self.vision_problem = evaluate_vision(left_vision, right_vision)
+            else:
+                self.vision_problem = "N/A"
+        except Exception:
+            self.vision_problem = "N/A"
 
     def save(self, *args, **kwargs):
         self.calculate_metrics()
