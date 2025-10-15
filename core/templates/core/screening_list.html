@@ -7,17 +7,13 @@
 <form method="POST" class="needs-validation" novalidate>
     {% csrf_token %}
 
-    <!-- Existing Student Selection -->
+    <!-- Student Selection -->
     <div class="mb-4">
         <label class="form-label">Select Existing Student</label>
         <select id="studentSelect" name="student" class="form-select" required>
             <option value="">-- Select a student --</option>
             {% for student in students %}
-                <option 
-                    value="{{ student.id }}" 
-                    data-gender="{{ student.gender|default_if_none:''|escapejs }}"
-                    data-dob="{{ student.date_of_birth|date:'Y-m-d'|default_if_none:'' }}"
-                >
+                <option value="{{ student.id }}">
                     {{ student.name }} ({{ student.current_class_section|default_if_none:'—' }})
                 </option>
             {% endfor %}
@@ -35,139 +31,4 @@
         <button type="submit" class="btn btn-primary">Save Screening</button>
     </div>
 </form>
-
-<!-- =========================
-     JS: Real-time Calculations
-========================= -->
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-      // -------------------------
-      // DOM Elements
-      // -------------------------
-      const select = document.getElementById('studentSelect');
-      const screenDateInput = document.getElementById('id_screen_date');
-      const ageMonthsInput = document.getElementById('id_age_in_month');
-      const weightInput = document.getElementById('id_weight');
-      const heightInput = document.getElementById('id_height');
-      const bmiInput = document.getElementById('id_bmi');
-      const bmiCategoryInput = document.getElementById('id_bmi_category');
-      const muacInput = document.getElementById('id_muac');
-      const muacCategoryInput = document.getElementById('id_muac_sam');
-      const weightAgeInput = document.getElementById('id_weight_age');
-      const lengthAgeInput = document.getElementById('id_length_age');
-      const weightHeightInput = document.getElementById('id_weight_height');
-  
-      // -------------------------
-      // Utility Functions
-      // -------------------------
-      function calculateAgeInMonths(dob, screenDate) {
-          if (!dob || !screenDate) return '';
-          const d1 = new Date(dob);
-          const d2 = new Date(screenDate);
-          let months = (d2.getFullYear() - d1.getFullYear()) * 12 + (d2.getMonth() - d1.getMonth());
-          if (d2.getDate() < d1.getDate()) months -= 1;
-          return months > 0 ? months : 0;
-      }
-  
-      // Simple BMI calculation
-      function calculateBmi(weight, height) {
-          if (!weight || !height) return '';
-          return weight / ((height / 100) ** 2);
-      }
-  
-      // Example placeholders for thresholds
-      // (In your real code, these come from Django context)
-      const weightFemaleThresholds = {{ weight_female_thresholds|safe }};
-      const weightMaleThresholds = {{ weight_male_thresholds|safe }};
-      const heightFemaleThresholds = {{ height_age_female_thresholds|safe }};
-      const heightMaleThresholds = {{ height_age_male_thresholds|safe }};
-      const weightHeightFemaleThresholds = {{ weight_height_female_thresholds|safe }};
-      const weightHeightMaleThresholds = {{ weight_height_male_thresholds|safe }};
-  
-      function getWeightAgeCategory(weight, ageMonths, gender) {
-          if (!weight || !ageMonths || !gender) return 'N/A';
-          gender = gender.toLowerCase();
-          const thresholds = gender === 'female' ? weightFemaleThresholds : weightMaleThresholds;
-          const months = Object.keys(thresholds).map(x => parseInt(x));
-          const closest = months.reduce((a, b) => Math.abs(b - ageMonths) < Math.abs(a - ageMonths) ? b : a);
-          const [lower, upper] = thresholds[closest];
-          if (weight < lower) return 'Severely Underweight';
-          if (weight < upper) return 'Moderately Underweight';
-          return 'Normal';
-      }
-  
-      function getHeightAgeCategory(height, ageMonths, gender) {
-          if (!height || !ageMonths || !gender) return 'N/A';
-          gender = gender.toLowerCase();
-          const thresholds = gender === 'female' ? heightFemaleThresholds : heightMaleThresholds;
-          const months = Object.keys(thresholds).map(x => parseInt(x));
-          const closest = months.reduce((a, b) => Math.abs(b - ageMonths) < Math.abs(a - ageMonths) ? b : a);
-          const [lower, upper] = thresholds[closest];
-          if (height < lower) return 'Severe Stunting';
-          if (height < upper) return 'Moderate Stunting';
-          return 'Normal';
-      }
-  
-      function getWeightHeightCategory(weight, height, ageMonths, gender) {
-          if (!weight || !height || !ageMonths || !gender) return 'N/A';
-          gender = gender.toLowerCase();
-          const thresholds = gender === 'female' ? weightHeightFemaleThresholds : weightHeightMaleThresholds;
-          const heights = Object.keys(thresholds).map(x => parseFloat(x));
-          const closest = heights.reduce((a, b) => Math.abs(b - height) < Math.abs(a - height) ? b : a);
-          const [v1, v2, v3, v4] = thresholds[closest];
-          if (weight < v1) return 'Severe Acute Malnutrition';
-          if (weight < v2) return 'Moderate Acute Malnutrition';
-          if (weight <= v3) return 'Normal';
-          if (weight <= v4) return 'Overweight';
-          return 'Obese';
-      }
-  
-      // -------------------------
-      // Main Update Function
-      // -------------------------
-      function updateAllMetrics() {
-          const selected = select.selectedOptions[0];
-          const dob = selected ? selected.dataset.dob : null;
-          const gender = selected ? selected.dataset.gender : '';
-          const screenDate = screenDateInput.value;
-  
-          // Age
-          const months = calculateAgeInMonths(dob, screenDate);
-          ageMonthsInput.value = months || '';
-  
-          const weight = parseFloat(weightInput.value);
-          const height = parseFloat(heightInput.value);
-  
-          // BMI
-          const bmi = calculateBmi(weight, height);
-          bmiInput.value = bmi ? bmi.toFixed(2) : '';
-          bmiCategoryInput.value = ''; // backend handles real category
-  
-          // MUAC
-          const muacValue = parseFloat(muacInput.value);
-          if (!isNaN(muacValue) && months >= 6 && months <= 60) {
-              muacCategoryInput.value = muacValue >= 11.5 ? 'Normal' : 'Severe Acute Malnutrition';
-          } else {
-              muacCategoryInput.value = 'N/A';
-          }
-  
-          // Weight-age, height-age, weight-height
-          weightAgeInput.value = getWeightAgeCategory(weight, months, gender);
-          lengthAgeInput.value = getHeightAgeCategory(height, months, gender);
-          weightHeightInput.value = getWeightHeightCategory(weight, height, months, gender);
-      }
-  
-      // -------------------------
-      // Event Listeners
-      // -------------------------
-      [select, screenDateInput, weightInput, heightInput, muacInput].forEach(el => {
-          el.addEventListener('input', updateAllMetrics);
-          el.addEventListener('change', updateAllMetrics);
-      });
-  
-      // Trigger once on page load
-      updateAllMetrics();
-  });
-  </script>
-    
 {% endblock %}

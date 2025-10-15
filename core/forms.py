@@ -63,58 +63,32 @@ class StudentForm(forms.ModelForm):
             'current_class_section': forms.TextInput(attrs={'class': 'form-control'}),
             'current_teacher': forms.TextInput(attrs={'class': 'form-control'}),
         }
-
 class ScreeningForm(forms.ModelForm):
     class Meta:
         model = Screening
         fields = [
-            'screen_date', 'class_section', 'school', 'weight', 'height', 'bmi', 'bmi_category',
-            'muac', 'muac_sam', 'vision_both', 'vison_left', 'vison_right', 'vision_problem',
-            'age_in_month', 'deworming', 'vaccination', 'covid', 'tea_garden', 'status', 'age_screening','weight_age', 'length_age', 'weight_height'
+            'screen_date', 'class_section', 'school', 'weight', 'height', 'muac',
+            'vision_both', 'vison_left', 'vison_right',
+            
         ]
         widgets = {
             'screen_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'class_section': forms.TextInput(attrs={'class': 'form-control'}),
             'school': forms.Select(attrs={'class': 'form-control'}),
-           'weight': forms.NumberInput(attrs={'step': '0.1', 'class': 'form-control', 'id': 'id_weight'}),
-            'height': forms.NumberInput(attrs={'step': '0.1', 'class': 'form-control', 'id': 'id_height'}),
-            'bmi': forms.NumberInput(attrs={'step': '0.1', 'readonly': True, 'class': 'form-control', 'id': 'id_bmi'}),
-
-            'bmi_category': forms.TextInput(attrs={'readonly': True,
-            'class': 'form-control',
-        '   id': 'id_bmi_category'    }),
-            'muac': forms.NumberInput(attrs={
-            'step': '0.1',
-            'class': 'form-control',
-            'id': 'id_muac'            # make sure JS matches this ID
-                    }),
-            'muac_sam': forms.TextInput(attrs={
-                'readonly': True,          # auto-populated like BMI category
-                'class': 'form-control',
-                'id': 'id_muac_sam'        # match JS
-            }),
+            'weight': forms.NumberInput(attrs={'step': '0.1', 'class': 'form-control'}),
+            'height': forms.NumberInput(attrs={'step': '0.1', 'class': 'form-control'}),
+            'muac': forms.NumberInput(attrs={'step': '0.1', 'class': 'form-control'}),
             'vision_both': forms.TextInput(attrs={'class': 'form-control'}),
             'vison_left': forms.NumberInput(attrs={'class': 'form-control'}),
             'vison_right': forms.NumberInput(attrs={'class': 'form-control'}),
             'vision_problem': forms.Textarea(attrs={'class': 'form-control'}),
-            'age_in_month': forms.NumberInput(attrs={'class': 'form-control'}),
             'deworming': forms.TextInput(attrs={'class': 'form-control'}),
             'vaccination': forms.TextInput(attrs={'class': 'form-control'}),
             'covid': forms.TextInput(attrs={'class': 'form-control'}),
             'tea_garden': forms.TextInput(attrs={'class': 'form-control'}),
             'status': forms.TextInput(attrs={'class': 'form-control'}),
             'age_screening': forms.TextInput(attrs={'class': 'form-control'}),
-            'weight_age': forms.TextInput(attrs={'class': 'form-control'}),
-            'length_age': forms.TextInput(attrs={'class': 'form-control'}),
-            'weight_height': forms.TextInput(attrs={'class': 'form-control'}),
         }
-    
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Make age_in_month read-only
-        if 'age_in_month' in self.fields:
-            self.fields['age_in_month'].disabled = True
-
 
 
 class SchoolForm(forms.ModelForm):
