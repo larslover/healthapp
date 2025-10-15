@@ -188,6 +188,30 @@ class Screening(models.Model):
             if self.muac is not None and self.age_in_month is not None
             else "N/A"
         )
+        from core.utils.processor import weight_age_category,height_age_category,weight_height_category
+
+        self.weight_age = weight_age_category(
+            self.weight,
+            self.age_in_month,
+            getattr(self.student, "gender", "")
+        )
+        self.length_age = (
+          height_age_category(
+              self.height,
+              self.age_in_month,
+              getattr(self.student, "gender", "")
+          )
+          if self.height and self.age_in_month
+          else "N/A"
+      )
+       
+
+        self.weight_height = weight_height_category(
+            weight=self.weight,
+            height=self.height,
+            age_in_months=self.age_in_month,
+            gender=getattr(self.student, "gender", "")
+        )
 
     def save(self, *args, **kwargs):
         self.calculate_metrics()

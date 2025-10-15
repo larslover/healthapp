@@ -70,7 +70,7 @@ class ScreeningForm(forms.ModelForm):
         fields = [
             'screen_date', 'class_section', 'school', 'weight', 'height', 'bmi', 'bmi_category',
             'muac', 'muac_sam', 'vision_both', 'vison_left', 'vison_right', 'vision_problem',
-            'age_in_month', 'deworming', 'vaccination', 'covid', 'tea_garden', 'status', 'age_screening'
+            'age_in_month', 'deworming', 'vaccination', 'covid', 'tea_garden', 'status', 'age_screening','weight_age', 'length_age', 'weight_height'
         ]
         widgets = {
             'screen_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
@@ -104,6 +104,9 @@ class ScreeningForm(forms.ModelForm):
             'tea_garden': forms.TextInput(attrs={'class': 'form-control'}),
             'status': forms.TextInput(attrs={'class': 'form-control'}),
             'age_screening': forms.TextInput(attrs={'class': 'form-control'}),
+            'weight_age': forms.TextInput(attrs={'class': 'form-control'}),
+            'length_age': forms.TextInput(attrs={'class': 'form-control'}),
+            'weight_height': forms.TextInput(attrs={'class': 'form-control'}),
         }
     
     def __init__(self, *args, **kwargs):

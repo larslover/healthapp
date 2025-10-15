@@ -47,3 +47,97 @@ def muac_category(muac_value: float, age_months: int) -> str:
     if age_months < 6 or age_months > 60:
         return "N/A"
     return "normal" if muac_value >= 11.5 else "severe acute malnutrition"
+
+from .thresholds import weight_female_thresholds, weight_male_thresholds
+
+
+from .thresholds import weight_female_thresholds, weight_male_thresholds
+
+def weight_age_category(weight, age_in_months, gender):
+    """
+    Classify weight-for-age category using WHO thresholds.
+    Returns: 'Severely Underweight', 'Moderately Underweight', or 'Normal'.
+    """
+
+    # Guard against missing or invalid inputs
+    if not (weight and age_in_months and gender):
+        return "N/A"
+
+    gender = gender.lower().strip()
+    thresholds = weight_female_thresholds if gender == "female" else weight_male_thresholds
+
+    # Use the nearest month in WHO table if exact age missing
+    all_months = sorted(thresholds.keys())
+    closest_age = min(all_months, key=lambda m: abs(m - age_in_months))
+
+    lower, upper = thresholds[closest_age]
+
+    # Smooth classification logic
+    if weight < lower:
+        return "Severely Underweight"
+    elif weight < upper:
+        return "Moderately Underweight"
+    else:
+        return "Normal"
+
+from .thresholds import height_age_female_thresholds, height_age_male_thresholds
+
+def height_age_category(height, age_in_months, gender):
+    """
+    Determine height-for-age (stunting) category based on WHO thresholds.
+    Returns: 'Severe Stunting', 'Moderate Stunting', 'Normal', or 'N/A'.
+    """
+
+    # Validate inputs
+    if not (height and age_in_months and gender):
+        return "N/A"
+
+    gender = gender.lower().strip()
+    thresholds = height_age_female_thresholds if gender == "female" else height_age_male_thresholds
+
+    # Find nearest available month
+    all_months = sorted(thresholds.keys())
+    closest_age = min(all_months, key=lambda m: abs(m - age_in_months))
+
+    lower, upper = thresholds[closest_age]
+
+    # Classification logic
+    if height < lower:
+        return "Severe Stunting"
+    elif lower <= height < upper:
+        return "Moderate Stunting"
+    else:
+        return "Normal"
+from .thresholds import weight_height_female_thresholds, weight_height_male_thresholds
+
+def weight_height_category(weight, height, age_in_months, gender):
+    """
+    Determine weight-for-height category based on WHO thresholds.
+    Returns: 'Severe Acute Malnutrition', 'Moderate Acute Malnutrition', 
+             'Normal', 'Overweight', 'Obese', or 'N/A'.
+    """
+
+    # Validate inputs
+    if not (weight and height and age_in_months and gender):
+        return "N/A"
+
+    gender = gender.lower().strip()
+    thresholds = weight_height_female_thresholds if gender == "female" else weight_height_male_thresholds
+
+    # Find closest height in WHO table
+    all_heights = sorted(thresholds.keys())
+    closest_height = min(all_heights, key=lambda h: abs(h - height))
+
+    # Extract thresholds for weight classification
+    v1, v2, v3, v4 = thresholds[closest_height]
+
+    if weight < v1:
+        return "Severe Acute Malnutrition"
+    elif weight < v2:
+        return "Moderate Acute Malnutrition"
+    elif v2 <= weight <= v3:
+        return "Normal"
+    elif v3 < weight <= v4:
+        return "Overweight"
+    elif weight > v4:
+        return "Obese"

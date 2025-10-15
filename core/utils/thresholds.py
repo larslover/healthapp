@@ -501,7 +501,7 @@ height_age_male_thresholds = {
     59: (95.6, 100.2),
     60: (96.1, 100.7)
 }
-male_weight_height_thresholds = {
+weight_height_male_thresholds = {
 65.0: (5.9, 6.3, 8.8, 9.6),
 65.5: (6.0, 6.4,8.9, 9.8),
 66.0: (6.1, 6.5, 9.1, 9.9),
@@ -616,7 +616,7 @@ male_weight_height_thresholds = {
 }
 
 
-female_weight_height_thresholds = {
+weight_height_female_thresholds = {
 65.0: (5.6, 6.1, 8.7, 9.7),
 65.5: (5.7, 6.2, 8.9, 9.8),
 66.0: (5.8, 6.3, 9.0, 10.0),
