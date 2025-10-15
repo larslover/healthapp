@@ -141,6 +141,11 @@ class Screening(models.Model):
     muac = models.FloatField(null=True, blank=True)
     muac_sam = models.CharField(max_length=50, null=True, blank=True)
 
+    # Legacy nutritional indicators
+    weight_age = models.TextField(blank=True, null=True)
+    length_age = models.TextField(blank=True, null=True)
+    weight_height = models.TextField(blank=True, null=True)
+
     # Vision
     vision_both = models.CharField(max_length=50, null=True, blank=True)
     vison_left = models.IntegerField(null=True, blank=True)
