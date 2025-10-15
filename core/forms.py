@@ -89,6 +89,47 @@ class ScreeningForm(forms.ModelForm):
             'status': forms.TextInput(attrs={'class': 'form-control'}),
             'age_screening': forms.TextInput(attrs={'class': 'form-control'}),
         }
+from django import forms
+from core.models import ScreeningCheck
+
+class ScreeningCheckForm(forms.ModelForm):
+    class Meta:
+        model = ScreeningCheck
+        exclude = ['screening']  # linked automatically in the view
+        widgets = {
+            # Nutritional / medical conditions
+            'B1_severe_anemia': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'B2_vitA_deficiency': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'B3_vitD_deficiency': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'B4_goitre': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'B5_oedema': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+
+            # Other medical conditions
+            'C1_convulsive_dis': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'C2_otitis_media': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'C3_dental_condition': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'C4_skin_condition': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'C5_rheumatic_heart_disease': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'C6_others_TB_asthma': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+
+            # Development / learning difficulties
+            'D1_difficulty_seeing': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'D2_delay_in_walking': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'D3_stiffness_floppiness': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'D5_reading_writing_calculatory_difficulty': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'D6_speaking_difficulty': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'D7_hearing_problems': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'D8_learning_difficulties': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'D9_attention_difficulties': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+
+            # Other observations
+            'E3_depression_sleep': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'E4_menarke': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'E5_regularity_period_difficulties': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'E6_UTI_STI': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'E7_discharge': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'E8_menstrual_pain': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
 
 
 class SchoolForm(forms.ModelForm):

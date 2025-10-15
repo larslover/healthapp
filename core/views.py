@@ -29,42 +29,61 @@ from django.contrib import messages
 from .models import Student, Screening
 from .forms import ScreeningForm
 
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib import messages
+from .forms import ScreeningForm, ScreeningCheckForm
+from .models import Student
+
 def add_screening(request):
     students = Student.objects.all().order_by('name')
     selected_student_id = request.POST.get("student") or request.GET.get("student")
     student = None
 
-    # If a student is selected, prefill school
+    # Prefill school if student selected
     initial_data = {}
     if selected_student_id:
         student = get_object_or_404(Student, id=selected_student_id)
         initial_data['school'] = student.school.id if student.school else None
 
-    # Initialize form with POST or initial
     if request.method == "POST":
         if not selected_student_id:
             screening_form = ScreeningForm()
+            screening_check_form = ScreeningCheckForm()
             return render(request, "core/screening_list.html", {
                 "students": students,
                 "screening_form": screening_form,
+                "screening_check_form": screening_check_form,
                 "error": "Please select a student first."
             })
 
+        # Bind forms
         screening_form = ScreeningForm(request.POST, initial=initial_data)
-        if screening_form.is_valid():
+        screening_check_form = ScreeningCheckForm(request.POST)
+
+        if screening_form.is_valid() and screening_check_form.is_valid():
+            # Save Screening
             screening = screening_form.save(commit=False)
             screening.student = student
             screening.calculate_metrics()  # backend metrics
             screening.save()
+
+            # Save ScreeningCheck linked to Screening
+            screening_check = screening_check_form.save(commit=False)
+            screening_check.screening = screening
+            screening_check.save()
+
             messages.success(request, f"Screening for {student.name} saved successfully!")
             return redirect('screening_list')
+
     else:
         # GET request
         screening_form = ScreeningForm(initial=initial_data)
+        screening_check_form = ScreeningCheckForm()
 
     return render(request, "core/screening_list.html", {
         "students": students,
-        "screening_form": screening_form
+        "screening_form": screening_form,
+        "screening_check_form": screening_check_form,
     })
 
 def ajax_student_search(request):
