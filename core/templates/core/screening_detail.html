@@ -1,0 +1,109 @@
+{% extends "core/base.html" %}
+{% load custom_filters %}
+
+{% block title %}Screening Detail - {{ screening.student.name }}{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+
+    <h2 class="mb-4 fw-bold">Screening Detail</h2>
+
+    <div class="mb-3">
+        <a href="{% url 'screened_students' %}" class="btn btn-secondary">&laquo; Back to List</a>
+        {% if user.is_staff %}
+            <a href="{% url 'screening_edit' screening.id %}" class="btn btn-warning">Edit Screening</a>
+        {% endif %}
+    </div>
+
+    <!-- Student Information -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-primary text-white">Student Information</div>
+        <div class="card-body">
+            <div class="row mb-2">
+                <div class="col-md-4"><strong>Name:</strong> {{ screening.student.name }}</div>
+                <div class="col-md-4"><strong>Gender:</strong> {{ screening.student.gender|default:"—" }}</div>
+                <div class="col-md-4"><strong>Age at Screening:</strong> 
+                    {% if screening.age_in_month %}{{ screening.age_in_month }} months{% else %}—{% endif %}
+                </div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-4"><strong>Roll No:</strong> {{ screening.student.roll_no|default:"—" }}</div>
+                <div class="col-md-4"><strong>Aadhaar:</strong> {{ screening.student.aadhaar_no|default:"—" }}</div>
+                <div class="col-md-4"><strong>School:</strong> {{ screening.student.school.name|default:"—" }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-6"><strong>Father/Guardian:</strong> {{ screening.student.father_or_guardian_name|default:"—" }}</div>
+                <div class="col-md-6"><strong>Mother:</strong> {{ screening.student.mother_name|default:"—" }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-6"><strong>Contact:</strong> {{ screening.student.contact_number|default:"—" }}</div>
+                <div class="col-md-6"><strong>Email:</strong> {{ screening.student.email|default:"—" }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-12"><strong>Address:</strong> {{ screening.student.address|default:"—" }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Screening Information -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-success text-white">Screening Information</div>
+        <div class="card-body">
+            <div class="row mb-2">
+                <div class="col-md-4"><strong>Screening Date:</strong> {{ screening.screen_date|date:"Y-m-d"|default:"—" }}</div>
+                <div class="col-md-4"><strong>Class/Section:</strong> {{ screening.class_section|default:"—" }}</div>
+                <div class="col-md-4"><strong>School:</strong> {{ screening.school.name|default:"—" }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-3"><strong>Weight:</strong> {{ screening.weight|default:"—" }} kg</div>
+                <div class="col-md-3"><strong>Height:</strong> {{ screening.height|default:"—" }} cm</div>
+                <div class="col-md-3"><strong>BMI:</strong> {{ screening.bmi|default:"—" }}</div>
+                <div class="col-md-3"><strong>BMI Category:</strong> {{ screening.bmi_category|default:"—" }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-3"><strong>MUAC:</strong> {{ screening.muac|default:"—" }} cm</div>
+                <div class="col-md-3"><strong>MUAC-SAM:</strong> {{ screening.muac_sam|default:"—" }}</div>
+                <div class="col-md-3"><strong>Weight-Age:</strong> {{ screening.weight_age|default:"—" }}</div>
+                <div class="col-md-3"><strong>Length-Age:</strong> {{ screening.length_age|default:"—" }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-3"><strong>Weight-Height:</strong> {{ screening.weight_height|default:"—" }}</div>
+                <div class="col-md-3"><strong>Vision (Both):</strong> {{ screening.vision_both|default:"—" }}</div>
+                <div class="col-md-3"><strong>Vision Problem:</strong> {{ screening.vision_problem|default:"—" }}</div>
+                <div class="col-md-3"><strong>Special Notes:</strong> {{ screening.covid|default:"—" }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Screening Checklist -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-warning text-dark">Screening Checklist</div>
+        <div class="card-body">
+            {% if screening_checklist %}
+                {% for group_name, fields in checklist_groups.items %}
+                    <h6>{{ group_name|title }}</h6>
+                    <div class="row mb-2">
+                        {% for field_name, display_name in fields %}
+                            <div class="col-md-3">
+                                <strong>{{ display_name }}:</strong>
+                                {% if screening_checklist|dict_get:field_name %}
+                                    Yes
+                                {% else %}
+                                    No
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+
+                {% if screening_checklist.E9_remarks %}
+                    <div class="mt-2"><strong>Remarks:</strong> {{ screening_checklist.E9_remarks }}</div>
+                {% endif %}
+            {% else %}
+                <p>No checklist available for this screening.</p>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+{% endblock %}
