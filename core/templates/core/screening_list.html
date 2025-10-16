@@ -13,7 +13,9 @@
         <select id="studentSelect" name="student" class="form-select" required>
             <option value="">-- Select a student --</option>
             {% for student in students %}
-                <option value="{{ student.id }}" data-dob="{{ student.date_of_birth|date:'Y-m-d' }}">
+                <option value="{{ student.id }}"
+                        data-dob="{{ student.date_of_birth|date:'Y-m-d' }}"
+                        data-gender="{{ student.gender|lower }}">
                     {{ student.name }} ({{ student.current_class_section|default_if_none:'—' }})
                 </option>
             {% endfor %}
@@ -27,13 +29,25 @@
         {{ screening_form.as_p }}
     </div>
 
-    <!-- Screening Check Info -->
+    <!-- Screening Checklist -->
     <hr class="my-4">
     <h5 class="mb-3">Screening Checklist</h5>
     <div class="row g-3">
         {% for field in screening_check_form %}
             {% if field.name == 'B5_oedema' %}
-                <div class="mb-3" id="B5Wrapper" style="display:none;">
+                <div class="mb-3 fade d-none" id="B5Wrapper">
+                    {{ field.label_tag }} {{ field }}
+                </div>
+            {% elif field.name == 'E4_menarke' %}
+                <div class="mb-3 fade d-none" id="E4Wrapper">
+                    {{ field.label_tag }} {{ field }}
+                </div>
+            {% elif field.name == 'E5_regularity_period_difficulties' %}
+                <div class="mb-3 fade d-none" id="E5Wrapper">
+                    {{ field.label_tag }} {{ field }}
+                </div>
+            {% elif field.name == 'E8_menstrual_pain' %}
+                <div class="mb-3 fade d-none" id="E8Wrapper">
                     {{ field.label_tag }} {{ field }}
                 </div>
             {% else %}
@@ -50,16 +64,19 @@
 </form>
 
 <!-- =========================
-     JS: Dynamic B5 Visibility
+     JS: Dynamic Visibility
 ========================= -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const studentSelect = document.getElementById('studentSelect');
     const screenDateInput = document.getElementById('id_screen_date');
     const B5Wrapper = document.getElementById('B5Wrapper');
+    const E4Wrapper = document.getElementById('E4Wrapper');
+    const E5Wrapper = document.getElementById('E5Wrapper');
+    const E8Wrapper = document.getElementById('E8Wrapper');
+    const E4Input = document.querySelector('[name="E4_menarke"]');
 
-    if (!B5Wrapper) return;
-
+    // Helper: Calculate age in months
     function calculateAgeInMonths(dob, screenDate) {
         if (!dob || !screenDate) return null;
         const birth = new Date(dob);
@@ -69,37 +86,70 @@ document.addEventListener('DOMContentLoaded', function() {
         return months;
     }
 
-    function toggleB5() {
+    // Show/Hide with fade
+    function showElement(el) {
+        if (!el) return;
+        el.classList.remove('d-none');
+        setTimeout(() => el.classList.add('show'), 10);
+    }
+    function hideElement(el) {
+        if (!el) return;
+        el.classList.remove('show');
+        setTimeout(() => el.classList.add('d-none'), 150);
+    }
+
+    // Main logic
+    function toggleVisibility() {
         const selectedOption = studentSelect.selectedOptions[0];
-        if (!selectedOption || !screenDateInput.value) {
-            B5Wrapper.style.display = 'none';
+        if (!selectedOption) {
+            [B5Wrapper, E4Wrapper, E5Wrapper, E8Wrapper].forEach(hideElement);
             return;
         }
 
         const dob = selectedOption.dataset.dob;
-        const screenDate = screenDateInput.value;
+        const gender = selectedOption.dataset.gender;
+        const screenDate = screenDateInput?.value;
 
-        if (!dob || !screenDate) {
-            B5Wrapper.style.display = 'none';
-            return;
-        }
-
-        const ageInMonths = calculateAgeInMonths(dob, screenDate);
-
-        if (ageInMonths >= 24 && ageInMonths <= 72) {
-            B5Wrapper.style.display = 'block';
+        // Show E4 (and potentially E5/E8) only for female
+        if (gender === 'female') {
+            showElement(E4Wrapper);
+            toggleE5E8();
         } else {
-            B5Wrapper.style.display = 'none';
+            [E4Wrapper, E5Wrapper, E8Wrapper].forEach(hideElement);
+        }
+
+        // B5: show if 24–72 months
+        if (dob && screenDate) {
+            const ageInMonths = calculateAgeInMonths(dob, screenDate);
+            if (ageInMonths >= 24 && ageInMonths <= 72) showElement(B5Wrapper);
+            else hideElement(B5Wrapper);
+        } else {
+            hideElement(B5Wrapper);
         }
     }
 
-    studentSelect.addEventListener('change', toggleB5);
-    if (screenDateInput) {
-        screenDateInput.addEventListener('input', toggleB5);
-        screenDateInput.addEventListener('change', toggleB5);
+    // When E4 checked, show E5 & E8
+    function toggleE5E8() {
+        if (!E4Input) return;
+        if (E4Input.checked) {
+            showElement(E5Wrapper);
+            showElement(E8Wrapper);
+        } else {
+            hideElement(E5Wrapper);
+            hideElement(E8Wrapper);
+        }
     }
 
-    toggleB5(); // initial check
+    // Attach listeners
+    if (studentSelect) studentSelect.addEventListener('change', toggleVisibility);
+    if (screenDateInput) {
+        screenDateInput.addEventListener('input', toggleVisibility);
+        screenDateInput.addEventListener('change', toggleVisibility);
+    }
+    if (E4Input) E4Input.addEventListener('change', toggleE5E8);
+
+    // Initialize
+    toggleVisibility();
 });
 </script>
 {% endblock %}
