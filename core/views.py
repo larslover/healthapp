@@ -37,9 +37,12 @@ from .models import Student
 from datetime import date
 from core.utils.processor import calculate_age_in_months
 from core.utils.processor import calculate_age_in_months
+from core.models import School
 
 def add_screening(request):
     students = Student.objects.all().order_by('name')
+    schools = School.objects.all()  # <-- add this
+
     selected_student_id = request.POST.get("student") or request.GET.get("student")
     student = None
     age_in_months = None
@@ -79,6 +82,7 @@ def add_screening(request):
 
     return render(request, "core/screening_list.html", {
         "students": students,
+        "schools": schools,  # <-- add this
         "screening_form": screening_form,
         "screening_check_form": screening_check_form,
         "age_in_months": age_in_months

@@ -133,7 +133,7 @@ class Screening(models.Model):
     class_section = models.CharField(max_length=50, null=True, blank=True)
     school = models.ForeignKey(School, on_delete=models.SET_NULL, null=True, blank=True)
 
-    # Health measurements
+    # Measurements
     weight = models.FloatField(null=True, blank=True)
     height = models.FloatField(null=True, blank=True)
     bmi = models.FloatField(null=True, blank=True)
@@ -141,7 +141,7 @@ class Screening(models.Model):
     muac = models.FloatField(null=True, blank=True)
     muac_sam = models.CharField(max_length=50, null=True, blank=True)
 
-    # Legacy nutritional indicators
+    # WHO categories
     weight_age = models.TextField(blank=True, null=True)
     length_age = models.TextField(blank=True, null=True)
     weight_height = models.TextField(blank=True, null=True)
@@ -152,13 +152,11 @@ class Screening(models.Model):
     vison_right = models.IntegerField(null=True, blank=True)
     vision_problem = models.TextField(null=True, blank=True)
 
-    # Optional tracking
+    # Meta data
     age_in_month = models.IntegerField(null=True, blank=True)
-    deworming = models.CharField(max_length=50, null=True, blank=True)
-    vaccination = models.CharField(max_length=255, null=True, blank=True)
     covid = models.CharField(max_length=50, null=True, blank=True)
     tea_garden = models.CharField(max_length=255, null=True, blank=True)
-    status = models.CharField(max_length=50, default='active')
+    
     age_screening = models.CharField(max_length=50, null=True, blank=True)
 
     class Meta:
@@ -166,7 +164,6 @@ class Screening(models.Model):
 
     def __str__(self):
         return f"{self.student.name} - {self.screen_date} ({self.class_section})"
-
     
 
     def calculate_metrics(self):
@@ -254,6 +251,10 @@ from core.models import Screening
 class ScreeningCheck(models.Model):
     screening = models.OneToOneField(Screening, on_delete=models.CASCADE, related_name="checklist")
 
+    # Preventive care
+    deworming = models.CharField(max_length=50, blank=True, null=True)
+    vaccination = models.CharField(max_length=255, blank=True, null=True)
+
     # Nutritional / medical conditions
     B1_severe_anemia = models.BooleanField(default=False)
     B2_vitA_deficiency = models.BooleanField(default=False)
@@ -286,6 +287,8 @@ class ScreeningCheck(models.Model):
     E6_UTI_STI = models.BooleanField(default=False)
     E7_discharge = models.BooleanField(default=False)
     E8_menstrual_pain = models.BooleanField(default=False)
+    E9_remarks = models.TextField(blank=True, null=True)
+
 
     class Meta:
         verbose_name = "Screening Check"

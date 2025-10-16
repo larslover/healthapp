@@ -6,6 +6,16 @@
 
 <form method="POST" class="needs-validation" novalidate>
     {% csrf_token %}
+<!-- School Selection -->
+<div class="mb-4">
+  <label class="form-label">Select School</label>
+  <select id="schoolSelect" class="form-select">
+      <option value="">-- All Schools --</option>
+      {% for school in schools %}
+          <option value="{{ school.id }}">{{ school.name }}</option>
+      {% endfor %}
+  </select>
+</div>
 
     <!-- Student Selection -->
     <div class="mb-4">
@@ -13,11 +23,13 @@
         <select id="studentSelect" name="student" class="form-select" required>
             <option value="">-- Select a student --</option>
             {% for student in students %}
-                <option value="{{ student.id }}"
-                        data-dob="{{ student.date_of_birth|date:'Y-m-d' }}"
-                        data-gender="{{ student.gender|lower }}">
-                    {{ student.name }} ({{ student.current_class_section|default_if_none:'—' }})
-                </option>
+            <option value="{{ student.id }}"
+            data-dob="{{ student.date_of_birth|date:'Y-m-d' }}"
+            data-gender="{{ student.gender|lower }}"
+            data-school="{{ student.school.id }}">
+        {{ student.name }} ({{ student.current_class_section|default_if_none:'—' }})
+    </option>
+    
             {% endfor %}
         </select>
     </div>
@@ -67,6 +79,32 @@
      JS: Dynamic Visibility
 ========================= -->
 <script>
+  const schoolSelect = document.getElementById('schoolSelect');
+const studentOptions = Array.from(studentSelect.options);
+
+schoolSelect?.addEventListener('change', function() {
+    const selectedSchoolId = this.value;
+
+    studentSelect.innerHTML = ''; // clear dropdown
+    // Add default placeholder
+    const defaultOption = document.createElement('option');
+    defaultOption.value = '';
+    defaultOption.textContent = '-- Select a student --';
+    studentSelect.appendChild(defaultOption);
+
+    // Filter & append matching students
+    studentOptions.forEach(opt => {
+        const schoolId = opt.dataset.school;
+        if (!selectedSchoolId || schoolId === selectedSchoolId) {
+            studentSelect.appendChild(opt);
+        }
+    });
+
+    // Reset selection
+    studentSelect.value = '';
+    toggleVisibility(); // refresh visibility logic
+});
+
 document.addEventListener('DOMContentLoaded', function() {
     const studentSelect = document.getElementById('studentSelect');
     const screenDateInput = document.getElementById('id_screen_date');

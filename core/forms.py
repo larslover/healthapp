@@ -1,28 +1,13 @@
 from django import forms
-from .models import Student, Screening, School
+from .models import Student, Screening, School, ScreeningCheck
 
-from django import forms
-from core.models import Student, Screening
-
-# core/forms.py
-from django import forms
-from .models import Student, Screening, School
-
-from django import forms
-
-
-
-
-
-
-
-
-from .models import Student, School
+# -------------------------------
+# Student Form
+# -------------------------------
 class StudentForm(forms.ModelForm):
     GENDER_CHOICES = [
         ('Male', 'Male'),
         ('Female', 'Female'),
-       
     ]
 
     gender = forms.ChoiceField(
@@ -63,36 +48,60 @@ class StudentForm(forms.ModelForm):
             'current_class_section': forms.TextInput(attrs={'class': 'form-control'}),
             'current_teacher': forms.TextInput(attrs={'class': 'form-control'}),
         }
+
+
+# -------------------------------
+# Screening Form
+# -------------------------------
 class ScreeningForm(forms.ModelForm):
     class Meta:
         model = Screening
         fields = [
-            'screen_date', 'class_section', 'school', 'weight', 'height', 'muac',
+            'screen_date', 'class_section', 'school',
+            'weight', 'height', 'muac',
             'vision_both', 'vison_left', 'vison_right',
-            
+            'vision_problem', 'covid', 'tea_garden', 'age_screening'
         ]
         widgets = {
             'screen_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'class_section': forms.TextInput(attrs={'class': 'form-control'}),
-            'school': forms.Select(attrs={'class': 'form-control'}),
+            'school': forms.Select(attrs={'class': 'form-select'}),
             'weight': forms.NumberInput(attrs={'step': '0.1', 'class': 'form-control'}),
             'height': forms.NumberInput(attrs={'step': '0.1', 'class': 'form-control'}),
             'muac': forms.NumberInput(attrs={'step': '0.1', 'class': 'form-control'}),
             'vision_both': forms.TextInput(attrs={'class': 'form-control'}),
             'vison_left': forms.NumberInput(attrs={'class': 'form-control'}),
             'vison_right': forms.NumberInput(attrs={'class': 'form-control'}),
-            'vision_problem': forms.Textarea(attrs={'class': 'form-control'}),
-            'deworming': forms.TextInput(attrs={'class': 'form-control'}),
-            'vaccination': forms.TextInput(attrs={'class': 'form-control'}),
+            'vision_problem': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
             'covid': forms.TextInput(attrs={'class': 'form-control'}),
             'tea_garden': forms.TextInput(attrs={'class': 'form-control'}),
             'status': forms.TextInput(attrs={'class': 'form-control'}),
             'age_screening': forms.TextInput(attrs={'class': 'form-control'}),
         }
-from django import forms
-from core.models import ScreeningCheck
 
+
+# -------------------------------
+# Screening Check Form
+# -------------------------------
 class ScreeningCheckForm(forms.ModelForm):
+    CHOICES = [
+        ('Unknown', 'Unknown'),
+        ('Yes', 'Yes'),
+        ('No', 'No'),
+    ]
+
+    deworming = forms.ChoiceField(
+        choices=CHOICES,
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+
+    vaccination = forms.ChoiceField(
+        choices=CHOICES,
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+
     class Meta:
         model = ScreeningCheck
         exclude = ['screening']  # linked automatically in the view
@@ -129,9 +138,12 @@ class ScreeningCheckForm(forms.ModelForm):
             'E6_UTI_STI': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'E7_discharge': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'E8_menstrual_pain': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'E9_remarks': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Enter doctor’s remarks...'}),
         }
 
-
+# -------------------------------
+# School Form
+# -------------------------------
 class SchoolForm(forms.ModelForm):
     class Meta:
         model = School
