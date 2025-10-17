@@ -16,6 +16,9 @@ from django.contrib import messages
 from .models import Student, Screening
 from .forms import ScreeningForm
 
+
+from django.shortcuts import render, get_object_or_404
+from .models import Student, School, Screening, ScreeningCheck
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from .forms import ScreeningForm, ScreeningCheckForm
@@ -23,22 +26,24 @@ from .models import Student
 
 from datetime import date
 from core.utils.processor import calculate_age_in_months
-from core.utils.processor import calculate_age_in_months
-from core.models import School
-from django.shortcuts import render
+
+
 from core.models import School, Student, Screening
 from datetime import datetime
 
-from django.shortcuts import render
-from core.models import School, Screening
-from core.utils.processor import calculate_age_in_months
+from .models import Student, Screening, School
+from django.db.models import Max
+from django.db.models import Max
+from datetime import date
+
+
 # core/views.py
-from django.shortcuts import render, get_object_or_404
-from .models import Screening
+
+
 from django.shortcuts import render, get_object_or_404
 from core.models import Screening
 from django.shortcuts import render, get_object_or_404
-from .models import Screening
+
 from django.contrib import messages
 
 def legacy_students_view(request):
@@ -56,76 +61,71 @@ def student_create(request):
 
     return render(request, 'core/student_create.html', {'form': form})
 
+from django.shortcuts import render, get_object_or_404
+from .models import Screening, ScreeningCheck, School
+from django.shortcuts import render, get_object_or_404
+from .models import Student, School, Screening, ScreeningCheck
+from .forms import StudentForm, ScreeningForm, ScreeningCheckForm
 
+def screening_summary(request):
+    schools = School.objects.all()
+    students = Student.objects.none()
+    selected_school_id = request.GET.get('school')
+    selected_student_id = request.GET.get('student')
 
-def screening_detail(request, screening_id):
-    # Get the Screening object
-    screening = get_object_or_404(Screening, id=screening_id)
+    selected_school = None
+    student = None
+    screenings = []
+    checklist_groups = {}
 
-    # Prepare checklist fields grouped
-    checklist_groups = {
-        "Preventive Care": [
-            ("deworming", "Deworming"),
-            ("vaccination", "Vaccination")
-        ],
-        "Nutritional / Medical Conditions": [
-            ("B1_severe_anemia", "Severe Anemia"),
-            ("B2_vitA_deficiency", "Vitamin A Deficiency"),
-            ("B3_vitD_deficiency", "Vitamin D Deficiency"),
-            ("B4_goitre", "Goitre"),
-            ("B5_oedema", "Oedema")
-        ],
-        "Other Medical Conditions": [
-            ("C1_convulsive_dis", "Convulsive Disorders"),
-            ("C2_otitis_media", "Otitis Media"),
-            ("C3_dental_condition", "Dental Condition"),
-            ("C4_skin_condition", "Skin Condition"),
-            ("C5_rheumatic_heart_disease", "Rheumatic Heart Disease"),
-            ("C6_others_TB_asthma", "Others (TB / Asthma)")
-        ],
-        "Development / Learning Difficulties": [
-            ("D1_difficulty_seeing", "Difficulty Seeing"),
-            ("D2_delay_in_walking", "Delay in Walking"),
-            ("D3_stiffness_floppiness", "Stiffness / Floppiness"),
-            ("D5_reading_writing_calculatory_difficulty", "Reading/Writing/Calculatory Difficulty"),
-            ("D6_speaking_difficulty", "Speaking Difficulty"),
-            ("D7_hearing_problems", "Hearing Problems"),
-            ("D8_learning_difficulties", "Learning Difficulties"),
-            ("D9_attention_difficulties", "Attention Difficulties")
-        ],
-        "Other Observations": [
-            ("E3_depression_sleep", "Depression / Sleep Issues"),
-            ("E4_menarke", "Menarke"),
-            ("E5_regularity_period_difficulties", "Period Regularity Difficulties"),
-            ("E6_UTI_STI", "UTI / STI"),
-            ("E7_discharge", "Discharge"),
-            ("E8_menstrual_pain", "Menstrual Pain")
-        ]
-    }
+    if selected_school_id:
+        selected_school = get_object_or_404(School, id=selected_school_id)
+        students = Student.objects.filter(school=selected_school)
 
-    # Optional: if checklist exists, convert to dict for easy access in template
-    checklist_data = {}
-    if screening.checklist:
-        # Iterate over all fields in checklist
-        for group_fields in checklist_groups.values():
-            for field_name, _ in group_fields:
-                checklist_data[field_name] = getattr(screening.checklist, field_name, False)
-        # Add remarks if present
-        checklist_data["E9_remarks"] = getattr(screening.checklist, "E9_remarks", "")
+    if selected_student_id:
+        student = get_object_or_404(Student, id=selected_student_id)
+        screenings = Screening.objects.filter(student=student).order_by('-screen_date')
+
+        checklist_groups = {
+            "Preventive Care": ["deworming", "vaccination"],
+            "Nutritional / Medical Conditions": [
+                "B1_severe_anemia", "B2_vitA_deficiency", "B3_vitD_deficiency",
+                "B4_goitre", "B5_oedema"
+            ],
+            "Other Medical Conditions": [
+                "C1_convulsive_dis", "C2_otitis_media", "C3_dental_condition",
+                "C4_skin_condition", "C5_rheumatic_heart_disease", "C6_others_TB_asthma"
+            ],
+            "Development / Learning": [
+                "D1_difficulty_seeing", "D2_delay_in_walking", "D3_stiffness_floppiness",
+                "D5_reading_writing_calculatory_difficulty", "D6_speaking_difficulty",
+                "D7_hearing_problems", "D8_learning_difficulties", "D9_attention_difficulties"
+            ],
+            "Other Observations": [
+                "E3_depression_sleep", "E4_menarke", "E5_regularity_period_difficulties",
+                "E6_UTI_STI", "E7_discharge", "E8_menstrual_pain", "E9_remarks"
+            ]
+        }
+
+        for s in screenings:
+            try:
+                checklist = ScreeningCheck.objects.get(screening=s)
+                # Convert ScreeningCheck object to dict safely
+                s.checklist_dict = {field: getattr(checklist, field, False) for group in checklist_groups.values() for field in group}
+            except ScreeningCheck.DoesNotExist:
+                s.checklist_dict = None
 
     context = {
-        "screening": screening,
+        "schools": schools,
+        "students": students,
+        "selected_school_id": int(selected_school_id) if selected_school_id else None,
+        "selected_student_id": int(selected_student_id) if selected_student_id else None,
+        "student": student,
+        "screenings": screenings,
         "checklist_groups": checklist_groups,
-        "screening_checklist": checklist_data
     }
 
-    return render(request, "core/screening_detail.html", context)
-
-from django.shortcuts import render
-from .models import Student, Screening, School
-from django.db.models import Max
-from django.db.models import Max
-from datetime import date
+    return render(request, "core/screening_summary.html", context)
 
 def screened_students(request):
     students = Student.objects.all().order_by('name')

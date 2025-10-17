@@ -1,18 +1,9 @@
 {% extends "core/base.html" %}
 
 {% block title %}Screened Students{% endblock %}
-<td>
-    {% if data.last_screening %}
-        ID: {{ data.last_screening.id }}
-        <a href="{% url 'screening_detail' data.last_screening.id %}" class="btn btn-sm btn-info">View Screening</a>
-    {% else %}
-        <span class="text-muted">No screening</span>
-    {% endif %}
-</td>
 
 {% block content %}
 <h2 class="mb-4 fw-bold d-flex justify-content-between align-items-center">
-   
     <a href="{% url 'student_create' %}" class="btn btn-success">Add Student</a>
 </h2>
 
@@ -50,8 +41,6 @@
                 <th>Age at Screening</th>
                 <th>Gender</th>
                 <th>School</th>
-                <th>Last Screening</th>
-                <th>Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -67,24 +56,10 @@
                 </td>
                 <td>{{ data.student.gender|default:"—"|capfirst }}</td>
                 <td>{{ data.student.school.name|default:"—" }}</td>
-                <td>
-                    {% if data.last_screening %}
-                        {{ data.last_screening.screen_date|date:"Y-m-d" }}
-                    {% else %}
-                        —
-                    {% endif %}
-                </td>
-                <td>
-                    {% if data.last_screening %}
-                        <a href="{% url 'screening_detail' data.last_screening.id %}" class="btn btn-sm btn-info">View Screening</a>
-                    {% else %}
-                        <span class="text-muted">No screening</span>
-                    {% endif %}
-                </td>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="6" class="text-center">No students found.</td>
+                <td colspan="4" class="text-center">No students found.</td>
             </tr>
             {% endfor %}
         </tbody>

@@ -5,6 +5,8 @@ from core.utils.processor import bmi_category
 # ------------------------------
 from django.db import models
 
+from django.db import models
+from datetime import datetime,date
 class LegacyStudent(models.Model):
     id = models.IntegerField(primary_key=True)
     name = models.TextField(blank=True, null=True)
@@ -93,7 +95,6 @@ class School(models.Model):
     def __str__(self):
         return self.name
 
-from django.db import models
 
 class Student(models.Model):
     # Basic student info
@@ -110,6 +111,7 @@ class Student(models.Model):
     last_school_name = models.CharField(max_length=255, null=True, blank=True)
     place_of_birth = models.CharField(max_length=255, null=True, blank=True)
     known_earlier_disease = models.TextField(null=True, blank=True)
+    tea_garden = models.CharField(max_length=255, null=True, blank=True)
 
     # Use a ForeignKey to School
     school = models.ForeignKey(
@@ -121,6 +123,16 @@ class Student(models.Model):
     )
     current_class_section = models.CharField(max_length=50, null=True, blank=True)
     current_teacher = models.CharField(max_length=255, null=True, blank=True)
+    @property
+    def age_in_years(self):
+        if self.date_of_birth:
+            today = date.today()
+            age = today.year - self.date_of_birth.year
+            # Adjust if birthday hasn't happened yet this year
+            if (today.month, today.day) < (self.date_of_birth.month, self.date_of_birth.day):
+                age -= 1
+            return age
+        return None
 
     def __str__(self):
         return self.name
@@ -155,7 +167,7 @@ class Screening(models.Model):
     # Meta data
     age_in_month = models.IntegerField(null=True, blank=True)
     covid = models.CharField(max_length=50, null=True, blank=True)
-    tea_garden = models.CharField(max_length=255, null=True, blank=True)
+    
     
     age_screening = models.CharField(max_length=50, null=True, blank=True)
 

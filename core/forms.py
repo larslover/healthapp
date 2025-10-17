@@ -30,7 +30,7 @@ class StudentForm(forms.ModelForm):
             'father_or_guardian_name', 'mother_name', 'contact_number',
             'address', 'email', 'last_school_name', 'place_of_birth',
             'known_earlier_disease', 'school', 'current_class_section',
-            'current_teacher'
+            'current_teacher','tea_garden'
         ]
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
@@ -47,6 +47,7 @@ class StudentForm(forms.ModelForm):
             'known_earlier_disease': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
             'current_class_section': forms.TextInput(attrs={'class': 'form-control'}),
             'current_teacher': forms.TextInput(attrs={'class': 'form-control'}),
+            'tea_garden': forms.TextInput(attrs={'class': 'form-control'}),
         }
 
 
@@ -57,10 +58,10 @@ class ScreeningForm(forms.ModelForm):
     class Meta:
         model = Screening
         fields = [
-            'screen_date', 'class_section', 'school',
+            'screen_date', 'class_section', 'school','age_screening',
             'weight', 'height', 'muac',
             'vision_both', 'vison_left', 'vison_right',
-            'vision_problem', 'covid', 'tea_garden', 'age_screening'
+            'vision_problem', 
         ]
         widgets = {
             'screen_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
@@ -74,7 +75,7 @@ class ScreeningForm(forms.ModelForm):
             'vison_right': forms.NumberInput(attrs={'class': 'form-control'}),
             'vision_problem': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
             'covid': forms.TextInput(attrs={'class': 'form-control'}),
-            'tea_garden': forms.TextInput(attrs={'class': 'form-control'}),
+            
             'status': forms.TextInput(attrs={'class': 'form-control'}),
             'age_screening': forms.TextInput(attrs={'class': 'form-control'}),
         }

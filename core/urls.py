@@ -25,16 +25,17 @@ urlpatterns = [
 
 
   
-    path('screenings/<int:pk>/', views.screening_detail, name='screening_detail'),
-    path('screenings/<int:pk>/edit/', views.screening_update, name='screening_update'),
-    path('screenings/<int:pk>/delete/', views.screening_delete, name='screening_delete'),
-
+   
     # Schools
     path('schools/', views.school_list, name='school_list'),
     path('schools/add/', views.school_create, name='school_create'),
 
     # Reports
     path('reports/', views.report_summary, name='report_summary'),
+    path('report-summary/', views.report_summary, name='report_summary'),
+    path("screening-summary/", views.screening_summary, name="screening_summary"),
+
+
 
     # Statistics
     path('statistics/', views.statistics, name='statistics'),
