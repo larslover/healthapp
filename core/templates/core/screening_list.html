@@ -76,97 +76,40 @@
 </form>
 
 <!-- =========================
-     JS: Dynamic Visibility
+     JS: Dynamic Visibility & Age Auto-fill
 ========================= -->
 <script>
-  const schoolSelect = document.getElementById('schoolSelect');
-const studentOptions = Array.from(studentSelect.options);
-
-schoolSelect?.addEventListener('change', function() {
-    const selectedSchoolId = this.value;
-
-    studentSelect.innerHTML = ''; // clear dropdown
-    // Add default placeholder
-    const defaultOption = document.createElement('option');
-    defaultOption.value = '';
-    defaultOption.textContent = '-- Select a student --';
-    studentSelect.appendChild(defaultOption);
-
-    // Filter & append matching students
-    studentOptions.forEach(opt => {
-        const schoolId = opt.dataset.school;
-        if (!selectedSchoolId || schoolId === selectedSchoolId) {
-            studentSelect.appendChild(opt);
-        }
-    });
-
-    // Reset selection
-    studentSelect.value = '';
-    toggleVisibility(); // refresh visibility logic
-});
-
-document.addEventListener('DOMContentLoaded', function() {
     const studentSelect = document.getElementById('studentSelect');
     const screenDateInput = document.getElementById('id_screen_date');
+    const ageField = document.getElementById('id_age_screening');
+    
     const B5Wrapper = document.getElementById('B5Wrapper');
     const E4Wrapper = document.getElementById('E4Wrapper');
     const E5Wrapper = document.getElementById('E5Wrapper');
     const E8Wrapper = document.getElementById('E8Wrapper');
     const E4Input = document.querySelector('[name="E4_menarke"]');
-
-    // Helper: Calculate age in months
-    function calculateAgeInMonths(dob, screenDate) {
-        if (!dob || !screenDate) return null;
+    
+    // Calculate age in months
+    function calculateAge(dob, screenDate) {
+        if (!dob || !screenDate) return '';
         const birth = new Date(dob);
         const screen = new Date(screenDate);
-        let months = (screen.getFullYear() - birth.getFullYear()) * 12 + (screen.getMonth() - birth.getMonth());
-        if (screen.getDate() < birth.getDate()) months -= 1;
-        return months;
+    
+        let totalMonths = (screen.getFullYear() - birth.getFullYear()) * 12 + (screen.getMonth() - birth.getMonth());
+        if (screen.getDate() < birth.getDate()) totalMonths -= 1;
+    
+        if (totalMonths < 0) return '';
+    
+        const years = Math.floor(totalMonths / 12);
+        const months = totalMonths % 12;
+        return `${years}y ${months}m`;
     }
-
+    
     // Show/Hide with fade
-    function showElement(el) {
-        if (!el) return;
-        el.classList.remove('d-none');
-        setTimeout(() => el.classList.add('show'), 10);
-    }
-    function hideElement(el) {
-        if (!el) return;
-        el.classList.remove('show');
-        setTimeout(() => el.classList.add('d-none'), 150);
-    }
-
-    // Main logic
-    function toggleVisibility() {
-        const selectedOption = studentSelect.selectedOptions[0];
-        if (!selectedOption) {
-            [B5Wrapper, E4Wrapper, E5Wrapper, E8Wrapper].forEach(hideElement);
-            return;
-        }
-
-        const dob = selectedOption.dataset.dob;
-        const gender = selectedOption.dataset.gender;
-        const screenDate = screenDateInput?.value;
-
-        // Show E4 (and potentially E5/E8) only for female
-        if (gender === 'female') {
-            showElement(E4Wrapper);
-            toggleE5E8();
-        } else {
-            [E4Wrapper, E5Wrapper, E8Wrapper].forEach(hideElement);
-        }
-
-        // B5: show if 24–72 months
-        if (dob && screenDate) {
-            const ageInMonths = calculateAgeInMonths(dob, screenDate);
-            if (ageInMonths >= 24 && ageInMonths <= 72) showElement(B5Wrapper);
-            else hideElement(B5Wrapper);
-        } else {
-            hideElement(B5Wrapper);
-        }
-    }
-
-    // When E4 checked, show E5 & E8
+    function showElement(el) { if (!el) return; el.classList.remove('d-none'); setTimeout(() => el.classList.add('show'), 10); }
+    function hideElement(el) { if (!el) return; el.classList.remove('show'); setTimeout(() => el.classList.add('d-none'), 150); }
+    
+    // Show/hide E5 & E8 based on E4
     function toggleE5E8() {
         if (!E4Input) return;
         if (E4Input.checked) {
@@ -177,7 +120,46 @@ document.addEventListener('DOMContentLoaded', function() {
             hideElement(E8Wrapper);
         }
     }
-
+    
+    // Main logic
+    function toggleVisibility() {
+        const selectedOption = studentSelect.selectedOptions[0];
+        if (!selectedOption) {
+            [B5Wrapper, E4Wrapper, E5Wrapper, E8Wrapper].forEach(hideElement);
+            updateAgeField('');
+            return;
+        }
+    
+        const dob = selectedOption.dataset.dob;
+        const gender = selectedOption.dataset.gender;
+        const screenDate = screenDateInput?.value;
+    
+        // Show E4 only for female
+        if (gender === 'female') {
+            showElement(E4Wrapper);
+            toggleE5E8();
+        } else {
+            [E4Wrapper, E5Wrapper, E8Wrapper].forEach(hideElement);
+        }
+    
+        // B5: show if 24–72 months
+        if (dob && screenDate) {
+            const ageInMonths = (screenDate && dob) ? (new Date(screenDate) - new Date(dob)) / (1000*60*60*24*30.4375) : 0;
+            if (ageInMonths >= 24 && ageInMonths <= 72) showElement(B5Wrapper);
+            else hideElement(B5Wrapper);
+        } else {
+            hideElement(B5Wrapper);
+        }
+    
+        // Update age field
+        updateAgeField(calculateAge(dob, screenDate));
+    }
+    
+    // Update age field value
+    function updateAgeField(value) {
+        if (ageField) ageField.value = value;
+    }
+    
     // Attach listeners
     if (studentSelect) studentSelect.addEventListener('change', toggleVisibility);
     if (screenDateInput) {
@@ -185,9 +167,9 @@ document.addEventListener('DOMContentLoaded', function() {
         screenDateInput.addEventListener('change', toggleVisibility);
     }
     if (E4Input) E4Input.addEventListener('change', toggleE5E8);
-
+    
     // Initialize
     toggleVisibility();
-});
-</script>
+    </script>
+        
 {% endblock %}
