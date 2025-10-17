@@ -6,16 +6,17 @@
 
 <form method="POST" class="needs-validation" novalidate>
     {% csrf_token %}
-<!-- School Selection -->
-<div class="mb-4">
-  <label class="form-label">Select School</label>
-  <select id="schoolSelect" class="form-select">
-      <option value="">-- All Schools --</option>
-      {% for school in schools %}
-          <option value="{{ school.id }}">{{ school.name }}</option>
-      {% endfor %}
-  </select>
-</div>
+
+    <!-- School Selection -->
+    <div class="mb-4">
+        <label class="form-label">Select School</label>
+        <select id="schoolSelect" class="form-select">
+            <option value="">-- All Schools --</option>
+            {% for school in schools %}
+                <option value="{{ school.id }}">{{ school.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
 
     <!-- Student Selection -->
     <div class="mb-4">
@@ -23,15 +24,19 @@
         <select id="studentSelect" name="student" class="form-select" required>
             <option value="">-- Select a student --</option>
             {% for student in students %}
-            <option value="{{ student.id }}"
-            data-dob="{{ student.date_of_birth|date:'Y-m-d' }}"
-            data-gender="{{ student.gender|lower }}"
-            data-school="{{ student.school.id }}">
-        {{ student.name }} ({{ student.current_class_section|default_if_none:'—' }})
-    </option>
-    
+                <option value="{{ student.id }}">{{ student.name }} ({{ student.current_class_section|default_if_none:"—" }})</option>
             {% endfor %}
         </select>
+    </div>
+
+    <!-- Student Details Card -->
+    <div id="studentCard" class="card mb-4 d-none">
+        <div class="card-header">
+            <strong>Student Details</strong>
+        </div>
+        <div class="card-body" id="studentFormContainer">
+            <!-- JS will populate the StudentForm fields here -->
+        </div>
     </div>
 
     <!-- Screening Info -->
@@ -80,7 +85,7 @@
 </form>
 
 <!-- =========================
-     JS: Dynamic Visibility & Age Auto-fill
+     JS: Dynamic Visibility, Age Auto-fill, Student Card
 ========================= -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -95,6 +100,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const muacWrapper = document.getElementById('muacWrapper');
     const muacField = document.getElementById('id_muac');
     const E4Input = document.querySelector('[name="E4_menarke"]');
+    const studentCard = document.getElementById('studentCard');
+    const studentFormContainer = document.getElementById('studentFormContainer');
 
     function getTotalMonths(dob, screenDate) {
         if (!dob || !screenDate) return null;
@@ -127,48 +134,80 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function updateVisibility() {
-        const selectedOption = studentSelect.selectedOptions[0];
-        const dob = selectedOption?.dataset.dob;
-        const gender = selectedOption?.dataset.gender;
+        const selectedId = studentSelect.value;
         const screenDate = screenDateInput?.value;
-
-        const totalMonths = getTotalMonths(dob, screenDate);
-
-        // Update age
-        if (ageField) ageField.value = formatAge(totalMonths);
-
-        // Show E4 only for female
-        if (gender === 'female') {
-            showElement(E4Wrapper);
-            toggleE5E8();
-        } else {
-            [E4Wrapper, E5Wrapper, E8Wrapper].forEach(hideElement);
+        if (!selectedId) {
+            hideElement(studentCard);
+            studentFormContainer.innerHTML = '';
+            return;
         }
 
-        // Show B5 if 24–72 months
-        if (totalMonths !== null && totalMonths >= 24 && totalMonths <= 72) showElement(B5Wrapper);
-        else hideElement(B5Wrapper);
+        // Fetch student data from the server via AJAX
+        fetch(`/students/${selectedId}/json/`)
+            .then(res => res.json())
+            .then(data => {
+                populateStudentCard(data);
+                const totalMonths = getTotalMonths(data.date_of_birth, screenDate);
+                if (ageField) ageField.value = formatAge(totalMonths);
 
-        // Show MUAC if 6–60 months
-        if (totalMonths !== null && totalMonths >= 6 && totalMonths <= 60) {
-            showElement(muacWrapper);
-            if (muacField) muacField.disabled = false;
-        } else {
-            hideElement(muacWrapper);
-            if (muacField) muacField.disabled = true;  // disables input
-        }
+                // Show/hide screening fields
+                if (data.gender === 'Female') {
+                    showElement(E4Wrapper);
+                    toggleE5E8();
+                } else {
+                    [E4Wrapper, E5Wrapper, E8Wrapper].forEach(hideElement);
+                }
+
+                if (totalMonths >= 24 && totalMonths <= 72) showElement(B5Wrapper);
+                else hideElement(B5Wrapper);
+
+                if (totalMonths >= 6 && totalMonths <= 60) {
+                    showElement(muacWrapper);
+                    if (muacField) muacField.disabled = false;
+                } else {
+                    hideElement(muacWrapper);
+                    if (muacField) muacField.disabled = true;
+                }
+            });
     }
 
-    // Attach listeners
+    function populateStudentCard(student) {
+        if (!student || !studentFormContainer || !studentCard) return;
+        let html = '';
+        const fields = {
+            'Name': student.name,
+            'Date of Birth': student.date_of_birth,
+            'Gender': student.gender,
+            'Roll No': student.roll_no,
+            'Aadhaar No': student.aadhaar_no,
+            'Father/Guardian': student.father_or_guardian_name,
+            'Mother': student.mother_name,
+            'Contact Number': student.contact_number,
+            'Address': student.address,
+            'Email': student.email,
+            'Last School Name': student.last_school_name,
+            'Place of Birth': student.place_of_birth,
+            'Known Earlier Disease': student.known_earlier_disease,
+            'School': student.school_name,
+            'Class/Section': student.current_class_section,
+            'Current Teacher': student.current_teacher,
+            'Tea Garden': student.tea_garden
+        };
+
+        for (const [label, value] of Object.entries(fields)) {
+            html += `<p><strong>${label}:</strong> ${value || '—'}</p>`;
+        }
+
+        studentFormContainer.innerHTML = html;
+        showElement(studentCard);
+    }
+
     studentSelect?.addEventListener('change', updateVisibility);
     screenDateInput?.addEventListener('input', updateVisibility);
     screenDateInput?.addEventListener('change', updateVisibility);
     if (E4Input) E4Input.addEventListener('change', toggleE5E8);
 
-    // Initialize
     updateVisibility();
 });
 </script>
-
-                        
 {% endblock %}

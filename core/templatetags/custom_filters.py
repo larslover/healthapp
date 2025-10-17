@@ -3,7 +3,8 @@ from django import template
 register = template.Library()
 
 @register.filter
-def getattr(obj, attr_name):
+def get_attr(obj, attr_name):
+    """Safely get attribute from object, return None if missing"""
     return getattr(obj, attr_name, None)
 
 @register.filter
@@ -12,8 +13,6 @@ def replace(value, args):
     old, new = args.split(',')
     return value.replace(old, new)
 
-# -----------------------------
-# Add this dict_get filter
 @register.filter
 def dict_get(d, key):
     """Safely get a value from a dict, returns None if key doesn't exist"""

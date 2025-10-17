@@ -45,6 +45,31 @@ from core.models import Screening
 from django.shortcuts import render, get_object_or_404
 
 from django.contrib import messages
+# views.py
+from django.http import JsonResponse
+from .models import Student
+
+def student_json(request, pk):
+    student = Student.objects.get(pk=pk)
+    return JsonResponse({
+        'name': student.name,
+        'date_of_birth': student.date_of_birth.strftime('%Y-%m-%d'),
+        'gender': student.gender,
+        'roll_no': student.roll_no,
+        'aadhaar_no': student.aadhaar_no,
+        'father_or_guardian_name': student.father_or_guardian_name,
+        'mother_name': student.mother_name,
+        'contact_number': student.contact_number,
+        'address': student.address,
+        'email': student.email,
+        'last_school_name': student.last_school_name,
+        'place_of_birth': student.place_of_birth,
+        'known_earlier_disease': student.known_earlier_disease,
+        'school_name': student.school.name,
+        'current_class_section': student.current_class_section,
+        'current_teacher': student.current_teacher,
+        'tea_garden': student.tea_garden,
+    })
 
 def legacy_students_view(request):
     students = LegacyStudent.objects.all()[:50]  # read only
@@ -66,26 +91,35 @@ from .models import Screening, ScreeningCheck, School
 from django.shortcuts import render, get_object_or_404
 from .models import Student, School, Screening, ScreeningCheck
 from .forms import StudentForm, ScreeningForm, ScreeningCheckForm
-
+from django.shortcuts import render, get_object_or_404
+from .models import School, Student, Screening, ScreeningCheck
+from django.shortcuts import render, get_object_or_404
+from .models import School, Student, Screening, ScreeningCheck
+from .forms import StudentForm
 def screening_summary(request):
-    schools = School.objects.all()
+    schools = School.objects.all().order_by('name')
     students = Student.objects.none()
+
     selected_school_id = request.GET.get('school')
     selected_student_id = request.GET.get('student')
 
-    selected_school = None
     student = None
+    student_form = None
     screenings = []
     checklist_groups = {}
 
+    # Filter students if a school is selected
     if selected_school_id:
-        selected_school = get_object_or_404(School, id=selected_school_id)
-        students = Student.objects.filter(school=selected_school)
+        students = Student.objects.filter(school_id=selected_school_id).order_by('name')
 
+    # Get selected student and their screenings
     if selected_student_id:
         student = get_object_or_404(Student, id=selected_student_id)
+        student_form = StudentForm(instance=student)
+
         screenings = Screening.objects.filter(student=student).order_by('-screen_date')
 
+        # Define checklist groups
         checklist_groups = {
             "Preventive Care": ["deworming", "vaccination"],
             "Nutritional / Medical Conditions": [
@@ -107,13 +141,20 @@ def screening_summary(request):
             ]
         }
 
+        # Attach checklist dict to each screening
         for s in screenings:
             try:
                 checklist = ScreeningCheck.objects.get(screening=s)
-                # Convert ScreeningCheck object to dict safely
-                s.checklist_dict = {field: getattr(checklist, field, False) for group in checklist_groups.values() for field in group}
+                s.checklist_dict = {
+                    field: getattr(checklist, field, False)
+                    for group_fields in checklist_groups.values()
+                    for field in group_fields
+                }
             except ScreeningCheck.DoesNotExist:
                 s.checklist_dict = None
+    else:
+        # No student selected, create empty form
+        student_form = StudentForm()
 
     context = {
         "schools": schools,
@@ -121,6 +162,7 @@ def screening_summary(request):
         "selected_school_id": int(selected_school_id) if selected_school_id else None,
         "selected_student_id": int(selected_student_id) if selected_student_id else None,
         "student": student,
+        "student_form": student_form,
         "screenings": screenings,
         "checklist_groups": checklist_groups,
     }
