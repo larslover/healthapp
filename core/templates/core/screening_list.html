@@ -44,6 +44,10 @@
     <!-- Screening Checklist -->
     <hr class="my-4">
     <h5 class="mb-3">Screening Checklist</h5>
+    <div class="mb-3" id="muacWrapper">
+        {{ screening_form.muac.label_tag }} {{ screening_form.muac }}
+    </div>
+    
     <div class="row g-3">
         {% for field in screening_check_form %}
             {% if field.name == 'B5_oedema' %}
@@ -79,37 +83,38 @@
      JS: Dynamic Visibility & Age Auto-fill
 ========================= -->
 <script>
+document.addEventListener('DOMContentLoaded', function() {
     const studentSelect = document.getElementById('studentSelect');
     const screenDateInput = document.getElementById('id_screen_date');
     const ageField = document.getElementById('id_age_screening');
-    
+
     const B5Wrapper = document.getElementById('B5Wrapper');
     const E4Wrapper = document.getElementById('E4Wrapper');
     const E5Wrapper = document.getElementById('E5Wrapper');
     const E8Wrapper = document.getElementById('E8Wrapper');
+    const muacWrapper = document.getElementById('muacWrapper');
+    const muacField = document.getElementById('id_muac');
     const E4Input = document.querySelector('[name="E4_menarke"]');
-    
-    // Calculate age in months
-    function calculateAge(dob, screenDate) {
-        if (!dob || !screenDate) return '';
+
+    function getTotalMonths(dob, screenDate) {
+        if (!dob || !screenDate) return null;
         const birth = new Date(dob);
         const screen = new Date(screenDate);
-    
-        let totalMonths = (screen.getFullYear() - birth.getFullYear()) * 12 + (screen.getMonth() - birth.getMonth());
-        if (screen.getDate() < birth.getDate()) totalMonths -= 1;
-    
-        if (totalMonths < 0) return '';
-    
+        let months = (screen.getFullYear() - birth.getFullYear()) * 12 + (screen.getMonth() - birth.getMonth());
+        if (screen.getDate() < birth.getDate()) months -= 1;
+        return months >= 0 ? Math.floor(months) : null;
+    }
+
+    function formatAge(totalMonths) {
+        if (totalMonths === null) return '';
         const years = Math.floor(totalMonths / 12);
         const months = totalMonths % 12;
-        return `${years}y ${months}m`;
+        return `${years}y ${months}m (${totalMonths} months)`;
     }
-    
-    // Show/Hide with fade
-    function showElement(el) { if (!el) return; el.classList.remove('d-none'); setTimeout(() => el.classList.add('show'), 10); }
-    function hideElement(el) { if (!el) return; el.classList.remove('show'); setTimeout(() => el.classList.add('d-none'), 150); }
-    
-    // Show/hide E5 & E8 based on E4
+
+    function showElement(el) { if (!el) return; el.style.display = 'block'; }
+    function hideElement(el) { if (!el) return; el.style.display = 'none'; }
+
     function toggleE5E8() {
         if (!E4Input) return;
         if (E4Input.checked) {
@@ -120,20 +125,18 @@
             hideElement(E8Wrapper);
         }
     }
-    
-    // Main logic
-    function toggleVisibility() {
+
+    function updateVisibility() {
         const selectedOption = studentSelect.selectedOptions[0];
-        if (!selectedOption) {
-            [B5Wrapper, E4Wrapper, E5Wrapper, E8Wrapper].forEach(hideElement);
-            updateAgeField('');
-            return;
-        }
-    
-        const dob = selectedOption.dataset.dob;
-        const gender = selectedOption.dataset.gender;
+        const dob = selectedOption?.dataset.dob;
+        const gender = selectedOption?.dataset.gender;
         const screenDate = screenDateInput?.value;
-    
+
+        const totalMonths = getTotalMonths(dob, screenDate);
+
+        // Update age
+        if (ageField) ageField.value = formatAge(totalMonths);
+
         // Show E4 only for female
         if (gender === 'female') {
             showElement(E4Wrapper);
@@ -141,35 +144,31 @@
         } else {
             [E4Wrapper, E5Wrapper, E8Wrapper].forEach(hideElement);
         }
-    
-        // B5: show if 24–72 months
-        if (dob && screenDate) {
-            const ageInMonths = (screenDate && dob) ? (new Date(screenDate) - new Date(dob)) / (1000*60*60*24*30.4375) : 0;
-            if (ageInMonths >= 24 && ageInMonths <= 72) showElement(B5Wrapper);
-            else hideElement(B5Wrapper);
+
+        // Show B5 if 24–72 months
+        if (totalMonths !== null && totalMonths >= 24 && totalMonths <= 72) showElement(B5Wrapper);
+        else hideElement(B5Wrapper);
+
+        // Show MUAC if 6–60 months
+        if (totalMonths !== null && totalMonths >= 6 && totalMonths <= 60) {
+            showElement(muacWrapper);
+            if (muacField) muacField.disabled = false;
         } else {
-            hideElement(B5Wrapper);
+            hideElement(muacWrapper);
+            if (muacField) muacField.disabled = true;  // disables input
         }
-    
-        // Update age field
-        updateAgeField(calculateAge(dob, screenDate));
     }
-    
-    // Update age field value
-    function updateAgeField(value) {
-        if (ageField) ageField.value = value;
-    }
-    
+
     // Attach listeners
-    if (studentSelect) studentSelect.addEventListener('change', toggleVisibility);
-    if (screenDateInput) {
-        screenDateInput.addEventListener('input', toggleVisibility);
-        screenDateInput.addEventListener('change', toggleVisibility);
-    }
+    studentSelect?.addEventListener('change', updateVisibility);
+    screenDateInput?.addEventListener('input', updateVisibility);
+    screenDateInput?.addEventListener('change', updateVisibility);
     if (E4Input) E4Input.addEventListener('change', toggleE5E8);
-    
+
     // Initialize
-    toggleVisibility();
-    </script>
-        
+    updateVisibility();
+});
+</script>
+
+                        
 {% endblock %}
