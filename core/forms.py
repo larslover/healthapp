@@ -70,7 +70,7 @@ class ScreeningForm(forms.ModelForm):
         fields = [
             'screen_date', 'class_section', 'school','age_screening',
             'weight', 'height', 'muac',
-            'vision_both', 'vison_left', 'vison_right',
+            'vision_both', 'vision_left', 'vision_right',
             
         ]
         widgets = {
@@ -81,8 +81,8 @@ class ScreeningForm(forms.ModelForm):
             'height': forms.NumberInput(attrs={'step': '0.1', 'class': 'form-control'}),
             'muac': forms.NumberInput(attrs={'step': '0.1', 'class': 'form-control'}),
             'vision_both': forms.Select(choices=VISION_CHOICES, attrs={'class': 'form-select'}),
-            'vison_left': forms.Select(choices=VISION_CHOICES, attrs={'class': 'form-select'}),
-            'vison_right': forms.Select(choices=VISION_CHOICES, attrs={'class': 'form-select'}),
+            'vision_left': forms.Select(choices=VISION_CHOICES, attrs={'class': 'form-select'}),
+            'vision_right': forms.Select(choices=VISION_CHOICES, attrs={'class': 'form-select'}),
             
             'status': forms.TextInput(attrs={'class': 'form-control'}),
             'age_screening': forms.TextInput(attrs={

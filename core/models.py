@@ -160,8 +160,8 @@ class Screening(models.Model):
 
     # Vision
     vision_both = models.CharField(max_length=50, null=True, blank=True)
-    vison_left = models.IntegerField(null=True, blank=True)
-    vison_right = models.IntegerField(null=True, blank=True)
+    vision_left = models.IntegerField(null=True, blank=True)   # corrected
+    vision_right = models.IntegerField(null=True, blank=True)  # corrected
     vision_problem = models.TextField(null=True, blank=True)
 
     # Meta data
@@ -245,8 +245,8 @@ class Screening(models.Model):
         # Vision logic
         # -------------------------
         try:
-            left_vision = getattr(self, "vison_left", None)
-            right_vision = getattr(self, "vison_right", None)
+            left_vision = getattr(self, "vision_left", None)
+            right_vision = getattr(self, "vision_right", None)
             if left_vision is not None and right_vision is not None:
                 self.vision_problem = evaluate_vision(left_vision, right_vision)
             else:
