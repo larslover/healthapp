@@ -122,44 +122,46 @@
           </div>
 
           <div class="mb-2"><strong>Notes:</strong> {{ screening.covid|default:"—" }}</div>
+<!-- Checklist -->
+{% if screening.checklist_dict %}
+<details class="mt-3">
+  <summary class="text-primary">Show Checklist</summary>
+  <div class="mt-2">
+    {% for group_name, fields in checklist_groups.items %}
+      <h6 class="mt-2">{{ group_name|title }}</h6>
+      <div class="row">
+        {% for field_name in fields %}
+          <div class="col-md-3">
+            <strong>{{ field_name|capfirst }}:</strong>
+            {% if screening.checklist_dict|dict_get:field_name %}
+              ✅
+            {% else %}
+              ❌
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    {% endfor %}
+  </div>
+</details>
+{% endif %}
 
-          <!-- Checklist -->
-          {% if screening.checklist_dict %}
-          <details class="mt-3">
-            <summary class="text-primary">Show Checklist</summary>
-            <div class="mt-2">
-              {% for group_name, fields in checklist_groups.items %}
-              <h6 class="mt-2">{{ group_name|title }}</h6>
-              <div class="row">
-                {% for field_name in fields %}
-                <div class="col-md-3">
-                  <strong>{{ field_name|capfirst }}:</strong>
-                  {% if screening.checklist_dict|dict_get:field_name %}
-                    ✅
-                  {% else %}
-                    ❌
-                  {% endif %}
-                </div>
-                {% endfor %}
-              </div>
-              {% endfor %}
+<!-- Doctor’s Remarks (standalone) -->
+{% if screening.checklist.E9_remarks %}
+<details class="mt-3">
+  <summary class="text-primary">Doctor’s Remarks</summary>
+  <div class="mt-2">
+    {{ screening.checklist.E9_remarks }}
+  </div>
+</details>
+{% endif %}
 
-              <!-- Preventive Care -->
-              <div class="mt-3">
-                <h6 class="mt-2">Preventive Care</h6>
-                <p><strong>Deworming:</strong> {{ screening.deworming|default:"—" }}</p>
-                <p><strong>Vaccination:</strong> {{ screening.vaccination|default:"—" }}</p>
-              </div>
-
-              {% if screening.E9_remarks %}
-              <div class="mt-3">
-                <h6 class="mt-2">Doctor’s Remarks</h6>
-                <p>{{ screening.E9_remarks }}</p>
-              </div>
-              {% endif %}
-            </div>
-          </details>
-          {% endif %}
+<!-- Preventive Care (standalone) -->
+<div class="mt-3">
+  <h6 class="mt-2">Preventive Care</h6>
+  <p><strong>Deworming:</strong> {{ screening.checklist.deworming|default:"—" }}</p>
+  <p><strong>Vaccination:</strong> {{ screening.checklist.vaccination|default:"—" }}</p>
+</div>
 
         </div>
       </div>
