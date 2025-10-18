@@ -30,7 +30,6 @@
         {% endfor %}
       </select>
     </div>
-
     <div class="col-md-4">
       <label for="studentSelect" class="form-label">Select Student</label>
       <select name="student" id="studentSelect" class="form-select" onchange="this.form.submit()">
@@ -43,133 +42,196 @@
       </select>
     </div>
   </form>
-
   {% if student %}
-  <!-- Student Info Card -->
-  <div class="card mb-4 shadow-sm">
+ <!-- Student Info Card -->
+<div class="card mb-4 shadow-sm">
+  <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+    <span>Student Information</span>
+    <button class="btn btn-sm btn-light" type="button" data-bs-toggle="collapse" data-bs-target="#studentInfoBody" aria-expanded="true" aria-controls="studentInfoBody">
+      close
+    </button>
+  </div>
+  <div id="studentInfoBody" class="collapse show">
+    <div class="card-body">
+
+      <div class="row mb-2">
+        <div class="col-md-3"><strong>Name:</strong></div>
+        <div class="col-md-9">{{ student.name }}</div>
+      </div>
+
+      <div class="row mb-2">
+        <div class="col-md-3"><strong>Gender:</strong></div>
+        <div class="col-md-9">{{ student.gender|default:"—" }}</div>
+      </div>
+
+      <div class="row mb-2">
+        <div class="col-md-3"><strong>School:</strong></div>
+        <div class="col-md-9">{{ student.school.name|default:"—" }}</div>
+      </div>
+
+      <div class="row mb-2">
+        <div class="col-md-3"><strong>Roll No:</strong></div>
+        <div class="col-md-9">{{ student.roll_no|default:"—" }}</div>
+      </div>
+
+      <div class="row mb-2">
+        <div class="col-md-3"><strong>Aadhaar:</strong></div>
+        <div class="col-md-9">{{ student.aadhaar_no|default:"—" }}</div>
+      </div>
+
+      <div class="row mb-2">
+        <div class="col-md-3"><strong>Date of Birth:</strong></div>
+        <div class="col-md-9">{{ student.date_of_birth|date:"Y-m-d" }}</div>
+      </div>
+
+      <div class="row mb-2">
+        <div class="col-md-3"><strong>Age:</strong></div>
+        <div class="col-md-9">{{ student.age_in_years }} years</div>
+      </div>
+
+      <div class="row mb-2">
+        <div class="col-md-3"><strong>Father/Guardian:</strong></div>
+        <div class="col-md-9">{{ student.father_or_guardian_name|default:"—" }}</div>
+      </div>
+
+      <div class="row mb-2">
+        <div class="col-md-3"><strong>Mother:</strong></div>
+        <div class="col-md-9">{{ student.mother_name|default:"—" }}</div>
+      </div>
+
+      <div class="row mb-2">
+        <div class="col-md-3"><strong>Contact:</strong></div>
+        <div class="col-md-9">{{ student.contact_number|default:"—" }}</div>
+      </div>
+
+      <div class="row mb-2">
+        <div class="col-md-3"><strong>Email:</strong></div>
+        <div class="col-md-9">{{ student.email|default:"—" }}</div>
+      </div>
+
+      <div class="row mb-2">
+        <div class="col-md-3"><strong>Address:</strong></div>
+        <div class="col-md-9">{{ student.address|default:"—" }}</div>
+      </div>
+
+      <div class="row mb-2">
+        <div class="col-md-3"><strong>Last School:</strong></div>
+        <div class="col-md-9">{{ student.last_school_name|default:"—" }}</div>
+      </div>
+
+      <div class="row mb-2">
+        <div class="col-md-3"><strong>Place of Birth:</strong></div>
+        <div class="col-md-9">{{ student.place_of_birth|default:"—" }}</div>
+      </div>
+
+      <div class="row mb-2">
+        <div class="col-md-3"><strong>Tea Garden:</strong></div>
+        <div class="col-md-9">{{ student.tea_garden|default:"—" }}</div>
+      </div>
+
+      
+
+      <div class="row mb-2">
+        <div class="col-md-3"><strong>Current Class & Section:</strong></div>
+        <div class="col-md-9">{{ student.current_class_section|default:"—" }}</div>
+      </div>
+
+      <div class="row mb-2">
+        <div class="col-md-3"><strong>Current Teacher:</strong></div>
+        <div class="col-md-9">{{ student.current_teacher|default:"—" }}</div>
+      </div>
+      <div class="row mb-2">
+        <div class="row mb-2">
+          <div class="col-md-3"><strong>Known Earlier Disease:</strong></div>
+          <div class="col-md-9 text-danger">{{ student.known_earlier_disease|default:"—" }}</div>
+        </div>
+        
+
+    </div>
+  </div>
+</div>
+ 
+<!-- Screenings -->
+{% if screenings %}
+  {% for screening in screenings %}
+  <div class="card mb-3 shadow-sm">
     <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-      <span>Student Information</span>
-      <button class="btn btn-sm btn-light" type="button" data-bs-toggle="collapse" data-bs-target="#studentInfoBody" aria-expanded="true" aria-controls="studentInfoBody">
+      <span>{{ screening.screen_date|date:"Y-m-d" }}</span>
+      <button class="btn btn-sm btn-light" type="button" data-bs-toggle="collapse" 
+              data-bs-target="#screeningBody{{ screening.id }}" 
+              aria-expanded="true" aria-controls="screeningBody{{ screening.id }}">
         close
       </button>
     </div>
-    <div id="studentInfoBody" class="collapse show">
+    <div id="screeningBody{{ screening.id }}" class="collapse show">
       <div class="card-body">
+     <!-- Physical Measurements -->
+<div class="row mb-2">
+  <div class="col-md-2"><strong>Weight:</strong> {{ screening.weight|default:"—" }} kg</div>
+  <div class="col-md-2"><strong>Height:</strong> {{ screening.height|default:"—" }} cm</div>
+  <div class="col-md-2">
+    <strong>BMI:</strong> {{ screening.bmi|default:"—" }}
+    {% if screening.bmi_category %}<span class="text-muted">({{ screening.bmi_category }})</span>{% endif %}
+  </div>
+  <div class="col-md-2"><strong>MUAC:</strong> {{ screening.muac|default:"—" }}</div>
+  <div class="col-md-2">
+    <strong>Age:</strong> {{ student.date_of_birth|age_at_screening:screening.screen_date }}
+  </div>
+</div>
+
+        <!-- Vision -->
         <div class="row mb-2">
-          <div class="col-md-4"><strong>Name:</strong> {{ student.name }}</div>
-          <div class="col-md-4"><strong>Gender:</strong> {{ student.gender|default:"—" }}</div>
-          <div class="col-md-4"><strong>School:</strong> {{ student.school.name|default:"—" }}</div>
+          <div class="col-md-3"><strong>Vision (Left):</strong> {{ screening.vision_left|default:"—" }}</div>
+          <div class="col-md-3"><strong>Vision (Right):</strong> {{ screening.vision_right|default:"—" }}</div>
+          <div class="col-md-3"><strong>Vision (Both):</strong> {{ screening.vision_both|default:"—" }}</div>
+          <div class="col-md-3"><strong>Vision Interpretation:</strong> {{ screening.vision_problem|default:"—" }}</div>
         </div>
-        <div class="row mb-2">
-          <div class="col-md-3"><strong>Roll No:</strong> {{ student.roll_no|default:"—" }}</div>
-          <div class="col-md-3"><strong>Aadhaar:</strong> {{ student.aadhaar_no|default:"—" }}</div>
-          <div class="col-md-3"><strong>Date of Birth:</strong> {{ student.date_of_birth|date:"Y-m-d" }}</div>
-          <div class="col-md-3"><strong>Age:</strong> {{ student.age_in_years }} years</div>
+        <!-- Notes -->
+        <div class="mb-2"><strong>Notes:</strong> {{ screening.covid|default:"—" }}</div>
+        
+        <!-- Checklist -->
+        {% if screening.checklist_dict %}
+        <details class="mt-3">
+          <summary class="text-primary">Show Checklist</summary>
+          <div class="mt-2">
+            {% for group_name, fields in checklist_groups.items %}
+              <h6 class="mt-2">{{ group_name|title }}</h6>
+              <div class="row">
+                {% for field_name in fields %}
+                  <div class="col-md-3">
+                    <strong>{{ field_name|capfirst }}:</strong>
+                    {% if screening.checklist_dict|dict_get:field_name %}✅{% else %}❌{% endif %}
+                  </div>
+                {% endfor %}
+              </div>
+            {% endfor %}
+          </div>
+        </details>
+        {% endif %}
+
+        <!-- Doctor’s Remarks -->
+        {% if screening.checklist.E9_remarks %}
+        <details class="mt-3">
+          <summary class="text-primary">Doctor’s Remarks</summary>
+          <div class="mt-2">
+            <strong class="text-danger">{{ screening.checklist.E9_remarks }}</strong>
+          </div>
+        </details>
+        {% endif %}
+
+        <!-- Preventive Care -->
+        <div class="mt-3">
+          <h6 class="mt-2">Preventive Care</h6>
+          <p><strong>Deworming:</strong> {{ screening.checklist.deworming|default:"—" }}</p>
+          <p><strong>Vaccination:</strong> {{ screening.checklist.vaccination|default:"—" }}</p>
         </div>
-        <div class="row mb-2">
-          <div class="col-md-6"><strong>Father/Guardian:</strong> {{ student.father_or_guardian_name|default:"—" }}</div>
-          <div class="col-md-6"><strong>Mother:</strong> {{ student.mother_name|default:"—" }}</div>
-        </div>
-        <div class="row mb-2">
-          <div class="col-md-6"><strong>Contact:</strong> {{ student.contact_number|default:"—" }}</div>
-          <div class="col-md-6"><strong>Email:</strong> {{ student.email|default:"—" }}</div>
-        </div>
-        <div><strong>Address:</strong> {{ student.address|default:"—" }}</div>
       </div>
     </div>
   </div>
-
-  <!-- Screenings -->
-  {% if screenings %}
-    {% regroup screenings by screen_date.year as screenings_by_year %}
-    {% for year_group in screenings_by_year %}
-      <h4 class="fw-bold bg-light p-2 mt-4 sticky-top" style="top:160px;">{{ year_group.grouper }}</h4>
-      {% for screening in year_group.list %}
-      <div class="card mb-3 shadow-sm">
-        <div class="card-header d-flex justify-content-between">
-          <div><strong>{{ screening.screen_date|date:"Y-m-d" }}</strong></div>
-          <div><span class="badge bg-info">{{ screening.bmi_category|default:"—" }}</span></div>
-        </div>
-        <div class="card-body">
-
-          <!-- Physical Measurements -->
-          <div class="row mb-2">
-            <div class="col-md-3"><strong>Weight:</strong> {{ screening.weight|default:"—" }} kg</div>
-            <div class="col-md-3"><strong>Height:</strong> {{ screening.height|default:"—" }} cm</div>
-            <div class="col-md-3"><strong>BMI:</strong> {{ screening.bmi|default:"—" }}</div>
-            <div class="col-md-3"><strong>MUAC:</strong> {{ screening.muac|default:"—" }}</div>
-          </div>
-
-          <!-- Interpretation -->
-          <div class="row mb-2">
-            <div class="col-md-3"><strong>BMI Interpretation:</strong> {{ screening.bmi_category|default:"—" }}</div>
-            <div class="col-md-3"><strong>MUAC Interpretation:</strong> {{ screening.muac_sam|default:"—" }}</div>
-            <div class="col-md-3"><strong>Weight/Age:</strong> {{ screening.weight_age|default:"—" }}</div>
-            <div class="col-md-3"><strong>Height/Age:</strong> {{ screening.length_age|default:"—" }}</div>
-          </div>
-          <div class="row mb-2">
-            <div class="col-md-3"><strong>Weight/Height:</strong> {{ screening.weight_height|default:"—" }}</div>
-          </div>
-
-          <!-- Vision -->
-          <div class="row mb-2">
-            <div class="col-md-3"><strong>Vision (Both):</strong> {{ screening.vision_both|default:"—" }}</div>
-            <div class="col-md-3"><strong>Vision (Left):</strong> {{ screening.vision_left|default:"—" }}</div>
-            <div class="col-md-3"><strong>Vision (Right):</strong> {{ screening.vision_right|default:"—" }}</div>
-          </div>
-          <div class="row mb-2">
-            <div class="col-md-12"><strong>Vision Interpretation:</strong> {{ screening.vision_problem|default:"—" }}</div>
-          </div>
-
-          <div class="mb-2"><strong>Notes:</strong> {{ screening.covid|default:"—" }}</div>
-<!-- Checklist -->
-{% if screening.checklist_dict %}
-<details class="mt-3">
-  <summary class="text-primary">Show Checklist</summary>
-  <div class="mt-2">
-    {% for group_name, fields in checklist_groups.items %}
-      <h6 class="mt-2">{{ group_name|title }}</h6>
-      <div class="row">
-        {% for field_name in fields %}
-          <div class="col-md-3">
-            <strong>{{ field_name|capfirst }}:</strong>
-            {% if screening.checklist_dict|dict_get:field_name %}
-              ✅
-            {% else %}
-              ❌
-            {% endif %}
-          </div>
-        {% endfor %}
-      </div>
-    {% endfor %}
-  </div>
-</details>
+  {% endfor %}
+{% else %}
+  <p class="text-muted">No screenings found for this student.</p>
 {% endif %}
-
-<!-- Doctor’s Remarks (standalone) -->
-{% if screening.checklist.E9_remarks %}
-<details class="mt-3">
-  <summary class="text-primary">Doctor’s Remarks</summary>
-  <div class="mt-2">
-    {{ screening.checklist.E9_remarks }}
-  </div>
-</details>
-{% endif %}
-
-<!-- Preventive Care (standalone) -->
-<div class="mt-3">
-  <h6 class="mt-2">Preventive Care</h6>
-  <p><strong>Deworming:</strong> {{ screening.checklist.deworming|default:"—" }}</p>
-  <p><strong>Vaccination:</strong> {{ screening.checklist.vaccination|default:"—" }}</p>
-</div>
-
-        </div>
-      </div>
-      {% endfor %}
-    {% endfor %}
-  {% else %}
-    <p class="text-muted">No screenings found for this student.</p>
-  {% endif %}
 
   {% endif %}
 

@@ -176,15 +176,12 @@ def calculate_age_in_months(dob, screen_date):
 def add_screening(request):
     students = Student.objects.all().order_by('name')
     schools = School.objects.all()
-
     selected_student_id = request.POST.get("student") or request.GET.get("student")
     student = None
     age_in_months = None
-    initial_data = {}
 
     if selected_student_id:
         student = get_object_or_404(Student, id=selected_student_id)
-        initial_data['school'] = student.school.id if student.school else None
 
         # calculate age if screening date is provided
         screen_date_str = request.POST.get("screen_date") or request.GET.get("screen_date")
@@ -193,24 +190,43 @@ def add_screening(request):
             age_in_months = calculate_age_in_months(student.date_of_birth, screen_date)
 
     if request.method == "POST":
-        screening_form = ScreeningForm(request.POST, initial=initial_data)
+        if not student:
+            messages.error(request, "Please select a student first.")
+            return redirect("screening_add")
+
+        screening_form = ScreeningForm(request.POST)
         screening_check_form = ScreeningCheckForm(request.POST)
+
         if screening_form.is_valid() and screening_check_form.is_valid():
-            # Save Screening
             screening = screening_form.save(commit=False)
             screening.student = student
-            screening.calculate_metrics()  # if this is a custom method
+            try:
+                screening.calculate_metrics()
+            except Exception as e:
+                messages.error(request, f"Error calculating metrics: {e}")
+                return render(request, "core/screening_list.html", {
+                    "students": students,
+                    "schools": schools,
+                    "screening_form": screening_form,
+                    "screening_check_form": screening_check_form,
+                    "age_in_months": age_in_months,
+                })
+
             screening.save()
 
-            # Save ScreeningCheck
             check = screening_check_form.save(commit=False)
-            check.screening = screening   # link checklist to the screening
+            check.screening = screening
             check.save()
 
             messages.success(request, f"Screening for {student.name} saved successfully!")
             return redirect("screening_list")
+        else:
+            # show errors for debugging
+            print("Screening Form Errors:", screening_form.errors)
+            print("Checklist Form Errors:", screening_check_form.errors)
+
     else:
-        screening_form = ScreeningForm(initial=initial_data)
+        screening_form = ScreeningForm(initial={'school': student.school.id} if student else None)
         screening_check_form = ScreeningCheckForm()
 
     return render(request, "core/screening_list.html", {
@@ -219,6 +235,7 @@ def add_screening(request):
         "screening_form": screening_form,
         "screening_check_form": screening_check_form,
         "age_in_months": age_in_months,
+        "student": student,
     })
 
 def ajax_student_search(request):
