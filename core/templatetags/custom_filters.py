@@ -19,3 +19,7 @@ def dict_get(d, key):
     if d is None:
         return None
     return d.get(key)
+@register.filter
+def some_ticked(fields, checklist_dict):
+    """Return True if any field in fields is ticked in checklist_dict."""
+    return any(checklist_dict.get(f, False) for f in fields)
