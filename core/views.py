@@ -66,6 +66,13 @@ from .models import Screening, ScreeningCheck, School
 from django.shortcuts import render, get_object_or_404
 from .models import Student, School, Screening, ScreeningCheck
 from .forms import StudentForm, ScreeningForm, ScreeningCheckForm
+from django.shortcuts import render, get_object_or_404
+from datetime import date
+from .models import School, Student, Screening, ScreeningCheck
+from django.shortcuts import render, get_object_or_404
+from django.utils.safestring import mark_safe
+import json
+from datetime import date
 
 def screening_summary(request):
     schools = School.objects.all()
@@ -73,18 +80,23 @@ def screening_summary(request):
     selected_school_id = request.GET.get('school')
     selected_student_id = request.GET.get('student')
 
-    selected_school = None
     student = None
     screenings = []
     checklist_groups = {}
 
+    chart_labels = []
+    chart_bmi = []
+    chart_weight = []
+    chart_height = []
+    chart_muac = []
+    chart_age = []
+
     if selected_school_id:
-        selected_school = get_object_or_404(School, id=selected_school_id)
-        students = Student.objects.filter(school=selected_school)
+        students = Student.objects.filter(school_id=selected_school_id)
 
     if selected_student_id:
         student = get_object_or_404(Student, id=selected_student_id)
-        screenings = Screening.objects.filter(student=student).order_by('-screen_date')
+        screenings = Screening.objects.filter(student=student).order_by('screen_date')
 
         checklist_groups = {
             "Preventive Care": ["deworming", "vaccination"],
@@ -110,10 +122,39 @@ def screening_summary(request):
         for s in screenings:
             try:
                 checklist = ScreeningCheck.objects.get(screening=s)
-                # Convert ScreeningCheck object to dict safely
                 s.checklist_dict = {field: getattr(checklist, field, False) for group in checklist_groups.values() for field in group}
             except ScreeningCheck.DoesNotExist:
                 s.checklist_dict = None
+
+            # Chart data
+            chart_labels.append(s.screen_date.strftime("%Y-%m-%d"))
+            chart_bmi.append(s.bmi if s.bmi is not None else 0)
+            chart_weight.append(s.weight if s.weight is not None else 0)
+            chart_height.append(s.height if s.height is not None else 0)
+            chart_muac.append(s.muac if s.muac is not None else 0)
+
+            # Age in decimal years
+            if student.date_of_birth:
+                years = s.screen_date.year - student.date_of_birth.year
+                months = s.screen_date.month - student.date_of_birth.month
+                if s.screen_date.day < student.date_of_birth.day:
+                    months -= 1
+                if months < 0:
+                    years -= 1
+                    months += 12
+                chart_age.append(round(years + months/12, 2))
+            else:
+                chart_age.append(0)
+
+        # Convert to JSON for JS
+        chart_labels = mark_safe(json.dumps(chart_labels))
+        chart_bmi = mark_safe(json.dumps(chart_bmi))
+        chart_weight = mark_safe(json.dumps(chart_weight))
+        chart_height = mark_safe(json.dumps(chart_height))
+        chart_muac = mark_safe(json.dumps(chart_muac))
+        chart_age = mark_safe(json.dumps(chart_age))
+    else:
+        chart_labels = chart_bmi = chart_weight = chart_height = chart_muac = chart_age = mark_safe("[]")
 
     context = {
         "schools": schools,
@@ -123,10 +164,16 @@ def screening_summary(request):
         "student": student,
         "screenings": screenings,
         "checklist_groups": checklist_groups,
+        # Chart data
+        "chart_labels": chart_labels,
+        "chart_bmi": chart_bmi,
+        "chart_weight": chart_weight,
+        "chart_height": chart_height,
+        "chart_muac": chart_muac,
+        "chart_age": chart_age,
     }
 
     return render(request, "core/screening_summary.html", context)
-
 def screened_students(request):
     students = Student.objects.all().order_by('name')
     schools = School.objects.all()
