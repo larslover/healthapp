@@ -160,8 +160,8 @@ class Screening(models.Model):
 
     # Vision
     vision_both = models.CharField(max_length=50, null=True, blank=True)
-    vison_left = models.IntegerField(null=True, blank=True)
-    vison_right = models.IntegerField(null=True, blank=True)
+    vision_left = models.IntegerField(null=True, blank=True)
+    vision_right = models.IntegerField(null=True, blank=True)
     vision_problem = models.TextField(null=True, blank=True)
 
     # Meta data
