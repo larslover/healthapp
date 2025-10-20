@@ -38,8 +38,17 @@
     <hr class="my-4">
     <h5 class="mb-3">Screening Details</h5>
     <div class="row g-3">
-        {{ screening_form.as_p }}
+        {{ screening_form.screen_date.label_tag }} {{ screening_form.screen_date }}
+        {{ screening_form.class_section.label_tag }} {{ screening_form.class_section }}
+        {{ screening_form.school.label_tag }} {{ screening_form.school }}
+        {{ screening_form.age_screening.label_tag }} {{ screening_form.age_screening }}
+        {{ screening_form.weight.label_tag }} {{ screening_form.weight }}
+        {{ screening_form.height.label_tag }} {{ screening_form.height }}
+        {{ screening_form.vision_both.label_tag }} {{ screening_form.vision_both }}
+        {{ screening_form.vision_left.label_tag }} {{ screening_form.vision_left }}
+        {{ screening_form.vision_right.label_tag }} {{ screening_form.vision_right }}
     </div>
+    
 
     <!-- Screening Checklist -->
     <hr class="my-4">
@@ -55,7 +64,8 @@
                     {{ field.label_tag }} {{ field }}
                 </div>
             {% elif field.name == 'E4_menarke' %}
-                <div class="mb-3 fade d-none" id="E4Wrapper">
+            <div class="mb-3 fade d-none" id="E4Wrapper">
+
                     {{ field.label_tag }} {{ field }}
                 </div>
             {% elif field.name == 'E5_regularity_period_difficulties' %}
@@ -83,102 +93,110 @@
      JS: Dynamic Visibility & Age Auto-fill
 ========================= -->
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const studentSelect = document.getElementById('studentSelect');
-    const screenDateInput = document.getElementById('id_screen_date');
-    const ageField = document.getElementById('id_age_screening');
-
-    const B5Wrapper = document.getElementById('B5Wrapper');
-    const E4Wrapper = document.getElementById('E4Wrapper');
-    const E5Wrapper = document.getElementById('E5Wrapper');
-    const E8Wrapper = document.getElementById('E8Wrapper');
-    const muacWrapper = document.getElementById('muacWrapper');
-    const muacField = document.getElementById('id_muac');
-
-    function getE4Input() {
-        return document.querySelector('[name="E4_menarke"]');
-    }
-
-    function getTotalMonths(dob, screenDate) {
-        if (!dob || !screenDate) return null;
-        const birth = new Date(dob);
-        const screen = new Date(screenDate);
-        let months = (screen.getFullYear() - birth.getFullYear()) * 12 + (screen.getMonth() - birth.getMonth());
-        if (screen.getDate() < birth.getDate()) months -= 1;
-        return months >= 0 ? Math.floor(months) : null;
-    }
-
-    function formatAge(totalMonths) {
-        if (totalMonths === null) return '';
-        const years = Math.floor(totalMonths / 12);
-        const months = totalMonths % 12;
-        return `${years}y ${months}m (${totalMonths} months)`;
-    }
-
-    function showElement(el) { if (el) el.style.display = 'block'; }
-    function hideElement(el) { if (el) el.style.display = 'none'; }
-
-    function toggleE5E8() {
-        const E4Input = getE4Input();
-        if (!E4Input) return;
-        if (E4Input.checked) {
-            showElement(E5Wrapper);
-            showElement(E8Wrapper);
-        } else {
-            hideElement(E5Wrapper);
-            hideElement(E8Wrapper);
+    document.addEventListener('DOMContentLoaded', function() {
+        const studentSelect = document.getElementById('studentSelect');
+        const screenDateInput = document.getElementById('id_screen_date');
+        const ageField = document.getElementById('id_age_screening');
+    
+        const B5Wrapper = document.getElementById('B5Wrapper');
+        const E4Wrapper = document.getElementById('E4Wrapper');
+        const E5Wrapper = document.getElementById('E5Wrapper');
+        const E8Wrapper = document.getElementById('E8Wrapper');
+        const muacWrapper = document.getElementById('muacWrapper');
+        const muacField = document.getElementById('id_muac');
+    
+        function getE4Input() {
+            return document.querySelector('[name="E4_menarke"]');
         }
-    }
-
-    function updateVisibility() {
-        const selectedOption = studentSelect.selectedOptions[0];
-        if (!selectedOption || !selectedOption.value) return;
-
-        const dob = selectedOption.dataset.dob;
-        const gender = selectedOption.dataset.gender?.toLowerCase();
-        const screenDate = screenDateInput?.value;
-
-        const totalMonths = getTotalMonths(dob, screenDate);
-
-        // Update age
-        if (ageField) ageField.value = formatAge(totalMonths);
-
-        // E4 only depends on gender, not age
-        if (gender === 'female') {
-            showElement(E4Wrapper);
-            toggleE5E8();
-        } else {
-            [E4Wrapper, E5Wrapper, E8Wrapper].forEach(hideElement);
+    
+        function getTotalMonths(dob, screenDate) {
+            if (!dob || !screenDate) return null;
+            const birth = new Date(dob);
+            const screen = new Date(screenDate);
+            let months = (screen.getFullYear() - birth.getFullYear()) * 12 + (screen.getMonth() - birth.getMonth());
+            if (screen.getDate() < birth.getDate()) months -= 1;
+            return months >= 0 ? Math.floor(months) : null;
         }
-
-        // B5 depends on age 24–72 months
-        if (totalMonths !== null && totalMonths >= 24 && totalMonths <= 72) showElement(B5Wrapper);
-        else hideElement(B5Wrapper);
-
-        // MUAC depends on age 6–60 months
-        if (totalMonths !== null && totalMonths >= 6 && totalMonths <= 60) {
-            showElement(muacWrapper);
-            if (muacField) muacField.disabled = false;
-        } else {
-            hideElement(muacWrapper);
-            if (muacField) muacField.disabled = true;
+    
+        function formatAge(totalMonths) {
+            if (totalMonths === null) return '';
+            const years = Math.floor(totalMonths / 12);
+            const months = totalMonths % 12;
+            return `${years}y ${months}m (${totalMonths} months)`;
         }
-    }
-
-    // Event listeners
-    studentSelect.addEventListener('change', updateVisibility);
-    screenDateInput?.addEventListener('input', updateVisibility);
-    screenDateInput?.addEventListener('change', updateVisibility);
-
-    // E4 toggle
-    const E4Input = getE4Input();
-    if (E4Input) E4Input.addEventListener('change', toggleE5E8);
-
-    // Run after a short delay to ensure all elements exist
-    setTimeout(updateVisibility, 50);
-});
-
-</script>
-
-                        
+    
+        // Bootstrap-friendly togglers
+        function showElement(el) { if (el) el.classList.remove('d-none'); }
+        function hideElement(el) { if (el) el.classList.add('d-none'); }
+    
+        function toggleE5E8() {
+            const E4Input = getE4Input();
+            if (!E4Input) return;
+            if (E4Input.checked) {
+                showElement(E5Wrapper);
+                showElement(E8Wrapper);
+            } else {
+                hideElement(E5Wrapper);
+                hideElement(E8Wrapper);
+            }
+        }
+    
+        function updateVisibility() {
+            const selectedOption = studentSelect.selectedOptions[0];
+            if (!selectedOption) return;
+    
+            const dob = selectedOption.dataset.dob;
+            const rawGender = selectedOption.dataset.gender;
+            const gender = rawGender ? rawGender.toLowerCase() : '';
+            const screenDate = screenDateInput?.value;
+    
+            const totalMonths = getTotalMonths(dob, screenDate);
+    
+            // Update age
+            if (ageField) ageField.value = formatAge(totalMonths);
+    
+            // E4 depends on gender only
+            if (gender === 'female' || gender === 'f') {
+                showElement(E4Wrapper);
+    
+                // Wait a tick to ensure input exists
+                setTimeout(() => {
+                    const E4Input = getE4Input();
+                    if (E4Input) {
+                        E4Input.removeEventListener('change', toggleE5E8);
+                        E4Input.addEventListener('change', toggleE5E8);
+                        toggleE5E8();
+                    } else {
+                        hideElement(E5Wrapper);
+                        hideElement(E8Wrapper);
+                    }
+                }, 100);
+            } else {
+                [E4Wrapper, E5Wrapper, E8Wrapper].forEach(hideElement);
+            }
+    
+            // B5 depends on age 24–72 months
+            if (totalMonths !== null && totalMonths >= 24 && totalMonths <= 72) showElement(B5Wrapper);
+            else hideElement(B5Wrapper);
+    
+            // MUAC depends on age 6–60 months
+            if (totalMonths !== null && totalMonths >= 6 && totalMonths <= 60) {
+                showElement(muacWrapper);
+                if (muacField) muacField.disabled = false;
+            } else {
+                hideElement(muacWrapper);
+                if (muacField) muacField.disabled = true;
+            }
+        }
+    
+        // Add event listeners
+        studentSelect.addEventListener('change', updateVisibility);
+        screenDateInput?.addEventListener('input', updateVisibility);
+        screenDateInput?.addEventListener('change', updateVisibility);
+    
+        // Run once after DOM settles
+        setTimeout(updateVisibility, 200);
+    });
+    </script>
+                            
 {% endblock %}
