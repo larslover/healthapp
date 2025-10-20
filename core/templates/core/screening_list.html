@@ -105,10 +105,6 @@
         const muacWrapper = document.getElementById('muacWrapper');
         const muacField = document.getElementById('id_muac');
     
-        function getE4Input() {
-            return document.querySelector('[name="E4_menarke"]');
-        }
-    
         function getTotalMonths(dob, screenDate) {
             if (!dob || !screenDate) return null;
             const birth = new Date(dob);
@@ -125,29 +121,15 @@
             return `${years}y ${months}m (${totalMonths} months)`;
         }
     
-        // Bootstrap-friendly togglers
         function showElement(el) { if (el) el.classList.remove('d-none'); }
         function hideElement(el) { if (el) el.classList.add('d-none'); }
-    
-        function toggleE5E8() {
-            const E4Input = getE4Input();
-            if (!E4Input) return;
-            if (E4Input.checked) {
-                showElement(E5Wrapper);
-                showElement(E8Wrapper);
-            } else {
-                hideElement(E5Wrapper);
-                hideElement(E8Wrapper);
-            }
-        }
     
         function updateVisibility() {
             const selectedOption = studentSelect.selectedOptions[0];
             if (!selectedOption) return;
     
             const dob = selectedOption.dataset.dob;
-            const rawGender = selectedOption.dataset.gender;
-            const gender = rawGender ? rawGender.toLowerCase() : '';
+            const gender = (selectedOption.dataset.gender || '').toLowerCase();
             const screenDate = screenDateInput?.value;
     
             const totalMonths = getTotalMonths(dob, screenDate);
@@ -155,22 +137,11 @@
             // Update age
             if (ageField) ageField.value = formatAge(totalMonths);
     
-            // E4 depends on gender only
+            // Show E4 (and always show E5/E8) if female
             if (gender === 'female' || gender === 'f') {
                 showElement(E4Wrapper);
-    
-                // Wait a tick to ensure input exists
-                setTimeout(() => {
-                    const E4Input = getE4Input();
-                    if (E4Input) {
-                        E4Input.removeEventListener('change', toggleE5E8);
-                        E4Input.addEventListener('change', toggleE5E8);
-                        toggleE5E8();
-                    } else {
-                        hideElement(E5Wrapper);
-                        hideElement(E8Wrapper);
-                    }
-                }, 100);
+                showElement(E5Wrapper);
+                showElement(E8Wrapper);
             } else {
                 [E4Wrapper, E5Wrapper, E8Wrapper].forEach(hideElement);
             }
@@ -189,14 +160,12 @@
             }
         }
     
-        // Add event listeners
         studentSelect.addEventListener('change', updateVisibility);
         screenDateInput?.addEventListener('input', updateVisibility);
         screenDateInput?.addEventListener('change', updateVisibility);
     
-        // Run once after DOM settles
-        setTimeout(updateVisibility, 200);
+        updateVisibility();
     });
     </script>
-                            
+                                
 {% endblock %}
