@@ -60,7 +60,7 @@
     <div class="row g-3">
         {% for field in screening_check_form %}
             {% if field.name == 'B5_oedema' %}
-                <div class="mb-3 fade d-none" id="B5Wrapper">
+                <div class="mb-3" id="B5Wrapper">
                     {{ field.label_tag }} {{ field }}
                 </div>
             {% elif field.name == 'E4_menarke' %}
@@ -121,50 +121,75 @@
             return `${years}y ${months}m (${totalMonths} months)`;
         }
     
-        function showElement(el) { if (el) el.classList.remove('d-none'); }
-        function hideElement(el) { if (el) el.classList.add('d-none'); }
+        function showElement(el) { 
+    if (el) { 
+        el.classList.remove('d-none'); 
+        if (el.classList.contains('fade')) el.classList.add('show');
+    } 
+}
+function hideElement(el) { 
+    if (el) { 
+        el.classList.add('d-none'); 
+        el.classList.remove('show');
+    } 
+}
+
     
         function updateVisibility() {
-            const selectedOption = studentSelect.selectedOptions[0];
-            if (!selectedOption) return;
+    const selectedOption = studentSelect.selectedOptions[0];
     
-            const dob = selectedOption.dataset.dob;
-            const gender = (selectedOption.dataset.gender || '').toLowerCase();
-            const screenDate = screenDateInput?.value;
-    
-            const totalMonths = getTotalMonths(dob, screenDate);
-    
-            // Update age
-            if (ageField) ageField.value = formatAge(totalMonths);
-    
-            // Show E4 (and always show E5/E8) if female
-            if (gender === 'female' || gender === 'f') {
-                showElement(E4Wrapper);
-                showElement(E5Wrapper);
-                showElement(E8Wrapper);
-            } else {
-                [E4Wrapper, E5Wrapper, E8Wrapper].forEach(hideElement);
-            }
-    
-            // B5 depends on age 24–72 months
-            if (totalMonths !== null && totalMonths >= 24 && totalMonths <= 72) showElement(B5Wrapper);
-            else hideElement(B5Wrapper);
-    
-            // MUAC depends on age 6–60 months
-            if (totalMonths !== null && totalMonths >= 6 && totalMonths <= 60) {
-                showElement(muacWrapper);
-                if (muacField) muacField.disabled = false;
-            } else {
-                hideElement(muacWrapper);
-                if (muacField) muacField.disabled = true;
-            }
-        }
-    
-        studentSelect.addEventListener('change', updateVisibility);
-        screenDateInput?.addEventListener('input', updateVisibility);
-        screenDateInput?.addEventListener('change', updateVisibility);
-    
-        updateVisibility();
+    // Only proceed if a real student is selected
+    if (!selectedOption || !selectedOption.dataset.dob || !selectedOption.dataset.gender) {
+        // Hide all dependent fields if no valid student
+        [E4Wrapper, E5Wrapper, E8Wrapper, B5Wrapper].forEach(hideElement);
+        if (muacField) muacField.disabled = true;
+        hideElement(muacWrapper);
+        if (ageField) ageField.value = '';
+        return;
+    }
+
+    const dob = selectedOption.dataset.dob;
+    const gender = selectedOption.dataset.gender.trim().toLowerCase();
+    const screenDate = screenDateInput?.value;
+
+    const totalMonths = getTotalMonths(dob, screenDate);
+
+    // Update age
+    if (ageField) ageField.value = formatAge(totalMonths);
+
+    // Show E4/E5/E8 only if female
+    if (gender === 'female' || gender === 'f') {
+        showElement(E4Wrapper);
+        showElement(E5Wrapper);
+        showElement(E8Wrapper);
+    } else {
+        [E4Wrapper, E5Wrapper, E8Wrapper].forEach(hideElement);
+    }
+    console.log('Gender:', gender);
+console.log('E5Wrapper exists:', !!E5Wrapper);
+
+
+    // B5 depends on age 24–72 months
+    if (totalMonths !== null && totalMonths >= 24 && totalMonths <= 72) showElement(B5Wrapper);
+    else hideElement(B5Wrapper);
+
+    // MUAC depends on age 6–60 months
+    if (totalMonths !== null && totalMonths >= 6 && totalMonths <= 60) {
+        showElement(muacWrapper);
+        if (muacField) muacField.disabled = false;
+    } else {
+        hideElement(muacWrapper);
+        if (muacField) muacField.disabled = true;
+    }
+}
+
+studentSelect.addEventListener('change', updateVisibility);
+screenDateInput?.addEventListener('input', updateVisibility);
+screenDateInput?.addEventListener('change', updateVisibility);
+
+// Don't auto-run until a real student is selected
+updateVisibility();
+
     });
     </script>
                                 
