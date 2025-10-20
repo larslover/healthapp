@@ -182,7 +182,7 @@
     </div>
     <div id="screeningBody{{ screening.id }}" class="collapse show">
       <div class="card-body">
-    <!-- Physical Measurements -->
+     <!-- Physical Measurements -->
 <div class="row mb-2">
   <div class="col-md-2"><strong>Weight:</strong> {{ screening.weight|default:"—" }} kg</div>
   <div class="col-md-2"><strong>Height:</strong> {{ screening.height|default:"—" }} cm</div>
@@ -196,19 +196,6 @@
   </div>
 </div>
 
-<!-- Weight/Height-for-Age -->
-<div class="row mb-2">
-  {% if screening.weight_age != "N/A" %}
-    <div class="col-md-4"><strong>Weight-for-Age:</strong> {{ screening.weight_age }}</div>
-  {% endif %}
-  {% if screening.length_age != "N/A" %}
-    <div class="col-md-4"><strong>Height-for-Age:</strong> {{ screening.length_age }}</div>
-  {% endif %}
-  {% if screening.weight_height != "N/A" %}
-    <div class="col-md-4"><strong>Weight-for-Height:</strong> {{ screening.weight_height }}</div>
-  {% endif %}
-</div>
-
         <!-- Vision -->
         <div class="row mb-2">
           <div class="col-md-3"><strong>Vision (Left):</strong> {{ screening.vision_left|default:"—" }}</div>
@@ -216,28 +203,29 @@
           <div class="col-md-3"><strong>Vision (Both):</strong> {{ screening.vision_both|default:"—" }}</div>
           <div class="col-md-3"><strong>Vision problem:</strong> {{ screening.vision_problem|default:"—" }}</div>
         </div>
-       
+        <!-- Notes -->
+        <div class="mb-2"><strong>Notes:</strong> {{ screening.covid|default:"—" }}</div>
         
-        
-        <!-- Checklist -->
-        {% if screening.checklist_dict %}
-        <details class="mt-3">
-          <summary class="text-primary">Show Checklist</summary>
-          <div class="mt-2">
-            {% for group_name, fields in checklist_groups.items %}
-              <h6 class="mt-2">{{ group_name|title }}</h6>
-              <div class="row">
-                {% for field_name in fields %}
-                  <div class="col-md-3">
-                    <strong>{{ field_name|capfirst }}:</strong>
-                    {% if screening.checklist_dict|dict_get:field_name %}✅{% else %}❌{% endif %}
-                  </div>
-                {% endfor %}
-              </div>
-            {% endfor %}
+       <!-- Checklist -->
+{% if screening.checklist_dict %}
+<details class="mt-3">
+  <summary class="text-primary">Show Checklist</summary>
+  <div class="mt-2">
+    {% for group_name, fields in checklist_groups.items %}
+  
+      <div class="row">
+        {% for field_name in fields %}
+          {% if screening.checklist_dict|dict_get:field_name %}
+          <div class="col-md-3">
+            <strong>{{ field_name|capfirst }}:</strong> ✅
           </div>
-        </details>
-        {% endif %}
+          {% endif %}
+        {% endfor %}
+      </div>
+    {% endfor %}
+  </div>
+</details>
+{% endif %}
 
         <!-- Doctor’s Remarks -->
         {% if screening.checklist.E9_remarks %}
@@ -250,12 +238,15 @@
         {% endif %}
 
         <!-- Preventive Care -->
-        <div class="mt-3">
-          <h6 class="mt-2">Preventive Care</h6>
-          <p><strong>Deworming:</strong> {{ screening.checklist.deworming|default:"—" }}</p>
-          <p><strong>Vaccination:</strong> {{ screening.checklist.vaccination|default:"—" }}</p>
-        </div><!-- WHO Metrics -->
-        
+{% if screening.checklist.deworming or screening.checklist.vaccination %}
+<details class="mt-3">
+  <summary class="text-primary">Preventive Care</summary>
+  <div class="mt-2">
+    <p><strong>Deworming:</strong> {{ screening.checklist.deworming|default:"—" }}</p>
+    <p><strong>Vaccination:</strong> {{ screening.checklist.vaccination|default:"—" }}</p>
+  </div>
+</details>
+{% endif %}
       </div>
     </div>
   </div>
