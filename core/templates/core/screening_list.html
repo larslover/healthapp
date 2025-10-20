@@ -135,7 +135,7 @@ function hideElement(el) {
 }
 
     
-        function updateVisibility() {
+function updateVisibility() {
     const selectedOption = studentSelect.selectedOptions[0];
     
     // Only proceed if a real student is selected
@@ -159,12 +159,33 @@ function hideElement(el) {
 
     // Show E4/E5/E8 only if female
     if (gender === 'female' || gender === 'f') {
-        showElement(E4Wrapper);
-        showElement(E5Wrapper);
-        showElement(E8Wrapper);
-    } else {
-        [E4Wrapper, E5Wrapper, E8Wrapper].forEach(hideElement);
+    showElement(E4Wrapper);
+    hideElement(E5Wrapper);
+    hideElement(E8Wrapper);
+
+    const E4Checkbox = document.getElementById('id_E4_menarke');
+    if (E4Checkbox) {
+        // Show/hide E5 and E8 based on E4 checkbox
+        E4Checkbox.addEventListener('change', function() {
+            if (E4Checkbox.checked) {
+                showElement(E5Wrapper);
+                showElement(E8Wrapper);
+            } else {
+                hideElement(E5Wrapper);
+                hideElement(E8Wrapper);
+            }
+        });
+
+        // Initialize visibility in case E4 is already checked
+        if (E4Checkbox.checked) {
+            showElement(E5Wrapper);
+            showElement(E8Wrapper);
+        }
     }
+} else {
+    [E4Wrapper, E5Wrapper, E8Wrapper].forEach(hideElement);
+}
+
     console.log('Gender:', gender);
 console.log('E5Wrapper exists:', !!E5Wrapper);
 

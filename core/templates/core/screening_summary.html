@@ -182,7 +182,7 @@
     </div>
     <div id="screeningBody{{ screening.id }}" class="collapse show">
       <div class="card-body">
-     <!-- Physical Measurements -->
+    <!-- Physical Measurements -->
 <div class="row mb-2">
   <div class="col-md-2"><strong>Weight:</strong> {{ screening.weight|default:"—" }} kg</div>
   <div class="col-md-2"><strong>Height:</strong> {{ screening.height|default:"—" }} cm</div>
@@ -196,6 +196,19 @@
   </div>
 </div>
 
+<!-- Weight/Height-for-Age -->
+<div class="row mb-2">
+  {% if screening.weight_age != "N/A" %}
+    <div class="col-md-4"><strong>Weight-for-Age:</strong> {{ screening.weight_age }}</div>
+  {% endif %}
+  {% if screening.length_age != "N/A" %}
+    <div class="col-md-4"><strong>Height-for-Age:</strong> {{ screening.length_age }}</div>
+  {% endif %}
+  {% if screening.weight_height != "N/A" %}
+    <div class="col-md-4"><strong>Weight-for-Height:</strong> {{ screening.weight_height }}</div>
+  {% endif %}
+</div>
+
         <!-- Vision -->
         <div class="row mb-2">
           <div class="col-md-3"><strong>Vision (Left):</strong> {{ screening.vision_left|default:"—" }}</div>
@@ -203,8 +216,8 @@
           <div class="col-md-3"><strong>Vision (Both):</strong> {{ screening.vision_both|default:"—" }}</div>
           <div class="col-md-3"><strong>Vision problem:</strong> {{ screening.vision_problem|default:"—" }}</div>
         </div>
-        <!-- Notes -->
-        <div class="mb-2"><strong>Notes:</strong> {{ screening.covid|default:"—" }}</div>
+       
+        
         
         <!-- Checklist -->
         {% if screening.checklist_dict %}
@@ -241,7 +254,8 @@
           <h6 class="mt-2">Preventive Care</h6>
           <p><strong>Deworming:</strong> {{ screening.checklist.deworming|default:"—" }}</p>
           <p><strong>Vaccination:</strong> {{ screening.checklist.vaccination|default:"—" }}</p>
-        </div>
+        </div><!-- WHO Metrics -->
+        
       </div>
     </div>
   </div>
