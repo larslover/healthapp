@@ -192,14 +192,17 @@
       <span class="text-danger">({{ screening.bmi_category }})</span>
     {% endif %}
   </div>
-  <div class="col-md-2">
-    <strong>MUAC:</strong> {{ screening.muac|default:"—" }}
-    {% if screening.muac_category and screening.muac_category != "N/A" and screening.muac_category|lower != "normal" %}
-      <span class="text-danger">({{ screening.muac_category }})</span>
-    {% endif %}
-  </div>
-  <div class="col-md-2"><strong>Age:</strong> {{ student.date_of_birth|age_at_screening:screening.screen_date }}</div>
-</div>
+  {% with age_months=student.date_of_birth|months_at_screening:screening.screen_date %}
+  {% if age_months >= 6 and age_months <= 60 %}
+    <div class="col-md-2">
+      <strong>MUAC:</strong> {{ screening.muac|default:"—" }}
+      {% if screening.muac_category and screening.muac_category|lower != "normal" %}
+        <span class="text-danger">({{ screening.muac_category }})</span>
+      {% endif %}
+    </div>
+  {% endif %}
+{% endwith %}
+
 
         <!-- Vision -->
         <div class="row mb-2">

@@ -32,3 +32,12 @@ def age_at_screening(dob, screen_date):
         years -= 1
         months += 12
     return f"{years}y {months}m"
+@register.filter
+def months_at_screening(dob, screen_date):
+    """Return age in months at the time of screening."""
+    if not dob or not screen_date:
+        return 0
+    months = (screen_date.year - dob.year) * 12 + (screen_date.month - dob.month)
+    if screen_date.day < dob.day:
+        months -= 1
+    return months
