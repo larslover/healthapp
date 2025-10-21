@@ -13,36 +13,22 @@ from .forms import ScreeningForm, ScreeningCheckForm
 from datetime import datetime
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
-from .models import Student, Screening
-from .forms import ScreeningForm
 
-
-from django.shortcuts import render, get_object_or_404
+from django.utils.safestring import mark_safe
+import json
+from .models import School, Student, Screening, ScreeningCheck
+from .utils.processor import muac_category  # assuming you already have this function
 from .models import Student, School, Screening, ScreeningCheck
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from .forms import ScreeningForm, ScreeningCheckForm
 from .models import Student
-
 from datetime import date
 from core.utils.processor import calculate_age_in_months
-
-
 from core.models import School, Student, Screening
 from datetime import datetime
 
-from .models import Student, Screening, School
 from django.db.models import Max
-from django.db.models import Max
-from datetime import date
-
-
-# core/views.py
-
-
-from django.shortcuts import render, get_object_or_404
-from core.models import Screening
-from django.shortcuts import render, get_object_or_404
 
 from django.contrib import messages
 
@@ -61,18 +47,6 @@ def student_create(request):
 
     return render(request, 'core/student_create.html', {'form': form})
 
-from django.shortcuts import render, get_object_or_404
-from .models import Screening, ScreeningCheck, School
-from django.shortcuts import render, get_object_or_404
-from .models import Student, School, Screening, ScreeningCheck
-from .forms import StudentForm, ScreeningForm, ScreeningCheckForm
-from django.shortcuts import render, get_object_or_404
-from datetime import date
-from .models import School, Student, Screening, ScreeningCheck
-from django.shortcuts import render, get_object_or_404
-from django.utils.safestring import mark_safe
-import json
-from datetime import date
 
 def screening_summary(request):
     schools = School.objects.all()
@@ -120,11 +94,28 @@ def screening_summary(request):
         }
 
         for s in screenings:
+            # Checklist data
             try:
                 checklist = ScreeningCheck.objects.get(screening=s)
-                s.checklist_dict = {field: getattr(checklist, field, False) for group in checklist_groups.values() for field in group}
+                s.checklist_dict = {field: getattr(checklist, field, False) 
+                                    for group in checklist_groups.values() for field in group}
             except ScreeningCheck.DoesNotExist:
                 s.checklist_dict = None
+
+            # Age in months for MUAC/BMI logic
+            if student.date_of_birth:
+                months = (s.screen_date.year - student.date_of_birth.year) * 12 + (s.screen_date.month - student.date_of_birth.month)
+                if s.screen_date.day < student.date_of_birth.day:
+                    months -= 1
+                s.age_in_months = months
+            else:
+                s.age_in_months = 0
+
+            # MUAC category (only for 6–60 months)
+            if 6 <= s.age_in_months <= 60 and s.muac is not None:
+                s.muac_category = muac_category(s.muac, s.age_in_months)
+            else:
+                s.muac_category = "N/A"
 
             # Chart data
             chart_labels.append(s.screen_date.strftime("%Y-%m-%d"))
@@ -133,7 +124,7 @@ def screening_summary(request):
             chart_height.append(s.height if s.height is not None else 0)
             chart_muac.append(s.muac if s.muac is not None else 0)
 
-            # Age in decimal years
+            # Age in decimal years for chart
             if student.date_of_birth:
                 years = s.screen_date.year - student.date_of_birth.year
                 months = s.screen_date.month - student.date_of_birth.month
@@ -146,7 +137,7 @@ def screening_summary(request):
             else:
                 chart_age.append(0)
 
-        # Convert to JSON for JS
+        # Convert to JSON for JS charts
         chart_labels = mark_safe(json.dumps(chart_labels))
         chart_bmi = mark_safe(json.dumps(chart_bmi))
         chart_weight = mark_safe(json.dumps(chart_weight))
@@ -164,7 +155,6 @@ def screening_summary(request):
         "student": student,
         "screenings": screenings,
         "checklist_groups": checklist_groups,
-        # Chart data
         "chart_labels": chart_labels,
         "chart_bmi": chart_bmi,
         "chart_weight": chart_weight,
@@ -174,6 +164,7 @@ def screening_summary(request):
     }
 
     return render(request, "core/screening_summary.html", context)
+
 def screened_students(request):
     students = Student.objects.all().order_by('name')
     schools = School.objects.all()
