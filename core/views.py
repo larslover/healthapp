@@ -1,5 +1,19 @@
 
 from core.utils.processor import bmi_category
+from django.shortcuts import get_object_or_404, redirect, render
+from .models import Screening, ScreeningCheck
+from .forms import ScreeningForm, ScreeningCheckForm  # We'll create these forms
+from django.shortcuts import get_object_or_404, redirect, render
+from .models import Student
+from .forms import StudentForm
+# core/views.py
+from django.shortcuts import render, get_object_or_404, redirect
+from .models import Student, Screening, ScreeningCheck
+from .forms import StudentForm, ScreeningForm, ScreeningCheckForm
+from django.shortcuts import render, get_object_or_404, redirect
+from .models import Student, Screening, ScreeningCheck
+from .forms import StudentForm, ScreeningForm, ScreeningCheckForm
+
 from django.shortcuts import render, get_object_or_404, redirect
 from .models import Student, Screening, School,LegacyStudent
 from .forms import StudentForm, ScreeningForm, SchoolForm
@@ -70,19 +84,6 @@ def student_create(request):
         form = StudentForm()
 
     return render(request, 'core/student_create.html', {'form': form})
-from django.shortcuts import get_object_or_404, redirect, render
-from .models import Screening, ScreeningCheck
-from .forms import ScreeningForm, ScreeningCheckForm  # We'll create these forms
-from django.shortcuts import get_object_or_404, redirect, render
-from .models import Student
-from .forms import StudentForm
-# core/views.py
-from django.shortcuts import render, get_object_or_404, redirect
-from .models import Student, Screening, ScreeningCheck
-from .forms import StudentForm, ScreeningForm, ScreeningCheckForm
-from django.shortcuts import render, get_object_or_404, redirect
-from .models import Student, Screening, ScreeningCheck
-from .forms import StudentForm, ScreeningForm, ScreeningCheckForm
 
 @login_required(login_url='login')
 def screening_summary(request):
