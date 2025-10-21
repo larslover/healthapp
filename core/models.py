@@ -133,6 +133,12 @@ class Student(models.Model):
                 age -= 1
             return age
         return None
+    def age_at_date(self, ref_date):
+        """Return age in months at a given date."""
+        if self.date_of_birth and ref_date:
+            delta = ref_date - self.date_of_birth
+            return delta.days // 30
+        return None
 
     def __str__(self):
         return self.name

@@ -56,45 +56,9 @@ from .forms import StudentForm
 from django.shortcuts import render, get_object_or_404, redirect
 from .models import Student, Screening, ScreeningCheck
 from .forms import StudentForm, ScreeningForm, ScreeningCheckForm
-
-def student_screening_edit(request, pk):
-    student = get_object_or_404(Student, pk=pk)
-    
-    # Get latest screening for the student (or create new)
-    screening = Screening.objects.filter(student=student).last()
-    if not screening:
-        screening = Screening(student=student)
-    
-    # Get or create checklist
-    try:
-        checklist = ScreeningCheck.objects.get(screening=screening)
-    except ScreeningCheck.DoesNotExist:
-        checklist = ScreeningCheck(screening=screening)
-
-    if request.method == "POST":
-        student_form = StudentForm(request.POST, instance=student)
-        screening_form = ScreeningForm(request.POST, instance=screening)
-        checklist_form = ScreeningCheckForm(request.POST, instance=checklist)
-        if student_form.is_valid() and screening_form.is_valid() and checklist_form.is_valid():
-            student_form.save()
-            screening_form.save()
-            checklist_form.save()
-            return redirect('screened_students')
-    else:
-        student_form = StudentForm(instance=student)
-        screening_form = ScreeningForm(instance=screening)
-        checklist_form = ScreeningCheckForm(instance=checklist)
-
-    context = {
-        "student_form": student_form,
-        "screening_form": screening_form,
-        "checklist_form": checklist_form,
-        "student": student,
-        "screening": screening,
-    }
-    return render(request, "core/student_screening_edit.html", context)
-
-
+from django.shortcuts import render, get_object_or_404, redirect
+from .models import Student, Screening, ScreeningCheck
+from .forms import StudentForm, ScreeningForm, ScreeningCheckForm
 def screening_summary(request):
     schools = School.objects.all()
     students = Student.objects.none()
@@ -211,48 +175,86 @@ def screening_summary(request):
     }
 
     return render(request, "core/screening_summary.html", context)
+from django.shortcuts import render, get_object_or_404, redirect
+from .models import Student, Screening, ScreeningCheck
+from .forms import StudentForm, ScreeningForm, ScreeningCheckForm
+from django.shortcuts import render, get_object_or_404, redirect
+from django.db.models.functions import ExtractYear
+from .models import Student, Screening, ScreeningCheck, School
+from .forms import StudentForm, ScreeningForm, ScreeningCheckForm
 
 def screened_students(request):
-    students = Student.objects.all().order_by('name')
-    schools = School.objects.all()
-    
-    # Filter by school if requested
+    # Filters
+    selected_year = request.GET.get("year")
     selected_school_id = request.GET.get("school")
+    selected_student_id = request.GET.get("selected_student")
+
+    # Base queryset
+    students = Student.objects.all()
     if selected_school_id:
         students = students.filter(school_id=selected_school_id)
 
-    # Filter by year if requested
-    selected_year = request.GET.get("year")
-    if selected_year:
-        students = students.filter(screenings__screen_date__year=selected_year).distinct()
-
-
+    # Prepare student data for table
     students_data = []
     for student in students:
-        last_screening = Screening.objects.filter(student=student).order_by('-screen_date').first()
+        screenings = Screening.objects.filter(student=student)
+        if selected_year:
+            screenings = screenings.filter(screen_date__year=selected_year)
+
+        latest_screening = screenings.last() if screenings.exists() else None
+
+        # Calculate age in months at latest screening
         age_in_months = None
-        if last_screening and student.date_of_birth and last_screening.screen_date:
-            age_in_months = (last_screening.screen_date.year - student.date_of_birth.year) * 12 + \
-                            (last_screening.screen_date.month - student.date_of_birth.month)
+        if latest_screening and student.date_of_birth:
+            delta = latest_screening.screen_date - student.date_of_birth
+            age_in_months = delta.days // 30
+
         students_data.append({
-            'student': student,
-            'last_screening': last_screening,
-            'age_in_months': age_in_months,
+            "student": student,
+            "screenings": screenings,
+            "age_in_months": age_in_months,
         })
 
-    # For the filter dropdowns
-    years = Screening.objects.dates('screen_date', 'year', order='DESC')
-    
+    # Inline edit forms for selected student
+    student_form = screening_form = checklist_form = None
+    selected_student = None
+    if selected_student_id:
+        selected_student = get_object_or_404(Student, pk=selected_student_id)
+        screening = Screening.objects.filter(student=selected_student).last()
+        if not screening:
+            screening = Screening(student=selected_student)
+        checklist, _ = ScreeningCheck.objects.get_or_create(screening=screening)
+
+        if request.method == "POST":
+            student_form = StudentForm(request.POST, instance=selected_student)
+            screening_form = ScreeningForm(request.POST, instance=screening)
+            checklist_form = ScreeningCheckForm(request.POST, instance=checklist)
+            if student_form.is_valid() and screening_form.is_valid() and checklist_form.is_valid():
+                student_form.save()
+                screening_form.save()
+                checklist_form.save()
+                return redirect("screened_students")
+        else:
+            student_form = StudentForm(instance=selected_student)
+            screening_form = ScreeningForm(instance=screening)
+            checklist_form = ScreeningCheckForm(instance=checklist)
+
+    # Years for dropdown filter
+    years_qs = Screening.objects.dates("screen_date", "year", order="DESC")
+    years = [d.year for d in years_qs]
+
     context = {
-        'students_data': students_data,
-        'schools': schools,
-        'selected_school_id': int(selected_school_id) if selected_school_id else None,
-        'years': [y.year for y in years],
-        'selected_year': int(selected_year) if selected_year else None,
+        "students_data": students_data,
+        "selected_year": selected_year,
+        "selected_school_id": int(selected_school_id) if selected_school_id else None,
+        "selected_student": selected_student,
+        "student_form": student_form,
+        "screening_form": screening_form,
+        "checklist_form": checklist_form,
+        "schools": School.objects.all(),
+        "years": years,
     }
     return render(request, "core/screened_students.html", context)
-
-
 
 def calculate_age_in_months(dob, screen_date):
     """Helper function to calculate age in months."""
