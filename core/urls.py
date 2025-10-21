@@ -1,7 +1,9 @@
 from django.urls import path
 from . import views
-
+from django.contrib.auth import views as auth_views  # ✅ Import this
 urlpatterns = [
+    path('login/', views.login_view, name='login'),
+    path('logout/', auth_views.LogoutView.as_view(next_page='login'), name='logout'),
     path('', views.dashboard_view, name='dashboard'),
     # Students
     path('students/', views.screened_students, name='screened_students'),

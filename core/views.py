@@ -31,11 +31,35 @@ from datetime import datetime
 from django.db.models import Max
 
 from django.contrib import messages
+from django.shortcuts import render, redirect
+from django.contrib.auth import authenticate, login
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+
+
+def login_view(request):
+    if request.user.is_authenticated:
+        return redirect('screened_students')  # Redirect if already logged in
+
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+
+        user = authenticate(request, username=username, password=password)
+
+        if user is not None:
+            login(request, user)
+            return redirect('screened_students')
+        else:
+            messages.error(request, 'Invalid username or password')
+
+    return render(request, 'core/login.html')
 
 def legacy_students_view(request):
     students = LegacyStudent.objects.all()[:50]  # read only
     return render(request, 'core/legacy_students.html', {'students': students})
 
+@login_required(login_url='login')
 def student_create(request):
     if request.method == "POST":
         form = StudentForm(request.POST)
@@ -59,6 +83,8 @@ from .forms import StudentForm, ScreeningForm, ScreeningCheckForm
 from django.shortcuts import render, get_object_or_404, redirect
 from .models import Student, Screening, ScreeningCheck
 from .forms import StudentForm, ScreeningForm, ScreeningCheckForm
+
+@login_required(login_url='login')
 def screening_summary(request):
     schools = School.objects.all()
     students = Student.objects.none()
@@ -183,6 +209,7 @@ from django.db.models.functions import ExtractYear
 from .models import Student, Screening, ScreeningCheck, School
 from .forms import StudentForm, ScreeningForm, ScreeningCheckForm
 
+@login_required(login_url='login')
 def screened_students(request):
     # Filters
     selected_year = request.GET.get("year")
@@ -260,6 +287,7 @@ def calculate_age_in_months(dob, screen_date):
     """Helper function to calculate age in months."""
     return (screen_date.year - dob.year) * 12 + (screen_date.month - dob.month)
 
+@login_required(login_url='login')
 def add_screening(request):
     students = Student.objects.all().order_by('name')
     schools = School.objects.all()

@@ -12,7 +12,7 @@
     <div>
       <a href="{% url 'screened_students' %}" class="btn btn-outline-secondary me-2">&laquo; Back to List</a>
       {% if user.is_staff %}
-        <a href="{% url 'screening_add' %}" class="btn btn-primary">Add Screening</a>
+        <a href="{% url 'screening_list' %}" class="btn btn-primary">Add Screening</a>
       {% endif %}
     </div>
   </div>
