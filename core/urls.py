@@ -36,6 +36,12 @@ urlpatterns = [
     path("screening-summary/", views.screening_summary, name="screening_summary"),
 
 
+    path('students/', views.screened_students, name='screened_students'),
+    path('students/<int:pk>/edit/', views.student_screening_edit, name='student_screening_edit'),
+   
+
+
+
 
     # Statistics
     path('statistics/', views.statistics, name='statistics'),

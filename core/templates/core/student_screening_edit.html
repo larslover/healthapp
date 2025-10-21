@@ -1,0 +1,62 @@
+{% extends "core/base.html" %}
+
+{% block title %}Edit Student & Screening{% endblock %}
+
+{% block content %}
+<h2 class="mb-4 fw-bold">Edit Student & Screening</h2>
+
+<form method="POST" class="mb-4">
+    {% csrf_token %}
+
+    <!-- Student Details -->
+    <div class="card mb-3 shadow-sm">
+        <div class="card-header bg-secondary text-white">Student Information</div>
+        <div class="card-body">
+            {% for field in student_form %}
+                <div class="mb-3">
+                    {{ field.label_tag }}
+                    {{ field }}
+                    {% if field.errors %}
+                        <div class="text-danger">{{ field.errors }}</div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Screening Details -->
+    <div class="card mb-3 shadow-sm">
+        <div class="card-header bg-primary text-white">Screening Information</div>
+        <div class="card-body">
+            {% for field in screening_form %}
+                <div class="mb-3">
+                    {{ field.label_tag }}
+                    {{ field }}
+                    {% if field.errors %}
+                        <div class="text-danger">{{ field.errors }}</div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Screening Checklist -->
+    <div class="card mb-3 shadow-sm">
+        <div class="card-header bg-info text-white">Screening Checklist</div>
+        <div class="card-body">
+            {% for field in checklist_form %}
+                <div class="form-check mb-2">
+                    {{ field }}
+                    {{ field.label_tag }}
+                    {% if field.errors %}
+                        <div class="text-danger">{{ field.errors }}</div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <button type="submit" class="btn btn-success">Save Changes</button>
+    <a href="{% url 'screened_students' %}" class="btn btn-secondary ms-2">Cancel</a>
+</form>
+{% endblock %}

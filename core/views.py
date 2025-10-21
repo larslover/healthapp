@@ -46,6 +46,53 @@ def student_create(request):
         form = StudentForm()
 
     return render(request, 'core/student_create.html', {'form': form})
+from django.shortcuts import get_object_or_404, redirect, render
+from .models import Screening, ScreeningCheck
+from .forms import ScreeningForm, ScreeningCheckForm  # We'll create these forms
+from django.shortcuts import get_object_or_404, redirect, render
+from .models import Student
+from .forms import StudentForm
+# core/views.py
+from django.shortcuts import render, get_object_or_404, redirect
+from .models import Student, Screening, ScreeningCheck
+from .forms import StudentForm, ScreeningForm, ScreeningCheckForm
+
+def student_screening_edit(request, pk):
+    student = get_object_or_404(Student, pk=pk)
+    
+    # Get latest screening for the student (or create new)
+    screening = Screening.objects.filter(student=student).last()
+    if not screening:
+        screening = Screening(student=student)
+    
+    # Get or create checklist
+    try:
+        checklist = ScreeningCheck.objects.get(screening=screening)
+    except ScreeningCheck.DoesNotExist:
+        checklist = ScreeningCheck(screening=screening)
+
+    if request.method == "POST":
+        student_form = StudentForm(request.POST, instance=student)
+        screening_form = ScreeningForm(request.POST, instance=screening)
+        checklist_form = ScreeningCheckForm(request.POST, instance=checklist)
+        if student_form.is_valid() and screening_form.is_valid() and checklist_form.is_valid():
+            student_form.save()
+            screening_form.save()
+            checklist_form.save()
+            return redirect('screened_students')
+    else:
+        student_form = StudentForm(instance=student)
+        screening_form = ScreeningForm(instance=screening)
+        checklist_form = ScreeningCheckForm(instance=checklist)
+
+    context = {
+        "student_form": student_form,
+        "screening_form": screening_form,
+        "checklist_form": checklist_form,
+        "student": student,
+        "screening": screening,
+    }
+    return render(request, "core/student_screening_edit.html", context)
 
 
 def screening_summary(request):
