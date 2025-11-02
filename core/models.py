@@ -101,17 +101,17 @@ class Student(models.Model):
     name = models.CharField(max_length=255)
     date_of_birth = models.DateField()
     gender = models.CharField(max_length=20, null=True, blank=True)
-    roll_no = models.IntegerField(null=True, blank=True)
-    aadhaar_no = models.CharField(max_length=20, null=True, blank=True)
+   
+    
     father_or_guardian_name = models.CharField(max_length=255, null=True, blank=True)
     mother_name = models.CharField(max_length=255, null=True, blank=True)
     contact_number = models.CharField(max_length=20, null=True, blank=True)
     address = models.TextField(null=True, blank=True)
-    email = models.EmailField(null=True, blank=True)
-    last_school_name = models.CharField(max_length=255, null=True, blank=True)
-    place_of_birth = models.CharField(max_length=255, null=True, blank=True)
+    
+    
+    
     known_earlier_disease = models.TextField(null=True, blank=True)
-    tea_garden = models.CharField(max_length=255, null=True, blank=True)
+    
 
     # Use a ForeignKey to School
     school = models.ForeignKey(
@@ -121,8 +121,7 @@ class Student(models.Model):
         blank=True,
         related_name='students'
     )
-    current_class_section = models.CharField(max_length=50, null=True, blank=True)
-    current_teacher = models.CharField(max_length=255, null=True, blank=True)
+   
     @property
     def age_in_years(self):
         if self.date_of_birth:
@@ -187,8 +186,7 @@ class Screening(models.Model):
 
     def calculate_metrics(self):
         from core.utils.processor import (
-        weight_age_category,
-        height_age_category,
+        
         weight_height_category,
         evaluate_vision
     )
@@ -198,8 +196,7 @@ class Screening(models.Model):
             self.bmi = None
             self.bmi_category = "N/A"
             self.muac_sam = "N/A"
-            self.weight_age = "N/A"
-            self.length_age = "N/A"
+            
             self.weight_height = "N/A"
             self.vision_problem = "N/A"
             return
@@ -230,17 +227,10 @@ class Screening(models.Model):
 
         gender = getattr(self.student, "gender", "")
 
-        self.weight_age = (
-            weight_age_category(weight, self.age_in_month, gender)
-            if weight is not None and self.age_in_month is not None
-            else "N/A"
-        )
+       
+       
 
-        self.length_age = (
-            height_age_category(height, self.age_in_month, gender)
-            if height is not None and self.age_in_month is not None
-            else "N/A"
-        )
+        
 
         self.weight_height = (
             weight_height_category(weight, height, self.age_in_month, gender)

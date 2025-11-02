@@ -88,64 +88,6 @@ def muac_category(muac_value: float, age_months: int) -> str:
 from .thresholds import weight_female_thresholds, weight_male_thresholds
 
 
-from .thresholds import weight_female_thresholds, weight_male_thresholds
-def weight_age_category(weight, age_in_months, gender):
-    """
-    Classify weight-for-age category using WHO thresholds.
-    Only for ages 24–60 months inclusive.
-    Returns: 'Severely Underweight', 'Moderately Underweight', 'Normal', or 'N/A'.
-    """
-    if not (weight and age_in_months and gender):
-        return "N/A"
-
-    # Age restriction
-    if age_in_months < 24 or age_in_months > 60:
-        return "N/A"
-
-    gender = gender.lower().strip()
-    thresholds = weight_female_thresholds if gender == "female" else weight_male_thresholds
-
-    all_months = sorted(thresholds.keys())
-    closest_age = min(all_months, key=lambda m: abs(m - age_in_months))
-
-    lower, upper = thresholds[closest_age]
-
-    if weight < lower:
-        return "Severely Underweight"
-    elif weight < upper:
-        return "Moderately Underweight"
-    else:
-        return "Normal"
-
-
-def height_age_category(height, age_in_months, gender):
-    """
-    Determine height-for-age (stunting) category based on WHO thresholds.
-    Only for ages 24–60 months inclusive.
-    Returns: 'Severe Stunting', 'Moderate Stunting', 'Normal', or 'N/A'.
-    """
-    if not (height and age_in_months and gender):
-        return "N/A"
-
-    # Age restriction
-    if age_in_months < 24 or age_in_months > 60:
-        return "N/A"
-
-    gender = gender.lower().strip()
-    thresholds = height_age_female_thresholds if gender == "female" else height_age_male_thresholds
-
-    all_months = sorted(thresholds.keys())
-    closest_age = min(all_months, key=lambda m: abs(m - age_in_months))
-
-    lower, upper = thresholds[closest_age]
-
-    if height < lower:
-        return "Severe Stunting"
-    elif lower <= height < upper:
-        return "Moderate Stunting"
-    else:
-        return "Normal"
-
 
 def weight_height_category(weight, height, age_in_months, gender):
     """

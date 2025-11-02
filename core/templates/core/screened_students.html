@@ -58,7 +58,8 @@
                 {% for data in students_data %}
                 <tr>
                     <td>{{ data.student.name }}</td>
-                    <td>{% if data.age_in_months %}{{ data.age_in_months }} months{% else %}—{% endif %}</td>
+                    <td>{{ data.age_display }}</td>
+
                     <td>{{ data.student.gender|default:"—"|capfirst }}</td>
                     <td>{{ data.student.school.name|default:"—" }}</td>
                     <td>

@@ -26,11 +26,10 @@ class StudentForm(forms.ModelForm):
     class Meta:
         model = Student
         fields = [
-            'name', 'date_of_birth', 'gender', 'roll_no', 'aadhaar_no',
+            'name', 'date_of_birth', 'gender',
             'father_or_guardian_name', 'mother_name', 'contact_number',
-            'address', 'email', 'last_school_name', 'place_of_birth',
-            'known_earlier_disease', 'school', 'current_class_section',
-            'current_teacher','tea_garden'
+            'address',
+            'known_earlier_disease', 'school'
         ]
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
