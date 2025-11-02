@@ -34,19 +34,18 @@ class StudentForm(forms.ModelForm):
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'date_of_birth': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
-            'roll_no': forms.NumberInput(attrs={'class': 'form-control'}),
-            'aadhaar_no': forms.TextInput(attrs={'class': 'form-control'}),
+            
             'father_or_guardian_name': forms.TextInput(attrs={'class': 'form-control'}),
             'mother_name': forms.TextInput(attrs={'class': 'form-control'}),
             'contact_number': forms.TextInput(attrs={'class': 'form-control'}),
             'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
-            'email': forms.EmailInput(attrs={'class': 'form-control'}),
-            'last_school_name': forms.TextInput(attrs={'class': 'form-control'}),
+           
+            
             'place_of_birth': forms.TextInput(attrs={'class': 'form-control'}),
             'known_earlier_disease': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
-            'current_class_section': forms.TextInput(attrs={'class': 'form-control'}),
-            'current_teacher': forms.TextInput(attrs={'class': 'form-control'}),
-            'tea_garden': forms.TextInput(attrs={'class': 'form-control'}),
+            
+           
+            
         }
 
 
