@@ -254,7 +254,6 @@
   {% endif %}
   {% endif %}
 </div>
-
 <!-- ✅ Plotly Chart -->
 <script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
 {% if chart_mode != "none" %}
@@ -275,6 +274,7 @@ document.addEventListener("DOMContentLoaded", () => {
     "N/A": "gray"
   };
 
+  // 🧒 Student data trace
   const studentTrace = {
     x: labels,
     y: values,
@@ -288,23 +288,48 @@ document.addEventListener("DOMContentLoaded", () => {
     line: { color: "#333", width: 1 }
   };
 
-  const whoTraces = Object.entries(whoCurves).map(([label, curve]) => ({
-    x: curve.x,
-    y: curve.y,
-    mode: "lines",
-    name: label,
-    line: {
-      width: 1.5,
-      dash: label.includes("neg") ? "dot" : "solid",
-      color: "rgba(0,0,0,0.4)"
-    }
-  }));
+  // 📊 WHO reference lines (-3SD to +3SD)
+  const sdColors = [
+    "rgba(255, 0, 0, 0.4)",   // −3SD
+    "rgba(255, 100, 0, 0.4)", // −2SD
+    "rgba(255, 165, 0, 0.4)", // −1SD
+    "rgba(0, 150, 0, 0.4)",   // Median
+    "rgba(0, 100, 255, 0.4)", // +1SD
+    "rgba(100, 0, 255, 0.4)", // +2SD
+    "rgba(150, 0, 150, 0.4)"  // +3SD
+  ];
+  const sdLabels = ["-3SD", "-2SD", "-1SD", "Median", "+1SD", "+2SD", "+3SD"];
 
+  console.log("WHO Curves:", Object.keys(whoCurves));
+
+  const whoTraces = sdLabels
+    .filter(label => whoCurves[label])
+    .map((label, i) => ({
+      x: whoCurves[label].x,
+      y: whoCurves[label].y,
+      mode: "lines",
+      name: label,
+      line: {
+        width: label === "Median" ? 2.5 : 1.2,
+        dash: label.includes("SD") ? "solid" : "dot",
+        color: sdColors[i]
+      },
+      hoverinfo: "none",
+      showlegend: true
+    }));
+
+  // ⚙️ Layout
   const layout = {
     title: chartMode === "bmi" ? "BMI-for-Age (WHO)" : "Weight-for-Height (WHO)",
-    xaxis: { title: chartMode === "bmi" ? "Age (months)" : "Height (cm)" },
-    yaxis: { title: chartMode === "bmi" ? "BMI (kg/m²)" : "Weight (kg)" },
-    legend: { orientation: "h" },
+    xaxis: {
+      title: chartMode === "bmi" ? "Age (months)" : "Height (cm)",
+      gridcolor: "rgba(200,200,200,0.2)"
+    },
+    yaxis: {
+      title: chartMode === "bmi" ? "BMI (kg/m²)" : "Weight (kg)",
+      gridcolor: "rgba(200,200,200,0.2)"
+    },
+    legend: { orientation: "h", y: -0.2 },
     plot_bgcolor: "#f9f9f9",
     paper_bgcolor: "#fff",
     margin: { t: 60, b: 60, l: 60, r: 20 }
@@ -313,5 +338,7 @@ document.addEventListener("DOMContentLoaded", () => {
   Plotly.newPlot("growthChart", [...whoTraces, studentTrace], layout);
 });
 </script>
+
+
 {% endif %}
 {% endblock %}

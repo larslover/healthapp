@@ -36,39 +36,38 @@ from django.utils.safestring import mark_safe
 import json
 from pathlib import Path
 
-
-
 def get_who_reference_curves(chart_mode, gender):
     """
-    Returns WHO reference curves (−3SD to +3SD) for BMI-for-Age or Weight-for-Height.
+    Returns WHO reference curves (-3SD to +3SD) for BMI-for-age or Weight-for-height.
+    Supports both float and string keys in the WHO data files.
     """
     if chart_mode == "bmi":
-        data = (
-             bmi_thresholds_male if gender == "male" else bmi_thresholds_female
-        )
-    else:  # weight-for-height
-        data = (
-            weight_height_male_thresholds
-            if gender == "male"
-            else weight_height_female_thresholds
-        )
+        from core.utils.bmi_thresholds_male import bmi_thresholds_male as male_data
+        from core.utils.bmi_thresholds_female import bmi_thresholds_female as female_data
+        data = male_data if gender == "male" else female_data
+    elif chart_mode == "wfh":
+        from core.utils.weight_height_male_thresholds import weight_height_male_thresholds as male_data
+        from core.utils.weight_height_female_thresholds import weight_height_female_thresholds as female_data
+        data = male_data if gender == "male" else female_data
+    else:
+        return {}
 
-    sd_labels = ["−3SD", "−2SD", "−1SD", "Median", "+1SD", "+2SD", "+3SD"]
+    sd_labels = ["-3SD", "-2SD", "-1SD", "Median", "+1SD", "+2SD", "+3SD"]
 
-    # Convert keys to numbers and sort safely
-    x_values = sorted(float(k) for k in data.keys())
-    x_str_values = [str(x).rstrip("0").rstrip(".") if "." in str(x) else str(x) for x in x_values]
+    try:
+        x_values = sorted(float(k) for k in data.keys())
+    except Exception:
+        x_values = sorted(data.keys())
 
     curves = {}
     for i, label in enumerate(sd_labels):
-        y_values = []
-        for x_str in x_str_values:
-            try:
-                y_values.append(data[x_str][i])
-            except KeyError:
-                # skip missing points instead of crashing
-                continue
-        curves[label] = {"x": x_values[:len(y_values)], "y": y_values}
+        x_list, y_list = [], []
+        for x in x_values:
+            val = data.get(x) or data.get(str(x))
+            if val and i < len(val):
+                x_list.append(x)
+                y_list.append(val[i])
+        curves[label] = {"x": x_list, "y": y_list}
 
     return curves
 
@@ -233,7 +232,8 @@ def build_chart_data_for_student(screenings, student):
         mark_safe(json.dumps(labels)),
         mark_safe(json.dumps(values)),
         mark_safe(json.dumps(refs)),
-        mark_safe(json.dumps(combined_data)),  # contains both student + reference lines
+        mark_safe(json.dumps(who_curves)),
+  # contains both student + reference lines
     )
 
 # -------------------------
@@ -256,7 +256,7 @@ def screening_summary(request):
     chart_labels = mark_safe("[]")
     chart_values = mark_safe("[]")
     chart_reference = mark_safe("[]")
-    chart_who_curves = mark_safe("[]")
+    chart_who_curves = mark_safe("{}")  # ✅ use empty object instead of list
 
     if selected_school_id:
         students = Student.objects.filter(school_id=selected_school_id)
