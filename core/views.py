@@ -61,6 +61,122 @@ def student_create(request):
         form = StudentForm()
 
     return render(request, 'core/student_create.html', {'form': form})
+# core/views.py (snippet)
+import json
+from django.shortcuts import render, get_object_or_404
+from django.utils.safestring import mark_safe
+from django.contrib.auth.decorators import login_required
+
+from .models import School, Student, Screening, ScreeningCheck
+from .utils.processor import muac_category, weight_height_category, bmi_category, calculate_age_in_months
+
+# -------------------------
+# Module-level helper funcs
+# -------------------------
+
+def get_checklist_for_screening(screening, checklist_groups):
+    """Return a dict of checklist boolean fields for the screening or None."""
+    try:
+        checklist = ScreeningCheck.objects.get(screening=screening)
+        return {field: getattr(checklist, field, False)
+                for group in checklist_groups.values() for field in group}
+    except ScreeningCheck.DoesNotExist:
+        return None
+
+
+def muac_category_for(screening, student):
+    """Return MUAC category only for 6–60 months, else 'N/A'."""
+    if not student.date_of_birth or screening.muac is None:
+        return "N/A"
+    age_m = calculate_age_in_months(student.date_of_birth, screening.screen_date)
+    if 6 <= age_m <= 60:
+        return muac_category(screening.muac, age_m)
+    return "N/A"
+
+
+def determine_growth_for_screening(screening, student):
+    """
+    Decide growth indicator and category for a single screening.
+    Returns tuple: (indicator_label, category_label, chart_value_or_none, age_months)
+    chart_value_or_none is the numeric value to plot (BMI or computed Wt/H BMI-equivalent),
+    or None when we shouldn't plot this screening.
+    """
+    if not student or not student.date_of_birth:
+        return "N/A", "N/A", None, 0
+
+    age_m = calculate_age_in_months(student.date_of_birth, screening.screen_date) or 0
+
+    # Ensure we have numeric weight/height/bmi as required
+    has_w_h = screening.weight is not None and screening.height is not None
+    has_bmi = screening.bmi is not None
+
+    gender = (student.gender or "").lower()
+
+    # Weight-for-Height window: 24–60 months
+    if 24 <= age_m <= 60 and has_w_h and gender in ("male", "female"):
+        cat = weight_height_category(screening.weight, screening.height, age_m, gender)
+        # compute the BMI-equivalent value for plotting (weight / height^2) so the axis is comparable
+        plot_val = screening.weight / ((screening.height / 100) ** 2) if screening.height != 0 else None
+        return "Weight-for-Height", cat, round(plot_val, 2) if plot_val is not None else None, age_m
+
+    # BMI-for-age: > 60 months
+    if age_m > 60 and has_bmi and gender in ("male", "female"):
+        cat = bmi_category(screening.bmi, age_m, gender)
+        return "BMI-for-Age", cat, round(screening.bmi, 2), age_m
+
+    # Too young / insufficient data
+    return "Too young / Insufficient data", "N/A", None, age_m
+
+
+def build_chart_data_for_student(screenings, student):
+    """
+    Decide chart_mode based on latest screening age:
+      - If any screening has age > 60 months => 'bmi' mode
+      - else => 'wfh' (weight-for-height) mode
+
+    Returns: (chart_mode, labels_json, values_json, reference_json)
+    reference_json contains the category labels (e.g. 'normal', 'overweight') for each plotted point.
+    """
+    if not screenings:
+        return "none", mark_safe("[]"), mark_safe("[]"), mark_safe("[]")
+
+    # compute ages for each screening (and find latest age)
+    ages = [calculate_age_in_months(student.date_of_birth, s.screen_date) or 0 for s in screenings]
+    latest_age = max(ages) if ages else 0
+
+    chart_mode = "bmi" if latest_age > 60 else "wfh"
+
+    labels = []
+    values = []
+    refs = []
+
+    for s in screenings:
+        indicator, category, plot_value, age_m = determine_growth_for_screening(s, student)
+
+        # Only include points that match the chosen chart_mode and have a numeric value
+        if plot_value is None:
+            continue
+
+        if chart_mode == "bmi" and indicator == "BMI-for-Age":
+            labels.append(s.screen_date.strftime("%Y-%m-%d"))
+            values.append(plot_value)
+            refs.append(category)
+        elif chart_mode == "wfh" and indicator == "Weight-for-Height":
+            labels.append(s.screen_date.strftime("%Y-%m-%d"))
+            values.append(plot_value)
+            refs.append(category)
+        # else: skip (mixed-mode point not plotted)
+
+    return (
+        chart_mode,
+        mark_safe(json.dumps(labels)),
+        mark_safe(json.dumps(values)),
+        mark_safe(json.dumps(refs)),
+    )
+
+# -------------------------
+# The view
+# -------------------------
 
 @login_required(login_url='login')
 def screening_summary(request):
@@ -73,58 +189,20 @@ def screening_summary(request):
     screenings = []
     checklist_groups = {}
 
-    # Chart data
-    chart_labels, chart_values, chart_reference = [], [], []
-
-    # --- Inline helpers ---
-
-    def get_checklist(screening):
-        """Return checklist dictionary or None."""
-        try:
-            checklist = ScreeningCheck.objects.get(screening=screening)
-            return {field: getattr(checklist, field, False)
-                    for group in checklist_groups.values() for field in group}
-        except ScreeningCheck.DoesNotExist:
-            return None
-
-    def get_muac_category(muac, age_months):
-        """Return MUAC category only for 6–60 months."""
-        if muac and 6 <= age_months <= 60:
-            return muac_category(muac, age_months)
-        return "N/A"
-
-    def determine_growth(screening, student):
-        """Return growth indicator, category, and chart value."""
-        gender = (student.gender or "").lower()
-        age_months = calculate_age_in_months(student.date_of_birth, screening.screen_date)
-        screening.age_in_months = age_months or 0
-
-        if not (screening.weight and screening.height and gender):
-            return "N/A", "N/A", 0
-
-        if 24 <= age_months <= 60:
-            indicator = "Weight-for-Height"
-            category = weight_height_category(screening.weight, screening.height, age_months, gender)
-            chart_value = screening.weight / ((screening.height / 100) ** 2)
-        elif age_months > 60:
-            indicator = "BMI-for-Age"
-            category = bmi_category(screening.bmi, age_months, gender)
-            chart_value = screening.bmi
-        else:
-            indicator, category, chart_value = "Too young", "N/A", 0
-
-        return indicator, category, round(chart_value, 2)
-
-    # --- Main logic ---
+    # default empty chart data
+    chart_mode = "none"
+    chart_labels = mark_safe("[]")
+    chart_values = mark_safe("[]")
+    chart_reference = mark_safe("[]")
 
     if selected_school_id:
         students = Student.objects.filter(school_id=selected_school_id)
 
     if selected_student_id:
         student = get_object_or_404(Student, id=selected_student_id)
-        screenings = Screening.objects.filter(student=student).order_by('screen_date')
+        screenings = list(Screening.objects.filter(student=student).order_by('screen_date'))
 
-        checklist_groups.update({
+        checklist_groups = {
             "Preventive Care": ["deworming", "vaccination"],
             "Nutritional / Medical Conditions": [
                 "B1_severe_anemia", "B2_vitA_deficiency", "B3_vitD_deficiency",
@@ -143,28 +221,21 @@ def screening_summary(request):
                 "E3_depression_sleep", "E4_menarke", "E5_regularity_period_difficulties",
                 "E6_UTI_STI", "E7_discharge", "E8_menstrual_pain", "E9_remarks"
             ]
-        })
+        }
 
+        # annotate screenings with checklist and MUAC category, and keep them for template rendering
         for s in screenings:
-            # Checklist + MUAC
-            s.checklist_dict = get_checklist(s)
-            s.muac_category = get_muac_category(s.muac, calculate_age_in_months(student.date_of_birth, s.screen_date))
+            s.checklist_dict = get_checklist_for_screening(s, checklist_groups)
+            s.muac_category = muac_category_for(s, student)
 
-            # Growth and chart data
-            s.growth_indicator, s.growth_category, chart_value = determine_growth(s, student)
+            # also fill growth indicator/category/age for template use
+            indicator, category, plot_value, age_m = determine_growth_for_screening(s, student)
+            s.growth_indicator = indicator
+            s.growth_category = category
+            s.age_in_months = age_m
 
-            # Only plot one point per valid growth indicator (avoid overlap)
-            if chart_value > 0:
-                chart_labels.append(s.screen_date.strftime("%Y-%m-%d"))
-                chart_values.append(chart_value)
-                chart_reference.append(s.growth_category)
-
-        # Convert to JSON for Chart.js
-        chart_labels = mark_safe(json.dumps(chart_labels))
-        chart_values = mark_safe(json.dumps(chart_values))
-        chart_reference = mark_safe(json.dumps(chart_reference))
-    else:
-        chart_labels = chart_values = chart_reference = mark_safe("[]")
+        # build chart data consistently
+        chart_mode, chart_labels, chart_values, chart_reference = build_chart_data_for_student(screenings, student)
 
     context = {
         "schools": schools,
@@ -174,6 +245,7 @@ def screening_summary(request):
         "student": student,
         "screenings": screenings,
         "checklist_groups": checklist_groups,
+        "chart_mode": chart_mode,
         "chart_labels": chart_labels,
         "chart_values": chart_values,
         "chart_reference": chart_reference,
