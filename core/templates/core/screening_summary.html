@@ -301,6 +301,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const sdLabels = ["-3SD", "-2SD", "-1SD", "Median", "+1SD", "+2SD", "+3SD"];
 
   console.log("WHO Curves:", Object.keys(whoCurves));
+  console.log("WHO Curves Data:", whoCurves);
 
   const whoTraces = sdLabels
     .filter(label => whoCurves[label])

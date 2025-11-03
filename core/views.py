@@ -63,11 +63,13 @@ def get_who_reference_curves(chart_mode, gender):
     for i, label in enumerate(sd_labels):
         x_list, y_list = [], []
         for x in x_values:
-            val = data.get(x) or data.get(str(x))
+    # Normalize key lookup
+            key_str = str(int(x)) if float(x).is_integer() else str(x)
+            val = data.get(x) or data.get(key_str)
             if val and i < len(val):
                 x_list.append(x)
                 y_list.append(val[i])
-        curves[label] = {"x": x_list, "y": y_list}
+                curves[label] = {"x": x_list, "y": y_list}
 
     return curves
 
@@ -226,6 +228,10 @@ def build_chart_data_for_student(screenings, student):
             "categories": refs,
         },
     }
+    print("=== WHO CURVES DEBUG ===")
+    print("Chart Mode:", chart_mode)
+    print("Gender:", gender)
+    print("Curves Keys:", list(who_curves.keys()))
 
     return (
         chart_mode,
