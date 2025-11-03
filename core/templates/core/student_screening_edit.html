@@ -4,7 +4,6 @@
 
 {% block content %}
 <h2 class="mb-4 fw-bold">Edit Student & Screening</h2>
-
 <form method="POST" class="mb-4">
     {% csrf_token %}
 
@@ -12,6 +11,23 @@
     <div class="card mb-3 shadow-sm">
         <div class="card-header bg-secondary text-white">Student Information</div>
         <div class="card-body">
+
+            <!-- ✅ Add this school dropdown -->
+            <div class="mb-3">
+                <label for="id_school" class="form-label fw-bold">School</label>
+                <select name="school" id="id_school" class="form-select">
+                    <option value="">Select School</option>
+                    {% for school in schools %}
+                        <option value="{{ school.id }}"
+                          {% if student_form.instance.school and school.id == student_form.instance.school.id %}
+                              selected
+                          {% endif %}>
+                          {{ school.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
             {% for field in student_form %}
                 <div class="mb-3">
                     {{ field.label_tag }}

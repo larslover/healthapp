@@ -30,6 +30,7 @@
         {% endfor %}
       </select>
     </div>
+
     <div class="col-md-4">
       <label for="studentSelect" class="form-label">Select Student</label>
       <select name="student" id="studentSelect" class="form-select" onchange="this.form.submit()">
@@ -48,7 +49,7 @@
   <div class="card mb-4 shadow-sm">
     <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
       <span>Student Information</span>
-      <button class="btn btn-sm btn-light" data-bs-toggle="collapse" data-bs-target="#studentInfoBody">close</button>
+      <button class="btn btn-sm btn-light" data-bs-toggle="collapse" data-bs-target="#studentInfoBody">Hide</button>
     </div>
     <div id="studentInfoBody" class="collapse show">
       <div class="card-body">
@@ -63,157 +64,171 @@
     </div>
   </div>
 
-  <!-- Statistics -->
   {% if screenings %}
+  <!-- Growth Summary Chart -->
   <div class="card mb-4 shadow-sm">
     <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-      <span>Screening Statistics</span>
-      <button class="btn btn-sm btn-light" data-bs-toggle="collapse" data-bs-target="#statisticsBody">close</button>
+      <span>Growth Summary</span>
+      <button class="btn btn-sm btn-light" data-bs-toggle="collapse" data-bs-target="#growthChartBody">Hide</button>
     </div>
-    <div id="statisticsBody" class="collapse show">
+
+    <div id="growthChartBody" class="collapse show">
       <div class="card-body">
-        <canvas id="screeningChart" height="200"></canvas>
+        <div class="mb-2">
+          <strong>Chart Type:</strong>
+          <span id="chartTypeLabel" class="badge bg-info text-dark"></span>
+        </div>
+        <canvas id="growthChart" height="250"></canvas>
       </div>
     </div>
   </div>
-  {% endif %}
 
-  <!-- Screenings -->
-  {% if screenings %}
-    {% for screening in screenings %}
-      <div class="card mb-3 shadow-sm">
-        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-          <span>{{ screening.screen_date|date:"Y-m-d" }}</span>
-          <button class="btn btn-sm btn-light" data-bs-toggle="collapse" data-bs-target="#screeningBody{{ screening.id }}">close</button>
+  <!-- Individual Screenings -->
+  {% for screening in screenings %}
+  <div class="card mb-3 shadow-sm">
+    <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+      <span>{{ screening.screen_date|date:"Y-m-d" }}</span>
+      <button class="btn btn-sm btn-light" data-bs-toggle="collapse" data-bs-target="#screeningBody{{ screening.id }}">Hide</button>
+    </div>
+
+    <div id="screeningBody{{ screening.id }}" class="collapse show">
+      <div class="card-body">
+        {% with age_months=student.date_of_birth|months_at_screening:screening.screen_date %}
+
+        <div class="row mb-2">
+          <div class="col-md-2"><strong>Weight:</strong> {{ screening.weight|default:"—" }} kg</div>
+          <div class="col-md-2"><strong>Height:</strong> {{ screening.height|default:"—" }} cm</div>
+          <div class="col-md-2"><strong>Age:</strong> {{ student.date_of_birth|age_at_screening:screening.screen_date }}</div>
+
+          {% if age_months >= 60 %}
+          <div class="col-md-2">
+            <strong>BMI:</strong> {{ screening.bmi|default:"—" }}
+            {% if screening.bmi_category and screening.bmi_category|lower != "normal" %}
+              <span class="text-danger">({{ screening.bmi_category }})</span>
+            {% endif %}
+          </div>
+          {% endif %}
+
+          {% if 6 <= age_months <= 60 %}
+          <div class="col-md-2">
+            <strong>MUAC:</strong> {{ screening.muac|default:"—" }}
+            {% if screening.muac_category and screening.muac_category|lower != "normal" %}
+              <span class="text-danger">({{ screening.muac_category }})</span>
+            {% endif %}
+          </div>
+          {% endif %}
         </div>
 
-        <div id="screeningBody{{ screening.id }}" class="collapse show">
-          <div class="card-body">
-            {% with age_months=student.date_of_birth|months_at_screening:screening.screen_date %}
-
-            <!-- Basic Growth Data -->
-            <div class="row mb-2">
-              <div class="col-md-2"><strong>Weight:</strong> {{ screening.weight|default:"—" }} kg</div>
-              <div class="col-md-2"><strong>Height:</strong> {{ screening.height|default:"—" }} cm</div>
-              <div class="col-md-2"><strong>Age:</strong> {{ student.date_of_birth|age_at_screening:screening.screen_date }}</div>
-
-              {% if age_months >= 60 %}
-                <div class="col-md-2">
-                  <strong>BMI:</strong> {{ screening.bmi|default:"—" }}
-                  {% if screening.bmi_category and screening.bmi_category|lower != "normal" %}
-                    <span class="text-danger">({{ screening.bmi_category }})</span>
-                  {% endif %}
-                </div>
+        {% if 24 <= age_months <= 60 %}
+        <div class="row mb-2">
+          <div class="col-md-4">
+            <strong>Weight-for-Height:</strong>
+            {% if screening.weight_for_height %}
+              {% if "normal" not in screening.weight_for_height|lower %}
+                <span class="text-danger">{{ screening.weight_for_height }}</span>
+              {% else %}
+                {{ screening.weight_for_height }}
               {% endif %}
-
-              {% if 6 <= age_months <= 60 %}
-                <div class="col-md-2">
-                  <strong>MUAC:</strong> {{ screening.muac|default:"—" }}
-                  {% if screening.muac_category and screening.muac_category|lower != "normal" %}
-                    <span class="text-danger">({{ screening.muac_category }})</span>
-                  {% endif %}
-                </div>
-              {% endif %}
-            </div>
-
-            {% if 24 <= age_months <= 60 %}
-            <div class="row mb-2">
-              <div class="col-md-4">
-                <strong>Weight-for-Height:</strong>
-                {% if screening.weight_for_height %}
-                  {% if "normal" not in screening.weight_for_height|lower %}
-                    <span class="text-danger">{{ screening.weight_for_height }}</span>
-                  {% else %}
-                    {{ screening.weight_for_height }}
-                  {% endif %}
-                {% else %}
-                  —
-                {% endif %}
-              </div>
-            </div>
+            {% else %}
+              —
             {% endif %}
-            {% endwith %}
-            
-            <!-- Vision -->
-            <div class="row mb-2">
-              <div class="col-md-3"><strong>Vision (Left):</strong> {{ screening.vision_left|default:"—" }}</div>
-              <div class="col-md-3"><strong>Vision (Right):</strong> {{ screening.vision_right|default:"—" }}</div>
-              <div class="col-md-3"><strong>Vision (Both):</strong> {{ screening.vision_both|default:"—" }}</div>
-              <div class="col-md-3">
-                <strong>Vision Problem:</strong>
-                {% if screening.vision_problem == "yes" %}
-                  <span class="text-danger">Yes</span>
-                {% else %}
-                  <span class="text-muted">No</span>
-                {% endif %}
-              </div>
-            </div>
-<!-- Checklist -->
-{% if screening.checklist_dict %}
-  <div class="mt-3">
-    <h6 class="text-primary">Checklist</h6>
-    <div class="mt-2">
-      {% for group_name, fields in checklist_groups.items %}
-        {% if group_name != "Preventive Care" and group_name != "Other Observations" %}
-          <div class="row">
-            {% for field_name in fields %}
-              {% if screening.checklist_dict|dict_get:field_name %}
-                <div class="col-md-3">
-                  <strong>{{ field_name|capfirst }}:</strong> ✅
+          </div>
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <!-- Vision -->
+        <div class="row mb-2">
+          <div class="col-md-3"><strong>Vision (Left):</strong> {{ screening.vision_left|default:"—" }}</div>
+          <div class="col-md-3"><strong>Vision (Right):</strong> {{ screening.vision_right|default:"—" }}</div>
+          <div class="col-md-3"><strong>Vision (Both):</strong> {{ screening.vision_both|default:"—" }}</div>
+          <div class="col-md-3">
+            <strong>Vision Problem:</strong>
+            {% if screening.vision_problem == "yes" %}
+              <span class="text-danger">Yes</span>
+            {% else %}
+              <span class="text-muted">No</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Checklist -->
+        {% if screening.checklist_dict %}
+        <div class="mt-3">
+          <h6 class="text-primary">Checklist</h6>
+          <div class="mt-2">
+            {% for group_name, fields in checklist_groups.items %}
+              {% if group_name != "Preventive Care" and group_name != "Other Observations" %}
+                <div class="row">
+                  {% for field_name in fields %}
+                    {% if screening.checklist_dict|dict_get:field_name %}
+                      <div class="col-md-3">
+                        <strong>{{ field_name|capfirst }}:</strong> ✅
+                      </div>
+                    {% endif %}
+                  {% endfor %}
                 </div>
               {% endif %}
             {% endfor %}
           </div>
+        </div>
         {% endif %}
-      {% endfor %}
+      </div>
     </div>
   </div>
-{% endif %}
-
-<!-- Doctor’s Remarks -->
-{% if screening.checklist.E9_remarks %}
-  <div class="mt-3">
-    <h6 class="text-primary">Doctor’s Remarks</h6>
-    <div class="mt-2">
-      <strong class="text-danger">{{ screening.checklist.E9_remarks }}</strong>
-    </div>
-  </div>
-{% endif %}
-
-<!-- Preventive Care -->
-{% if screening.checklist.deworming or screening.checklist.vaccination %}
-  <div class="mt-3">
-    <h6 class="text-primary">Preventive Care</h6>
-    <div class="mt-2">
-      <p><strong>Deworming:</strong> {{ screening.checklist.deworming|default:"—" }}</p>
-      <p><strong>Vaccination:</strong> {{ screening.checklist.vaccination|default:"—" }}</p>
-    </div>
-  </div>
-{% endif %}
-<!-- Chart -->
-{% if screenings %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-const ctx = document.getElementById('screeningChart').getContext('2d');
-new Chart(ctx, {
-  type: 'line',
-  data: {
-    labels: {{ chart_labels|safe }},
-    datasets: [
-      { label: 'BMI', data: {{ chart_bmi|safe }}, borderColor: 'rgba(54,162,235,1)', backgroundColor: 'rgba(54,162,235,0.2)', tension: 0.3 },
-      { label: 'Weight (kg)', data: {{ chart_weight|safe }}, borderColor: 'rgba(255,99,132,1)', backgroundColor: 'rgba(255,99,132,0.2)', tension: 0.3 },
-      { label: 'Height (cm)', data: {{ chart_height|safe }}, borderColor: 'rgba(255,206,86,1)', backgroundColor: 'rgba(255,206,86,0.2)', tension: 0.3 },
-      { label: 'MUAC', data: {{ chart_muac|safe }}, borderColor: 'rgba(75,192,192,1)', backgroundColor: 'rgba(75,192,192,0.2)', tension: 0.3 },
-      { label: 'Age (years)', data: {{ chart_age|safe }}, borderColor: 'rgba(153,102,255,1)', backgroundColor: 'rgba(153,102,255,0.2)', tension: 0.3 }
-    ]
-  },
-  options: { responsive: true, plugins: { legend: { position: 'top' } } }
-});
-</script>
-{% endif %}
-    {% endfor %}
+  {% endfor %}
   {% else %}
     <p class="text-muted">No screenings found for this student.</p>
   {% endif %}
+  {% endif %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% if screenings %}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const ctx = document.getElementById("growthChart");
+    if (!ctx) return;
+
+    const chartTypeLabel = document.getElementById("chartTypeLabel");
+    const ageMonths = {{ student.age_in_months|default:0 }};
+
+    let chartTitle = "";
+    if (ageMonths >= 24 && ageMonths <= 60) {
+      chartTitle = "Weight-for-Height (WHO)";
+    } else if (ageMonths > 60) {
+      chartTitle = "BMI-for-Age (WHO)";
+    } else {
+      chartTitle = "Growth Tracking";
+    }
+    chartTypeLabel.textContent = chartTitle;
+
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: {{ chart_labels|safe }},
+        datasets: [
+          {
+            label: chartTitle,
+            data: {{ chart_values|safe }},
+            borderColor: 'rgba(54,162,235,1)',
+            backgroundColor: 'rgba(54,162,235,0.2)',
+            tension: 0.3,
+            fill: true
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { position: 'top' },
+          title: { display: true, text: chartTitle }
+        },
+        scales: { y: { beginAtZero: true } }
+      }
+    });
+  });
+  </script>
 {% endif %}
 {% endblock %}

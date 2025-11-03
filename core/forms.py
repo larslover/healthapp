@@ -66,7 +66,7 @@ class ScreeningForm(forms.ModelForm):
     class Meta:
         model = Screening
         fields = [
-            'screen_date', 'class_section', 'school','age_screening',
+            'screen_date', 'class_section','age_screening',
             'weight', 'height', 'muac',
             'vision_both', 'vision_left', 'vision_right',
             
@@ -74,7 +74,7 @@ class ScreeningForm(forms.ModelForm):
         widgets = {
             'screen_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'class_section': forms.TextInput(attrs={'class': 'form-control'}),
-            'school': forms.Select(attrs={'class': 'form-select'}),
+            
             'weight': forms.NumberInput(attrs={'step': '0.1', 'class': 'form-control'}),
             'height': forms.NumberInput(attrs={'step': '0.1', 'class': 'form-control'}),
             'muac': forms.NumberInput(attrs={'step': '0.1', 'class': 'form-control'}),

@@ -1,29 +1,10 @@
 
 from core.utils.processor import bmi_category
-from django.shortcuts import get_object_or_404, redirect, render
-from .models import Screening, ScreeningCheck
-from .forms import ScreeningForm, ScreeningCheckForm  # We'll create these forms
-from django.shortcuts import get_object_or_404, redirect, render
-from .models import Student
 from .forms import StudentForm
-from django.shortcuts import render, get_object_or_404, redirect
-from .models import Student, Screening, ScreeningCheck
-from .forms import StudentForm, ScreeningForm, ScreeningCheckForm
-from django.shortcuts import render, get_object_or_404, redirect
 from django.db.models.functions import ExtractYear
-from .models import Student, Screening, ScreeningCheck, School
-from .forms import StudentForm, ScreeningForm, ScreeningCheckForm
-# core/views.py
-from django.shortcuts import render, get_object_or_404, redirect
 from .models import Student, Screening, ScreeningCheck
 from .forms import StudentForm, ScreeningForm, ScreeningCheckForm
-from django.shortcuts import render, get_object_or_404, redirect
-from .models import Student, Screening, ScreeningCheck
-from .forms import StudentForm, ScreeningForm, ScreeningCheckForm
-
-from django.shortcuts import render, get_object_or_404, redirect
-from .models import Student, Screening, School,LegacyStudent
-from .forms import StudentForm, ScreeningForm, SchoolForm
+from .models import Screening, School,LegacyStudent
 from django.http import JsonResponse
 from core.legacy_helpers import get_all_students, search_students
 from core.utils.processor import calculate_bmi, bmi_category, muac_category, calculate_age_in_months
@@ -32,29 +13,17 @@ from django.contrib import messages
 from .models import Student, School, Screening, ScreeningCheck
 from .forms import ScreeningForm, ScreeningCheckForm
 from datetime import datetime
-from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
-
 from django.utils.safestring import mark_safe
 import json
 from .models import School, Student, Screening, ScreeningCheck
 from .utils.processor import muac_category  # assuming you already have this function
-from .models import Student, School, Screening, ScreeningCheck
-from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib import messages
-from .forms import ScreeningForm, ScreeningCheckForm
-from .models import Student
 from datetime import date
 from core.utils.processor import calculate_age_in_months
-from core.models import School, Student, Screening
 from datetime import datetime
-
 from django.db.models import Max
-
-from django.contrib import messages
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login
-from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from core.utils.processor import weight_height_category
 
@@ -104,12 +73,49 @@ def screening_summary(request):
     screenings = []
     checklist_groups = {}
 
-    chart_labels = []
-    chart_bmi = []
-    chart_weight = []
-    chart_height = []
-    chart_muac = []
-    chart_age = []
+    # Chart data
+    chart_labels, chart_values, chart_reference = [], [], []
+
+    # --- Inline helpers ---
+
+    def get_checklist(screening):
+        """Return checklist dictionary or None."""
+        try:
+            checklist = ScreeningCheck.objects.get(screening=screening)
+            return {field: getattr(checklist, field, False)
+                    for group in checklist_groups.values() for field in group}
+        except ScreeningCheck.DoesNotExist:
+            return None
+
+    def get_muac_category(muac, age_months):
+        """Return MUAC category only for 6–60 months."""
+        if muac and 6 <= age_months <= 60:
+            return muac_category(muac, age_months)
+        return "N/A"
+
+    def determine_growth(screening, student):
+        """Return growth indicator, category, and chart value."""
+        gender = (student.gender or "").lower()
+        age_months = calculate_age_in_months(student.date_of_birth, screening.screen_date)
+        screening.age_in_months = age_months or 0
+
+        if not (screening.weight and screening.height and gender):
+            return "N/A", "N/A", 0
+
+        if 24 <= age_months <= 60:
+            indicator = "Weight-for-Height"
+            category = weight_height_category(screening.weight, screening.height, age_months, gender)
+            chart_value = screening.weight / ((screening.height / 100) ** 2)
+        elif age_months > 60:
+            indicator = "BMI-for-Age"
+            category = bmi_category(screening.bmi, age_months, gender)
+            chart_value = screening.bmi
+        else:
+            indicator, category, chart_value = "Too young", "N/A", 0
+
+        return indicator, category, round(chart_value, 2)
+
+    # --- Main logic ---
 
     if selected_school_id:
         students = Student.objects.filter(school_id=selected_school_id)
@@ -118,7 +124,7 @@ def screening_summary(request):
         student = get_object_or_404(Student, id=selected_student_id)
         screenings = Screening.objects.filter(student=student).order_by('screen_date')
 
-        checklist_groups = {
+        checklist_groups.update({
             "Preventive Care": ["deworming", "vaccination"],
             "Nutritional / Medical Conditions": [
                 "B1_severe_anemia", "B2_vitA_deficiency", "B3_vitD_deficiency",
@@ -137,71 +143,28 @@ def screening_summary(request):
                 "E3_depression_sleep", "E4_menarke", "E5_regularity_period_difficulties",
                 "E6_UTI_STI", "E7_discharge", "E8_menstrual_pain", "E9_remarks"
             ]
-        }
+        })
 
         for s in screenings:
-            # Checklist data
-            try:
-                checklist = ScreeningCheck.objects.get(screening=s)
-                s.checklist_dict = {field: getattr(checklist, field, False) 
-                                    for group in checklist_groups.values() for field in group}
-            except ScreeningCheck.DoesNotExist:
-                s.checklist_dict = None
+            # Checklist + MUAC
+            s.checklist_dict = get_checklist(s)
+            s.muac_category = get_muac_category(s.muac, calculate_age_in_months(student.date_of_birth, s.screen_date))
 
-            # Age in months for MUAC/BMI logic
-            if student.date_of_birth:
-                months = (s.screen_date.year - student.date_of_birth.year) * 12 + (s.screen_date.month - student.date_of_birth.month)
-                if s.screen_date.day < student.date_of_birth.day:
-                    months -= 1
-                s.age_in_months = months
-            else:
-                s.age_in_months = 0
+            # Growth and chart data
+            s.growth_indicator, s.growth_category, chart_value = determine_growth(s, student)
 
-                    # MUAC category (only for 6–60 months)
-            if 6 <= s.age_in_months <= 60 and s.muac is not None:
-                s.muac_category = muac_category(s.muac, s.age_in_months)
-            else:
-                s.muac_category = "N/A"
+            # Only plot one point per valid growth indicator (avoid overlap)
+            if chart_value > 0:
+                chart_labels.append(s.screen_date.strftime("%Y-%m-%d"))
+                chart_values.append(chart_value)
+                chart_reference.append(s.growth_category)
 
-            # Weight-for-Height category (for 24–60 months)
-            if s.weight and s.height and student.gender:
-                s.weight_for_height = weight_height_category(
-                    s.weight,
-                    s.height,
-                    s.age_in_months,
-                    student.gender
-                )
-            else:
-                s.weight_for_height = "N/A"
-            # Chart data
-            chart_labels.append(s.screen_date.strftime("%Y-%m-%d"))
-            chart_bmi.append(s.bmi if s.bmi is not None else 0)
-            chart_weight.append(s.weight if s.weight is not None else 0)
-            chart_height.append(s.height if s.height is not None else 0)
-            chart_muac.append(s.muac if s.muac is not None else 0)
-
-            # Age in decimal years for chart
-            if student.date_of_birth:
-                years = s.screen_date.year - student.date_of_birth.year
-                months = s.screen_date.month - student.date_of_birth.month
-                if s.screen_date.day < student.date_of_birth.day:
-                    months -= 1
-                if months < 0:
-                    years -= 1
-                    months += 12
-                chart_age.append(round(years + months/12, 2))
-            else:
-                chart_age.append(0)
-
-        # Convert to JSON for JS charts
+        # Convert to JSON for Chart.js
         chart_labels = mark_safe(json.dumps(chart_labels))
-        chart_bmi = mark_safe(json.dumps(chart_bmi))
-        chart_weight = mark_safe(json.dumps(chart_weight))
-        chart_height = mark_safe(json.dumps(chart_height))
-        chart_muac = mark_safe(json.dumps(chart_muac))
-        chart_age = mark_safe(json.dumps(chart_age))
+        chart_values = mark_safe(json.dumps(chart_values))
+        chart_reference = mark_safe(json.dumps(chart_reference))
     else:
-        chart_labels = chart_bmi = chart_weight = chart_height = chart_muac = chart_age = mark_safe("[]")
+        chart_labels = chart_values = chart_reference = mark_safe("[]")
 
     context = {
         "schools": schools,
@@ -212,11 +175,8 @@ def screening_summary(request):
         "screenings": screenings,
         "checklist_groups": checklist_groups,
         "chart_labels": chart_labels,
-        "chart_bmi": chart_bmi,
-        "chart_weight": chart_weight,
-        "chart_height": chart_height,
-        "chart_muac": chart_muac,
-        "chart_age": chart_age,
+        "chart_values": chart_values,
+        "chart_reference": chart_reference,
     }
 
     return render(request, "core/screening_summary.html", context)
@@ -231,6 +191,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from core.models import Student, School, Screening, ScreeningCheck
 from core.forms import StudentForm, ScreeningForm, ScreeningCheckForm
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
 
 
 @login_required(login_url='login')
@@ -239,17 +201,17 @@ def screened_students(request):
     selected_school_id = request.GET.get("school")
     selected_student_id = request.GET.get("selected_student")
 
+    # === Filter base queryset ===
     students = Student.objects.all()
     if selected_school_id:
         students = students.filter(school_id=selected_school_id)
 
+    # === Build student data for listing ===
     students_data = []
     for student in students:
         screenings = Screening.objects.filter(student=student)
         if selected_year:
             screenings = screenings.filter(screen_date__year=selected_year)
-
-        latest_screening = screenings.last() if screenings.exists() else None
 
         formatted_age = "—"
         if student.date_of_birth:
@@ -261,6 +223,7 @@ def screened_students(request):
             "age_display": formatted_age,
         })
 
+    # === Handle selected student ===
     student_form = screening_form = checklist_form = None
     selected_student = None
 
@@ -272,6 +235,7 @@ def screened_students(request):
         checklist, _ = ScreeningCheck.objects.get_or_create(screening=screening)
 
         if request.method == "POST":
+            print("🧾 POST DATA:", request.POST)
             student_form = StudentForm(request.POST, instance=selected_student)
             screening_form = ScreeningForm(request.POST, instance=screening)
             checklist_form = ScreeningCheckForm(request.POST, instance=checklist)
@@ -279,29 +243,37 @@ def screened_students(request):
             if student_form.is_valid() and screening_form.is_valid() and checklist_form.is_valid():
                 student = student_form.save(commit=False)
 
-                # ✅ handle school assignment explicitly
+                # ✅ Robust school handling
                 school_id = request.POST.get("school")
-                if school_id:
-                    student.school_id = school_id  # simpler + direct
-                else:
-                    print("⚠️ No school ID found in POST")
+                if school_id and school_id.strip():
+                    try:
+                        student.school = School.objects.get(pk=int(school_id))
+                        print(f"✅ Assigned school: {student.school}")
+                    except (ValueError, School.DoesNotExist):
+                        print("⚠️ Invalid school ID submitted")
+                elif school_id == "":
+                    # Explicitly cleared
+                    student.school = None
+                # else: keep existing if not included
 
                 student.save()
                 screening_form.save()
                 checklist_form.save()
 
-                print(f"✅ Saved student: {student.name} | School: {student.school}")
-
+                print(f"✅ Saved student: {student.name} | Final school: {student.school}")
                 return redirect("screened_students")
 
         else:
             student_form = StudentForm(instance=selected_student)
             screening_form = ScreeningForm(instance=screening)
             checklist_form = ScreeningCheckForm(instance=checklist)
+            print(f"🧩 Editing {selected_student.name} | Current school: {selected_student.school}")
 
+    # === Years dropdown ===
     years_qs = Screening.objects.dates("screen_date", "year", order="DESC")
     years = [d.year for d in years_qs]
 
+    # === Render ===
     context = {
         "students_data": students_data,
         "selected_year": selected_year,
@@ -314,15 +286,6 @@ def screened_students(request):
         "years": years,
     }
     return render(request, "core/screened_students.html", context)
-
-def calculate_age_in_months(dob, current_date):
-    """Return total months as integer."""
-    if not dob or not current_date:
-        return None
-    months = (current_date.year - dob.year) * 12 + (current_date.month - dob.month)
-    if current_date.day < dob.day:
-        months -= 1
-    return months
 
 
 def format_age(dob, current_date):
@@ -423,52 +386,14 @@ def dashboard_view(request):
 
 # -------------------------------
 # Student Views
-# -------------------------------
-def student_list(request):
-    return render(request, 'core/screened_students.html', {})
-
-
-def student_detail(request, pk):
-    return render(request, 'core/student_detail.html', {})
-
-def student_update(request, pk):
-    return render(request, 'core/student_form.html', {})
-
-def student_delete(request, pk):
-    return render(request, 'core/student_confirm_delete.html', {})
+# ------------------------------
 
 # -------------------------------
 # Screening Views
 # -------------------------------
-def screening_list(request):
-    return render(request, 'core/screening_list.html', {})
 
-def screening_create(request):
-    return render(request, 'core/screening_form.html', {})
 
-def screening_detail(request, pk):
-    return render(request, 'core/screening_detail.html', {})
 
-def screening_update(request, pk):
-    return render(request, 'core/screening_form.html', {})
 
-def screening_delete(request, pk):
-    return render(request, 'core/screening_confirm_delete.html', {})
 
-# -------------------------------
-# School Views
-# -------------------------------
-def school_list(request):
-    return render(request, 'core/school_list.html', {})
 
-def school_create(request):
-    return render(request, 'core/school_form.html', {})
-
-# -------------------------------
-# Reports & Statistics
-# -------------------------------
-def report_summary(request):
-    return render(request, 'core/report_summary.html', {})
-
-def statistics(request):
-    return render(request, 'core/statistics.html', {})

@@ -53,9 +53,10 @@ def bmi_category(gender: str, age_months: int, bmi_value: float) -> str:
     Calculate BMI category based on WHO thresholds.
     Returns: 'severe underweight', 'underweight', 'normal', 'overweight', or 'obese'.
     """
-    gender = (gender or "").lower()
+    gender = str(gender or "").lower()
     if gender not in ["male", "female"]:
         return "N/A"
+
 
     thresholds = bmi_thresholds_female if gender == "female" else bmi_thresholds_male
 
