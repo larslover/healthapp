@@ -1,12 +1,11 @@
 from datetime import date
 
 # === Import WHO reference thresholds ===
-from core.utils.bmi_thresholds_boys import bmi_thresholds_male
-from core.utils.bmi_thresholds_girls import bmi_thresholds_female
+from core.utils.bmi_thresholds_male import bmi_thresholds_male
+from core.utils.bmi_thresholds_female import bmi_thresholds_female
 from core.utils.thresholds import (
     vision_list,
     critical_vision_set,
-
 )
 from core.utils.weight_height_female_thresholds import weight_height_female_thresholds
 from core.utils.weight_height_male_thresholds import weight_height_male_thresholds

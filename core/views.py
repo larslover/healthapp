@@ -27,6 +27,47 @@ from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
 from core.utils.processor import weight_height_category
 
+from core.utils.weight_height_male_thresholds import weight_height_male_thresholds
+from core.utils.weight_height_female_thresholds import weight_height_female_thresholds
+from core.utils.bmi_thresholds_male import bmi_thresholds_male
+from core.utils.bmi_thresholds_female import bmi_thresholds_female
+import pandas as pd
+from django.utils.safestring import mark_safe
+import json
+from pathlib import Path
+
+
+
+def get_who_reference_curves(chart_mode, gender):
+    """
+    Returns WHO reference lines (SD curves) for the selected mode and gender.
+    chart_mode: 'bmi' or 'wfh'
+    gender: 'male' or 'female'
+    Output: dict with curve names as keys, each containing {'x': [...], 'y': [...]}
+    """
+
+    if chart_mode == "bmi":
+        data = bmi_thresholds_male if gender == "male" else bmi_thresholds_female
+        x_label = "Month"
+    elif chart_mode == "wfh":
+        data = weight_height_male_thresholds if gender == "male" else weight_height_female_thresholds
+        x_label = "Height"
+    else:
+        return {}
+
+    # these correspond to list indices 0..6
+    sd_labels = ["-3 SD", "-2 SD", "-1 SD", "Median", "+1 SD", "+2 SD", "+3 SD"]
+
+    # Sort x values numerically (convert string keys to int first)
+    x_values = sorted([int(k) for k in data.keys()])
+    x_str_values = [str(x) for x in x_values]
+
+    curves = {}
+    for i, label in enumerate(sd_labels):
+        y_values = [data[x_str][i] for x_str in x_str_values]
+        curves[label] = {"x": x_values, "y": y_values}
+
+    return curves
 
 def login_view(request):
     if request.user.is_authenticated:
@@ -128,22 +169,22 @@ def determine_growth_for_screening(screening, student):
     return "Too young / Insufficient data", "N/A", None, age_m
 
 
+
 def build_chart_data_for_student(screenings, student):
     """
     Decide chart_mode based on latest screening age:
       - If any screening has age > 60 months => 'bmi' mode
       - else => 'wfh' (weight-for-height) mode
 
-    Returns: (chart_mode, labels_json, values_json, reference_json)
-    reference_json contains the category labels (e.g. 'normal', 'overweight') for each plotted point.
+    Returns:
+      (chart_mode, labels_json, values_json, reference_json, who_curves_json)
     """
     if not screenings:
-        return "none", mark_safe("[]"), mark_safe("[]"), mark_safe("[]")
+        return "none", mark_safe("[]"), mark_safe("[]"), mark_safe("[]"), mark_safe("{}")
 
-    # compute ages for each screening (and find latest age)
+    # compute ages for each screening
     ages = [calculate_age_in_months(student.date_of_birth, s.screen_date) or 0 for s in screenings]
     latest_age = max(ages) if ages else 0
-
     chart_mode = "bmi" if latest_age > 60 else "wfh"
 
     labels = []
@@ -153,25 +194,28 @@ def build_chart_data_for_student(screenings, student):
     for s in screenings:
         indicator, category, plot_value, age_m = determine_growth_for_screening(s, student)
 
-        # Only include points that match the chosen chart_mode and have a numeric value
         if plot_value is None:
             continue
 
         if chart_mode == "bmi" and indicator == "BMI-for-Age":
-            labels.append(s.screen_date.strftime("%Y-%m-%d"))
+            labels.append(age_m)  # age (months)
             values.append(plot_value)
             refs.append(category)
         elif chart_mode == "wfh" and indicator == "Weight-for-Height":
-            labels.append(s.screen_date.strftime("%Y-%m-%d"))
+            labels.append(s.height)
             values.append(plot_value)
             refs.append(category)
-        # else: skip (mixed-mode point not plotted)
+
+    # Get WHO reference curves based on mode + gender
+    gender = "male" if student.gender.lower().startswith("m") else "female"
+    who_curves = get_who_reference_curves(chart_mode, gender)
 
     return (
         chart_mode,
         mark_safe(json.dumps(labels)),
         mark_safe(json.dumps(values)),
         mark_safe(json.dumps(refs)),
+        mark_safe(json.dumps(who_curves)),
     )
 
 # -------------------------
@@ -194,6 +238,7 @@ def screening_summary(request):
     chart_labels = mark_safe("[]")
     chart_values = mark_safe("[]")
     chart_reference = mark_safe("[]")
+    chart_who_curves = mark_safe("[]")
 
     if selected_school_id:
         students = Student.objects.filter(school_id=selected_school_id)
@@ -235,21 +280,24 @@ def screening_summary(request):
             s.age_in_months = age_m
 
         # build chart data consistently
-        chart_mode, chart_labels, chart_values, chart_reference = build_chart_data_for_student(screenings, student)
+        chart_mode, chart_labels, chart_values, chart_reference, chart_who_curves = build_chart_data_for_student(screenings, student)
+
 
     context = {
-        "schools": schools,
-        "students": students,
-        "selected_school_id": int(selected_school_id) if selected_school_id else None,
-        "selected_student_id": int(selected_student_id) if selected_student_id else None,
-        "student": student,
-        "screenings": screenings,
-        "checklist_groups": checklist_groups,
-        "chart_mode": chart_mode,
-        "chart_labels": chart_labels,
-        "chart_values": chart_values,
-        "chart_reference": chart_reference,
+    "schools": schools,
+    "students": students,
+    "selected_school_id": int(selected_school_id) if selected_school_id else None,
+    "selected_student_id": int(selected_student_id) if selected_student_id else None,
+    "student": student,
+    "screenings": screenings,
+    "checklist_groups": checklist_groups,
+    "chart_mode": chart_mode,
+    "chart_labels": chart_labels,
+    "chart_values": chart_values,
+    "chart_reference": chart_reference,
+    "chart_who_curves": chart_who_curves,  # ← add this line
     }
+
 
     return render(request, "core/screening_summary.html", context)
 
