@@ -40,32 +40,35 @@ from pathlib import Path
 
 def get_who_reference_curves(chart_mode, gender):
     """
-    Returns WHO reference lines (SD curves) for the selected mode and gender.
-    chart_mode: 'bmi' or 'wfh'
-    gender: 'male' or 'female'
-    Output: dict with curve names as keys, each containing {'x': [...], 'y': [...]}
+    Returns WHO reference curves (−3SD to +3SD) for BMI-for-Age or Weight-for-Height.
     """
-
     if chart_mode == "bmi":
-        data = bmi_thresholds_male if gender == "male" else bmi_thresholds_female
-        x_label = "Month"
-    elif chart_mode == "wfh":
-        data = weight_height_male_thresholds if gender == "male" else weight_height_female_thresholds
-        x_label = "Height"
-    else:
-        return {}
+        data = (
+             bmi_thresholds_male if gender == "male" else bmi_thresholds_female
+        )
+    else:  # weight-for-height
+        data = (
+            weight_height_male_thresholds
+            if gender == "male"
+            else weight_height_female_thresholds
+        )
 
-    # these correspond to list indices 0..6
-    sd_labels = ["-3 SD", "-2 SD", "-1 SD", "Median", "+1 SD", "+2 SD", "+3 SD"]
+    sd_labels = ["−3SD", "−2SD", "−1SD", "Median", "+1SD", "+2SD", "+3SD"]
 
-    # Sort x values numerically (convert string keys to int first)
-    x_values = sorted([int(k) for k in data.keys()])
-    x_str_values = [str(x) for x in x_values]
+    # Convert keys to numbers and sort safely
+    x_values = sorted(float(k) for k in data.keys())
+    x_str_values = [str(x).rstrip("0").rstrip(".") if "." in str(x) else str(x) for x in x_values]
 
     curves = {}
     for i, label in enumerate(sd_labels):
-        y_values = [data[x_str][i] for x_str in x_str_values]
-        curves[label] = {"x": x_values, "y": y_values}
+        y_values = []
+        for x_str in x_str_values:
+            try:
+                y_values.append(data[x_str][i])
+            except KeyError:
+                # skip missing points instead of crashing
+                continue
+        curves[label] = {"x": x_values[:len(y_values)], "y": y_values}
 
     return curves
 
@@ -169,7 +172,6 @@ def determine_growth_for_screening(screening, student):
     return "Too young / Insufficient data", "N/A", None, age_m
 
 
-
 def build_chart_data_for_student(screenings, student):
     """
     Decide chart_mode based on latest screening age:
@@ -177,19 +179,17 @@ def build_chart_data_for_student(screenings, student):
       - else => 'wfh' (weight-for-height) mode
 
     Returns:
-      (chart_mode, labels_json, values_json, reference_json, who_curves_json)
+      (chart_mode, labels_json, values_json, refs_json, who_curves_json)
     """
     if not screenings:
         return "none", mark_safe("[]"), mark_safe("[]"), mark_safe("[]"), mark_safe("{}")
 
-    # compute ages for each screening
+    # Compute ages for each screening
     ages = [calculate_age_in_months(student.date_of_birth, s.screen_date) or 0 for s in screenings]
     latest_age = max(ages) if ages else 0
     chart_mode = "bmi" if latest_age > 60 else "wfh"
 
-    labels = []
-    values = []
-    refs = []
+    labels, values, refs = [], [], []
 
     for s in screenings:
         indicator, category, plot_value, age_m = determine_growth_for_screening(s, student)
@@ -198,24 +198,42 @@ def build_chart_data_for_student(screenings, student):
             continue
 
         if chart_mode == "bmi" and indicator == "BMI-for-Age":
-            labels.append(age_m)  # age (months)
+            labels.append(age_m)  # x-axis = age (months)
             values.append(plot_value)
             refs.append(category)
         elif chart_mode == "wfh" and indicator == "Weight-for-Height":
-            labels.append(s.height)
+            labels.append(s.height)  # x-axis = height (cm)
             values.append(plot_value)
             refs.append(category)
 
-    # Get WHO reference curves based on mode + gender
+    # Get WHO reference curves for current chart type + gender
     gender = "male" if student.gender.lower().startswith("m") else "female"
     who_curves = get_who_reference_curves(chart_mode, gender)
+
+    # Format background SD lines for plotting (like BMI chart)
+    background_lines = []
+    for label, curve in who_curves.items():
+        background_lines.append({
+            "label": label,  # e.g. "-2SD"
+            "x": curve["x"],
+            "y": curve["y"],
+        })
+
+    combined_data = {
+        "background": background_lines,  # seven WHO reference lines
+        "student": {
+            "x": labels,
+            "y": values,
+            "categories": refs,
+        },
+    }
 
     return (
         chart_mode,
         mark_safe(json.dumps(labels)),
         mark_safe(json.dumps(values)),
         mark_safe(json.dumps(refs)),
-        mark_safe(json.dumps(who_curves)),
+        mark_safe(json.dumps(combined_data)),  # contains both student + reference lines
     )
 
 # -------------------------
