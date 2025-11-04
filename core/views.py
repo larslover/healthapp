@@ -475,6 +475,29 @@ def format_age(dob, current_date):
     elif years:
         return f"{years}y"
     return f"{rem}m"
+from django.http import JsonResponse
+from .models import ScreeningCheck, Student
+
+@login_required(login_url='login')
+def get_last_remarks(request):
+    student_id = request.GET.get("student_id")
+    if not student_id:
+        return JsonResponse({"error": "No student_id provided"}, status=400)
+
+    try:
+        student = Student.objects.get(id=student_id)
+        last_check = (
+            ScreeningCheck.objects.filter(screening__student=student)
+            .order_by("-screening__screen_date")
+            .first()
+        )
+        if last_check and last_check.E9_remarks:
+            return JsonResponse({"remarks": last_check.E9_remarks})
+        else:
+            return JsonResponse({"remarks": ""})
+    except Student.DoesNotExist:
+        return JsonResponse({"remarks": ""})
+
 @login_required(login_url='login')
 def add_screening(request):
     students = Student.objects.all().order_by('name')
@@ -482,15 +505,30 @@ def add_screening(request):
     selected_student_id = request.POST.get("student") or request.GET.get("student")
     student = None
     age_in_months = None
+    last_remarks = None  # ✅ initialize
+    print("DEBUG selected_student_id:", request.POST.get("student"), request.GET.get("student"))
+
 
     if selected_student_id:
         student = get_object_or_404(Student, id=selected_student_id)
 
-        # calculate age if screening date is provided
+        # Calculate age if screening date is provided
         screen_date_str = request.POST.get("screen_date") or request.GET.get("screen_date")
         if student.date_of_birth and screen_date_str:
             screen_date = datetime.strptime(screen_date_str, "%Y-%m-%d").date()
             age_in_months = calculate_age_in_months(student.date_of_birth, screen_date)
+
+        # ✅ Fetch last doctor's remarks (E9_remarks)
+        last_screening = (
+            Screening.objects.filter(student=student)
+            .order_by('-screen_date')
+            .first()
+        )
+        if last_screening and hasattr(last_screening, "checklist"):
+            last_remarks = last_screening.checklist.E9_remarks
+            print("DEBUG last_remarks:", last_remarks)
+        else:
+            print("DEBUG last_remarks: None")
 
     if request.method == "POST":
         if not student:
@@ -513,6 +551,7 @@ def add_screening(request):
                     "screening_form": screening_form,
                     "screening_check_form": screening_check_form,
                     "age_in_months": age_in_months,
+                    "last_remarks": last_remarks,
                 })
 
             screening.save()
@@ -524,13 +563,14 @@ def add_screening(request):
             messages.success(request, f"Screening for {student.name} saved successfully!")
             return redirect("screening_list")
         else:
-            # show errors for debugging
             print("Screening Form Errors:", screening_form.errors)
             print("Checklist Form Errors:", screening_check_form.errors)
 
     else:
         screening_form = ScreeningForm(initial={'school': student.school.id} if student else None)
         screening_check_form = ScreeningCheckForm()
+    print("DEBUG final last_remarks:", last_remarks)
+
 
     return render(request, "core/screening_list.html", {
         "students": students,
@@ -539,6 +579,7 @@ def add_screening(request):
         "screening_check_form": screening_check_form,
         "age_in_months": age_in_months,
         "student": student,
+        "last_remarks": last_remarks,  # ✅ pass to template
     })
 
 def ajax_student_search(request):

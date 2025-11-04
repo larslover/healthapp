@@ -28,6 +28,7 @@ urlpatterns = [
 
 
     path('students/', views.screened_students, name='screened_students'),
+    path("get_last_remarks/", views.get_last_remarks, name="get_last_remarks"),
     
 
 ]
