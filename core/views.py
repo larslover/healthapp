@@ -39,6 +39,21 @@ from django.http import JsonResponse
 from datetime import date
 from core.utils.processor import calculate_bmi, bmi_category, weight_height_category, calculate_age_in_months
 
+
+from django.shortcuts import render, redirect
+from .models import School
+from .forms import SchoolForm  # You’ll create this form next
+
+def school_create(request):
+    if request.method == "POST":
+        form = SchoolForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('screened_students')
+    else:
+        form = SchoolForm()
+    return render(request, 'core/school_form.html', {'form': form})
+
 def growth_reference_api(request):
     try:
         gender = request.GET.get("gender")

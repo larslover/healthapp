@@ -23,7 +23,8 @@ urlpatterns = [
 
     # Reports
    
-  
+  path('schools/add/', views.school_create, name='school_create'),
+
     path("screening-summary/", views.screening_summary, name="screening_summary"),
 
 
