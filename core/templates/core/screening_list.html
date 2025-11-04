@@ -186,19 +186,23 @@
           if (!res.ok) return;
           const data = await res.json();
     
-          if (data.bmi) {
-            indicatorField.value = "BMI-for-age";
-            valueField.value = data.bmi;
-            categoryField.value = data.bmi_category;
-          } else if (data.weight_for_height && currentMonths <= 60) {
-            indicatorField.value = "Weight-for-Height";
-            valueField.value = weight;
-            categoryField.value = data.weight_for_height;
-          } else {
-            indicatorField.value = '';
-            valueField.value = '';
-            categoryField.value = '';
-          }
+          if (currentMonths <= 60 && data.weight_for_height) {
+  // 👶 For children under or equal to 5 years → Weight-for-Height
+  indicatorField.value = "Weight-for-Height";
+  valueField.value = weight;
+  categoryField.value = data.weight_for_height;
+} else if (currentMonths > 60 && data.bmi) {
+  // 🧒 For children older than 5 years → BMI-for-Age
+  indicatorField.value = "BMI-for-Age";
+  valueField.value = data.bmi;
+  categoryField.value = data.bmi_category;
+} else {
+  // 🚫 No valid data
+  indicatorField.value = '';
+  valueField.value = '';
+  categoryField.value = '';
+}
+
         } catch (err) {
           console.error('Error fetching growth data:', err);
         }
