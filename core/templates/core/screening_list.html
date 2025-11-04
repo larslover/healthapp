@@ -2,216 +2,298 @@
 {% block title %}Add Screening{% endblock %}
 
 {% block content %}
-<h2 class="mb-4 fw-bold">Add Screening</h2>
+<div class="container my-4">
+  <h2 class="fw-bold mb-4">Add Screening</h2>
 
-<form method="POST" class="needs-validation" novalidate>
+  <form method="POST" class="needs-validation" novalidate>
     {% csrf_token %}
-<!-- School Selection -->
-<div class="mb-4">
-  <label class="form-label">Select School</label>
-  <select id="schoolSelect" class="form-select">
-      <option value="">-- All Schools --</option>
-      {% for school in schools %}
+
+    <!-- =========================
+         School Selection
+    ========================== -->
+    <div class="mb-4">
+      <label for="schoolSelect" class="form-label fw-semibold">Select School</label>
+      <select id="schoolSelect" class="form-select">
+        <option value="">-- All Schools --</option>
+        {% for school in schools %}
           <option value="{{ school.id }}">{{ school.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <!-- =========================
+         Student Selection
+    ========================== -->
+    <div class="mb-4">
+      <label for="studentSelect" class="form-label fw-semibold">Select Existing Student</label>
+      <select id="studentSelect" name="student" class="form-select" required>
+        <option value="">-- Select a student --</option>
+        {% for student in students %}
+          <option value="{{ student.id }}"
+                  data-dob="{{ student.date_of_birth|date:'Y-m-d' }}"
+                  data-gender="{{ student.gender|lower }}"
+                  data-school="{{ student.school.id }}">
+            {{ student.name }} ({{ student.current_class_section|default_if_none:'—' }})
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <!-- =========================
+         Screening Details
+    ========================== -->
+    <hr class="my-4">
+    <h5 class="fw-semibold mb-3">Screening Details</h5>
+
+    <div class="row g-3">
+      <div class="col-md-3">{{ screening_form.screen_date.label_tag }} {{ screening_form.screen_date }}</div>
+      <div class="col-md-3">{{ screening_form.class_section.label_tag }} {{ screening_form.class_section }}</div>
+      <div class="col-md-3">{{ screening_form.school.label_tag }} {{ screening_form.school }}</div>
+      <div class="col-md-3">{{ screening_form.age_screening.label_tag }} {{ screening_form.age_screening }}</div>
+      <div class="col-md-3">{{ screening_form.weight.label_tag }} {{ screening_form.weight }}</div>
+      <div class="col-md-3">{{ screening_form.height.label_tag }} {{ screening_form.height }}</div>
+      <div class="col-md-2">{{ screening_form.vision_both.label_tag }} {{ screening_form.vision_both }}</div>
+      <div class="col-md-2">{{ screening_form.vision_left.label_tag }} {{ screening_form.vision_left }}</div>
+      <div class="col-md-2">{{ screening_form.vision_right.label_tag }} {{ screening_form.vision_right }}</div>
+    </div>
+
+    <!-- =========================
+         Growth Reference (Read-only)
+    ========================== -->
+    <hr class="my-4">
+    <h5 class="fw-semibold mb-3">Growth Reference (for doctor’s reference only)</h5>
+    <div class="row g-3 align-items-center mb-3">
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">Indicator</label>
+        <input type="text" id="growthIndicator" class="form-control" readonly>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">Calculated Value</label>
+        <input type="text" id="growthValue" class="form-control" readonly>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">Category</label>
+        <input type="text" id="growthCategory" class="form-control" readonly>
+      </div>
+    </div>
+
+    <!-- =========================
+         Screening Checklist
+    ========================== -->
+    <hr class="my-4">
+    <h5 class="fw-semibold mb-3">Screening Checklist</h5>
+
+    <div class="mb-3" id="muacWrapper">
+      {{ screening_form.muac.label_tag }} {{ screening_form.muac }}
+    </div>
+
+    <div class="row g-3">
+      {% for field in screening_check_form %}
+        {% if field.name == 'B5_oedema' %}
+          <div class="mb-3" id="B5Wrapper">
+            {{ field.label_tag }} {{ field }}
+          </div>
+        {% elif field.name == 'E4_menarke' %}
+          <div class="mb-3 fade d-none" id="E4Wrapper">
+            {{ field.label_tag }} {{ field }}
+          </div>
+        {% elif field.name == 'E5_regularity_period_difficulties' %}
+          <div class="mb-3 fade d-none" id="E5Wrapper">
+            {{ field.label_tag }} {{ field }}
+          </div>
+        {% elif field.name == 'E8_menstrual_pain' %}
+          <div class="mb-3 fade d-none" id="E8Wrapper">
+            {{ field.label_tag }} {{ field }}
+          </div>
+        {% else %}
+          <div class="mb-3">{{ field.label_tag }} {{ field }}</div>
+        {% endif %}
       {% endfor %}
-  </select>
+    </div>
+
+    <!-- =========================
+         Submit Button
+    ========================== -->
+    <div class="mt-4">
+      <button type="submit" class="btn btn-primary px-4 py-2 fw-semibold">Save Screening</button>
+    </div>
+  </form>
 </div>
 
-    <!-- Student Selection -->
-    <div class="mb-4">
-        <label class="form-label">Select Existing Student</label>
-        <select id="studentSelect" name="student" class="form-select" required>
-            <option value="">-- Select a student --</option>
-            {% for student in students %}
-            <option value="{{ student.id }}"
-            data-dob="{{ student.date_of_birth|date:'Y-m-d' }}"
-            data-gender="{{ student.gender|lower }}"
-            data-school="{{ student.school.id }}">
-        {{ student.name }} ({{ student.current_class_section|default_if_none:'—' }})
-    </option>
-    
-            {% endfor %}
-        </select>
-    </div>
-
-    <!-- Screening Info -->
-    <hr class="my-4">
-    <h5 class="mb-3">Screening Details</h5>
-    <div class="row g-3">
-        {{ screening_form.screen_date.label_tag }} {{ screening_form.screen_date }}
-        {{ screening_form.class_section.label_tag }} {{ screening_form.class_section }}
-        {{ screening_form.school.label_tag }} {{ screening_form.school }}
-        {{ screening_form.age_screening.label_tag }} {{ screening_form.age_screening }}
-        {{ screening_form.weight.label_tag }} {{ screening_form.weight }}
-        {{ screening_form.height.label_tag }} {{ screening_form.height }}
-        {{ screening_form.vision_both.label_tag }} {{ screening_form.vision_both }}
-        {{ screening_form.vision_left.label_tag }} {{ screening_form.vision_left }}
-        {{ screening_form.vision_right.label_tag }} {{ screening_form.vision_right }}
-    </div>
-    
-
-    <!-- Screening Checklist -->
-    <hr class="my-4">
-    <h5 class="mb-3">Screening Checklist</h5>
-    <div class="mb-3" id="muacWrapper">
-        {{ screening_form.muac.label_tag }} {{ screening_form.muac }}
-    </div>
-    
-    <div class="row g-3">
-        {% for field in screening_check_form %}
-            {% if field.name == 'B5_oedema' %}
-                <div class="mb-3" id="B5Wrapper">
-                    {{ field.label_tag }} {{ field }}
-                </div>
-            {% elif field.name == 'E4_menarke' %}
-            <div class="mb-3 fade d-none" id="E4Wrapper">
-
-                    {{ field.label_tag }} {{ field }}
-                </div>
-            {% elif field.name == 'E5_regularity_period_difficulties' %}
-                <div class="mb-3 fade d-none" id="E5Wrapper">
-                    {{ field.label_tag }} {{ field }}
-                </div>
-            {% elif field.name == 'E8_menstrual_pain' %}
-                <div class="mb-3 fade d-none" id="E8Wrapper">
-                    {{ field.label_tag }} {{ field }}
-                </div>
-            {% else %}
-                <div class="mb-3">
-                    {{ field.label_tag }} {{ field }}
-                </div>
-            {% endif %}
-        {% endfor %}
-    </div>
-
-    <div class="mt-4">
-        <button type="submit" class="btn btn-primary">Save Screening</button>
-    </div>
-</form>
-
 <!-- =========================
-     JS: Dynamic Visibility & Age Auto-fill
+     JavaScript: Dynamic Logic
 ========================= -->
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const studentSelect = document.getElementById('studentSelect');
-        const screenDateInput = document.getElementById('id_screen_date');
-        const ageField = document.getElementById('id_age_screening');
+      const studentSelect = document.getElementById('studentSelect');
+      const screenDateInput = document.getElementById('id_screen_date');
+      const ageField = document.getElementById('id_age_screening');
+      const muacField = document.getElementById('id_muac');
+      const weightInput = document.getElementById('id_weight');
+      const heightInput = document.getElementById('id_height');
+      const indicatorField = document.getElementById('growthIndicator');
+      const valueField = document.getElementById('growthValue');
+      const categoryField = document.getElementById('growthCategory');
     
-        const B5Wrapper = document.getElementById('B5Wrapper');
-        const E4Wrapper = document.getElementById('E4Wrapper');
-        const E5Wrapper = document.getElementById('E5Wrapper');
-        const E8Wrapper = document.getElementById('E8Wrapper');
-        const muacWrapper = document.getElementById('muacWrapper');
-        const muacField = document.getElementById('id_muac');
+      const B5Wrapper = document.getElementById('B5Wrapper');
+      const E4Wrapper = document.getElementById('E4Wrapper');
+      const E5Wrapper = document.getElementById('E5Wrapper');
+      const E8Wrapper = document.getElementById('E8Wrapper');
+      const muacWrapper = document.getElementById('muacWrapper');
     
-        function getTotalMonths(dob, screenDate) {
-            if (!dob || !screenDate) return null;
-            const birth = new Date(dob);
-            const screen = new Date(screenDate);
-            let months = (screen.getFullYear() - birth.getFullYear()) * 12 + (screen.getMonth() - birth.getMonth());
-            if (screen.getDate() < birth.getDate()) months -= 1;
-            return months >= 0 ? Math.floor(months) : null;
+      let currentMonths = null;
+      let currentGender = null;
+      let currentDob = null;
+    
+      // === Utility Functions ===
+      function getTotalMonths(dob, screenDate) {
+        if (!dob || !screenDate) return null;
+        const birth = new Date(dob);
+        const screen = new Date(screenDate);
+        let months = (screen.getFullYear() - birth.getFullYear()) * 12 + (screen.getMonth() - birth.getMonth());
+        if (screen.getDate() < birth.getDate()) months -= 1;
+        return months >= 0 ? Math.floor(months) : null;
+      }
+    
+      function formatAge(totalMonths) {
+        if (totalMonths === null) return '';
+        const years = Math.floor(totalMonths / 12);
+        const months = totalMonths % 12;
+        return `${years}y ${months}m (${totalMonths} months)`;
+      }
+    
+      function showElement(el) {
+        if (el) {
+          el.classList.remove('d-none');
+          if (el.classList.contains('fade')) el.classList.add('show');
+        }
+      }
+    
+      function hideElement(el) {
+        if (el) {
+          el.classList.add('d-none');
+          el.classList.remove('show');
+        }
+      }
+    
+      // === Fetch WHO-calculated growth data from backend ===
+      async function fetchGrowthReference(gender, weight, height, dob, screenDate) {
+        if (!gender || !dob || !screenDate || !weight || !height) return;
+    
+        const url = `/growth-reference/?gender=${gender}&weight=${weight}&height=${height}&dob=${dob}&screen_date=${screenDate}`;
+        try {
+          const res = await fetch(url);
+          if (!res.ok) return;
+          const data = await res.json();
+    
+          if (data.bmi) {
+            indicatorField.value = "BMI-for-age";
+            valueField.value = data.bmi;
+            categoryField.value = data.bmi_category;
+          } else if (data.weight_for_height && currentMonths <= 60) {
+            indicatorField.value = "Weight-for-Height";
+            valueField.value = weight;
+            categoryField.value = data.weight_for_height;
+          } else {
+            indicatorField.value = '';
+            valueField.value = '';
+            categoryField.value = '';
+          }
+        } catch (err) {
+          console.error('Error fetching growth data:', err);
+        }
+      }
+    
+      // === Core visibility logic ===
+      function updateVisibility() {
+        const selectedOption = studentSelect.selectedOptions[0];
+        if (!selectedOption || !selectedOption.dataset.dob || !selectedOption.dataset.gender) {
+          [E4Wrapper, E5Wrapper, E8Wrapper, B5Wrapper].forEach(hideElement);
+          hideElement(muacWrapper);
+          if (muacField) muacField.disabled = true;
+          if (ageField) ageField.value = '';
+          indicatorField.value = '';
+          valueField.value = '';
+          categoryField.value = '';
+          return;
         }
     
-        function formatAge(totalMonths) {
-            if (totalMonths === null) return '';
-            const years = Math.floor(totalMonths / 12);
-            const months = totalMonths % 12;
-            return `${years}y ${months}m (${totalMonths} months)`;
-        }
+        const dob = selectedOption.dataset.dob;
+        const gender = selectedOption.dataset.gender.trim().toLowerCase();
+        const screenDate = screenDateInput?.value;
     
-        function showElement(el) { 
-    if (el) { 
-        el.classList.remove('d-none'); 
-        if (el.classList.contains('fade')) el.classList.add('show');
-    } 
-}
-function hideElement(el) { 
-    if (el) { 
-        el.classList.add('d-none'); 
-        el.classList.remove('show');
-    } 
-}
-
+        currentDob = dob;
+        currentGender = gender;
+        currentMonths = getTotalMonths(dob, screenDate);
     
-function updateVisibility() {
-    const selectedOption = studentSelect.selectedOptions[0];
+        // Update age
+        if (ageField) ageField.value = formatAge(currentMonths);
     
-    // Only proceed if a real student is selected
-    if (!selectedOption || !selectedOption.dataset.dob || !selectedOption.dataset.gender) {
-        // Hide all dependent fields if no valid student
-        [E4Wrapper, E5Wrapper, E8Wrapper, B5Wrapper].forEach(hideElement);
-        if (muacField) muacField.disabled = true;
-        hideElement(muacWrapper);
-        if (ageField) ageField.value = '';
-        return;
-    }
-
-    const dob = selectedOption.dataset.dob;
-    const gender = selectedOption.dataset.gender.trim().toLowerCase();
-    const screenDate = screenDateInput?.value;
-
-    const totalMonths = getTotalMonths(dob, screenDate);
-
-    // Update age
-    if (ageField) ageField.value = formatAge(totalMonths);
-
-    // Show E4/E5/E8 only if female
-    if (gender === 'female' || gender === 'f') {
-    showElement(E4Wrapper);
-    hideElement(E5Wrapper);
-    hideElement(E8Wrapper);
-
-    const E4Checkbox = document.getElementById('id_E4_menarke');
-    if (E4Checkbox) {
-        // Show/hide E5 and E8 based on E4 checkbox
-        E4Checkbox.addEventListener('change', function() {
-            if (E4Checkbox.checked) {
+        // Female-specific logic
+        if (gender === 'female' || gender === 'f') {
+          showElement(E4Wrapper);
+          hideElement(E5Wrapper);
+          hideElement(E8Wrapper);
+    
+          const E4Checkbox = document.getElementById('id_E4_menarke');
+          if (E4Checkbox) {
+            E4Checkbox.addEventListener('change', function() {
+              if (E4Checkbox.checked) {
                 showElement(E5Wrapper);
                 showElement(E8Wrapper);
-            } else {
+              } else {
                 hideElement(E5Wrapper);
                 hideElement(E8Wrapper);
+              }
+            });
+            if (E4Checkbox.checked) {
+              showElement(E5Wrapper);
+              showElement(E8Wrapper);
             }
-        });
-
-        // Initialize visibility in case E4 is already checked
-        if (E4Checkbox.checked) {
-            showElement(E5Wrapper);
-            showElement(E8Wrapper);
+          }
+        } else {
+          [E4Wrapper, E5Wrapper, E8Wrapper].forEach(hideElement);
         }
-    }
-} else {
-    [E4Wrapper, E5Wrapper, E8Wrapper].forEach(hideElement);
-}
-
-    console.log('Gender:', gender);
-console.log('E5Wrapper exists:', !!E5Wrapper);
-
-
-    // B5 depends on age 24–72 months
-    if (totalMonths !== null && totalMonths >= 24 && totalMonths <= 72) showElement(B5Wrapper);
-    else hideElement(B5Wrapper);
-
-    // MUAC depends on age 6–60 months
-    if (totalMonths !== null && totalMonths >= 6 && totalMonths <= 60) {
-        showElement(muacWrapper);
-        if (muacField) muacField.disabled = false;
-    } else {
-        hideElement(muacWrapper);
-        if (muacField) muacField.disabled = true;
-    }
-}
-
-studentSelect.addEventListener('change', updateVisibility);
-screenDateInput?.addEventListener('input', updateVisibility);
-screenDateInput?.addEventListener('change', updateVisibility);
-
-// Don't auto-run until a real student is selected
-updateVisibility();
-
+    
+        // B5 visible for 24–72 months
+        if (currentMonths >= 24 && currentMonths <= 72) showElement(B5Wrapper);
+        else hideElement(B5Wrapper);
+    
+        // MUAC visible for 6–60 months
+        if (currentMonths >= 6 && currentMonths <= 60) {
+          showElement(muacWrapper);
+          if (muacField) muacField.disabled = false;
+        } else {
+          hideElement(muacWrapper);
+          if (muacField) muacField.disabled = true;
+        }
+    
+        updateGrowthReference();
+      }
+    
+      // === Trigger backend-powered growth update ===
+      function updateGrowthReference() {
+        const weight = parseFloat(weightInput?.value);
+        const height = parseFloat(heightInput?.value);
+        const screenDate = screenDateInput?.value;
+        if (!weight || !height || !currentDob || !currentGender || !screenDate) {
+          indicatorField.value = '';
+          valueField.value = '';
+          categoryField.value = '';
+          return;
+        }
+        fetchGrowthReference(currentGender, weight, height, currentDob, screenDate);
+      }
+    
+      // === Event listeners ===
+      studentSelect.addEventListener('change', updateVisibility);
+      screenDateInput?.addEventListener('input', updateVisibility);
+      screenDateInput?.addEventListener('change', updateVisibility);
+      weightInput?.addEventListener('input', updateGrowthReference);
+      heightInput?.addEventListener('input', updateGrowthReference);
+    
+      updateVisibility();
     });
     </script>
-                                
+        
 {% endblock %}

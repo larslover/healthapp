@@ -59,13 +59,6 @@ def calculate_bmi(weight: float, height_cm: float) -> float | None:
 
 
 def bmi_category(gender: str, age_months: int, bmi_value: float) -> str:
-    """
-    Classify BMI based on WHO 5–19 years reference data (−3SD to +3SD).
-
-    Returns:
-        'severe underweight', 'moderate underweight', 'mild underweight',
-        'normal', 'overweight', 'obese', or 'N/A'.
-    """
     gender = str(gender or "").lower()
     if gender not in ["male", "female"]:
         return "N/A"
@@ -77,10 +70,15 @@ def bmi_category(gender: str, age_months: int, bmi_value: float) -> str:
     except (TypeError, ValueError):
         return "N/A"
 
-    if age_months not in thresholds:
+    # ✅ Try both int and string keys
+    if age_months in thresholds:
+        values = thresholds[age_months]
+    elif str(age_months) in thresholds:
+        values = thresholds[str(age_months)]
+    else:
         return "N/A"
 
-    minus3SD, minus2SD, minus1SD, median, plus1SD, plus2SD, plus3SD = thresholds[age_months]
+    minus3SD, minus2SD, minus1SD, median, plus1SD, plus2SD, plus3SD = values
 
     if bmi_value < minus3SD:
         return "severe underweight"
@@ -94,7 +92,6 @@ def bmi_category(gender: str, age_months: int, bmi_value: float) -> str:
         return "overweight"
     else:
         return "obese"
-
 
 def muac_category(muac_value: float, age_months: int) -> str:
     """

@@ -35,6 +35,38 @@ import pandas as pd
 from django.utils.safestring import mark_safe
 import json
 from pathlib import Path
+from django.http import JsonResponse
+from datetime import date
+from core.utils.processor import calculate_bmi, bmi_category, weight_height_category, calculate_age_in_months
+
+def growth_reference_api(request):
+    try:
+        gender = request.GET.get("gender")
+        weight = float(request.GET.get("weight"))
+        height = float(request.GET.get("height"))
+        dob = request.GET.get("dob")
+        screen_date = request.GET.get("screen_date")
+
+        if not (dob and screen_date):
+            return JsonResponse({"error": "missing dates"}, status=400)
+
+        from datetime import datetime
+        dob = datetime.strptime(dob, "%Y-%m-%d").date()
+        screen_date = datetime.strptime(screen_date, "%Y-%m-%d").date()
+
+        age_months = calculate_age_in_months(dob, screen_date)
+        bmi = calculate_bmi(weight, height)
+        bmi_cat = bmi_category(gender, age_months, bmi)
+        wfh_cat = weight_height_category(weight, height, age_months, gender)
+
+        return JsonResponse({
+            "age_months": age_months,
+            "bmi": bmi,
+            "bmi_category": bmi_cat,
+            "weight_for_height": wfh_cat
+        })
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
 
 def get_who_reference_curves(chart_mode, gender):
     """

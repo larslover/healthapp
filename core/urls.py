@@ -17,17 +17,8 @@ urlpatterns = [
     # Only one path for screenings/
     path('screenings/', views.add_screening, name='screening_list'),
     path('students/add/', views.student_create, name='student_create'),
-
+    path("growth-reference/", views.growth_reference_api, name="growth_reference_api"),
     path('students/ajax-search/', views.ajax_student_search, name='ajax_student_search'),
-
-
-
-  
-
-
-
-  
-   
 
 
     # Reports
