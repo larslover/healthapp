@@ -75,4 +75,30 @@
     <button type="submit" class="btn btn-success">Save Changes</button>
     <a href="{% url 'screened_students' %}" class="btn btn-secondary ms-2">Cancel</a>
 </form>
+
+<!-- ✅ Checkbox styling -->
+<style>
+  .form-check-input {
+    width: 1.4em;
+    height: 1.4em;
+    border: 2px solid #000 !important; /* black border */
+    cursor: pointer;
+  }
+
+  .form-check-input:checked {
+    background-color: #198754 !important; /* green check color */
+    border-color: #145c32 !important;
+  }
+
+  .form-check-label {
+    font-weight: 500;
+    margin-left: 0.5em;
+    color: #222;
+  }
+
+  .form-check {
+    padding: 0.3em 0;
+  }
+</style>
+
 {% endblock %}
