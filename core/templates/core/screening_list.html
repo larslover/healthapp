@@ -320,4 +320,30 @@ document.addEventListener('DOMContentLoaded', function() {
   updateVisibility();
 });
 </script>
+<style>
+    /* Make all screening checklist checkboxes more visible */
+    .form-check-input {
+      width: 1.4em;
+      height: 1.4em;
+      border: 2px solid #000 !important; /* black border for contrast */
+      cursor: pointer;
+    }
+  
+    .form-check-input:checked {
+      background-color: #198754 !important; /* Bootstrap success green */
+      border-color: #145c32 !important; /* darker green border */
+    }
+  
+    .form-check-label {
+      font-weight: 500;
+      margin-left: 0.5em;
+      color: #222;
+    }
+  
+    /* Optional: slightly enlarge touch area for mobile/tablet */
+    .form-check {
+      padding: 0.3em 0;
+    }
+  </style>
+  
 {% endblock %}
