@@ -477,26 +477,25 @@ def format_age(dob, current_date):
     return f"{rem}m"
 from django.http import JsonResponse
 from .models import ScreeningCheck, Student
+from django.http import JsonResponse
+from core.models import ScreeningCheck, Student
 
-@login_required(login_url='login')
 def get_last_remarks(request):
     student_id = request.GET.get("student_id")
-    if not student_id:
-        return JsonResponse({"error": "No student_id provided"}, status=400)
-
-    try:
-        student = Student.objects.get(id=student_id)
-        last_check = (
-            ScreeningCheck.objects.filter(screening__student=student)
-            .order_by("-screening__screen_date")
-            .first()
-        )
-        if last_check and last_check.E9_remarks:
-            return JsonResponse({"remarks": last_check.E9_remarks})
-        else:
-            return JsonResponse({"remarks": ""})
-    except Student.DoesNotExist:
-        return JsonResponse({"remarks": ""})
+    remarks = None
+    if student_id:
+        try:
+            s = Student.objects.get(id=student_id)
+            last_check = (
+                ScreeningCheck.objects.filter(screening__student=s)
+                .order_by("-screening__screen_date")
+                .first()
+            )
+            if last_check:
+                remarks = last_check.E9_remarks
+        except Student.DoesNotExist:
+            pass
+    return JsonResponse({"remarks": remarks})
 
 @login_required(login_url='login')
 def add_screening(request):
