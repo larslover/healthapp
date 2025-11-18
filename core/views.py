@@ -38,11 +38,23 @@ from pathlib import Path
 from django.http import JsonResponse
 from datetime import date
 from core.utils.processor import calculate_bmi, bmi_category, weight_height_category, calculate_age_in_months
-
-
 from django.shortcuts import render, redirect
 from .models import School
 from .forms import SchoolForm  # You’ll create this form next
+
+from django.http import HttpResponse
+from django.templatetags.static import static
+import os
+
+
+
+
+def service_worker(request):
+    sw_path = os.path.join('healthapp', 'service-worker.js')
+    with open(static(sw_path).replace('/static/', 'healthapp/static/healthapp/'), 'r') as f:
+        js = f.read()
+    return HttpResponse(js, content_type='application/javascript')
+
 
 def school_create(request):
     if request.method == "POST":
