@@ -94,8 +94,8 @@
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", function () {
-        navigator.serviceWorker
-          .register("{% static 'healthapp/js/sw.js' %}")
+        navigator.serviceWorker.register("{% static 'healthapp/js/service-worker.js' %}")
+
           .then(reg => console.log("✅ SW registered:", reg.scope))
           .catch(err => console.error("❌ SW failed:", err));
       });
