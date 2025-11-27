@@ -12,10 +12,10 @@ DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.mysql",
-        "NAME": os.getenv("DB_NAME"),
-        "USER": os.getenv("DB_USER"),
-        "PASSWORD": os.getenv("DB_PASSWORD"),
-        "HOST": os.getenv("DB_HOST"),
+        "NAME": os.environ.get("DB_NAME", "LarsLover$healthapp"),
+        "USER": os.environ.get("DB_USER", "LarsLover"),
+        "PASSWORD": os.environ.get("DB_PASSWORD", ""),
+        "HOST": os.environ.get("DB_HOST", "LarsLover.mysql.pythonanywhere-services.com"),
         "PORT": "3306",
         "OPTIONS": {
             "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
@@ -39,13 +39,11 @@ SECURE_HSTS_PRELOAD = True
 # ---------------------
 # Allowed Hosts
 # ---------------------
-# Example: "gahealthapp.com,www.gahealthapp.com"
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",")
+ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "larslover.pythonanywhere.com").split(",")
 
 # ---------------------
 # Static & Media
 # ---------------------
 STATIC_ROOT = BASE_DIR / "staticfiles"
-
 MEDIA_ROOT = BASE_DIR / "media"
 MEDIA_URL = "/media/"
