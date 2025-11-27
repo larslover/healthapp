@@ -39,7 +39,13 @@ SECURE_HSTS_PRELOAD = True
 # ---------------------
 # Allowed Hosts
 # ---------------------
-ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "larslover.pythonanywhere.com").split(",")
+# ---------------------
+# Allowed Hosts
+# ---------------------
+ALLOWED_HOSTS = os.environ.get(
+    "ALLOWED_HOSTS", "gahealthapp.com,www.gahealthapp.com,larslover.pythonanywhere.com"
+).split(",")
+
 
 # ---------------------
 # Static & Media
