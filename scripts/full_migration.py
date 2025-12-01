@@ -8,7 +8,7 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, PROJECT_ROOT)
 
 # --- Set Django settings ---
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "healthapp.settings.dev")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "healthapp.settings.prod")
 
 import django
 django.setup()
