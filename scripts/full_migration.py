@@ -15,6 +15,20 @@ django.setup()
 
 from core.models import Student, Screening, ScreeningCheck, School
 from core.utils.processor import weight_height_female_thresholds, weight_height_male_thresholds
+def clean_contact(c):
+    if not c:
+        return None
+
+    c = str(c).strip()
+
+    # Extract only digits
+    digits = "".join(ch for ch in c if ch.isdigit())
+
+    # If length is unrealistic, skip it
+    if len(digits) < 7 or len(digits) > 15:
+        return None
+
+    return digits
 
 # -----------------------------
 # Helpers
@@ -87,7 +101,8 @@ for row in rows:
             "gender": row["Gender"],
             "father_or_guardian_name": row["Father_or_guardian_name"],
             "mother_name": row["mother_name"],
-            "contact_number": str(row["contact_number"]) if row["contact_number"] else None,
+            "contact_number": clean_contact(row["contact_number"]),
+
             "address": row["Address"],
             "known_earlier_disease": row["known_earlier_disease"],
             "school": get_or_create_school(row["school_name"]),
