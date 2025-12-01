@@ -111,7 +111,6 @@ def weight_height_category(weight: float, height: float, age_in_months: int, gen
     Determine weight-for-height category based on WHO thresholds.
     Only for ages 24–60 months inclusive.
     """
-
     if not (weight and height and gender):
         return "N/A"
 
@@ -126,12 +125,14 @@ def weight_height_category(weight: float, height: float, age_in_months: int, gen
         else weight_height_male_thresholds
     )
 
-    # Find closest available height
-    all_heights = sorted(thresholds.keys())
-    closest_height = min(all_heights, key=lambda h: abs(h - height))
+    # Convert keys to float for comparison
+    height_keys = list(thresholds.keys())          # original keys (likely strings)
+    all_heights = [float(h) for h in height_keys]  # convert to float to compute distance
+    closest_float = min(all_heights, key=lambda h: abs(h - height))
+    closest_key = height_keys[all_heights.index(closest_float)]  # get original dict key
 
     # Unpack WHO SD lines
-    sd3neg, sd2neg, sd1neg, sd0, sd1, sd2, sd3 = thresholds[closest_height]
+    sd3neg, sd2neg, sd1neg, sd0, sd1, sd2, sd3 = thresholds[closest_key]
 
     # Classify
     if weight < sd3neg:

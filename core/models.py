@@ -287,6 +287,7 @@ class ScreeningCheck(models.Model):
     D6_speaking_difficulty = models.BooleanField(default=False)
     D7_hearing_problems = models.BooleanField(default=False)
     D8_learning_difficulties = models.BooleanField(default=False)
+
     D9_attention_difficulties = models.BooleanField(default=False)
 
     # Other observations
