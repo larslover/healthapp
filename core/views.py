@@ -397,22 +397,28 @@ from core.forms import StudentForm, ScreeningForm, ScreeningCheckForm
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 
-
 @login_required(login_url='login')
 def screened_students(request):
     selected_year = request.GET.get("year")
     selected_school_id = request.GET.get("school")
     selected_student_id = request.GET.get("selected_student")
 
-    # === Filter base queryset ===
-    students = Student.objects.all()
+    # === Base Query with Select/Prefetch ===
+    students = Student.objects.select_related("school") \
+                              .prefetch_related(
+                                  Prefetch(
+                                      "screening_set",
+                                      queryset=Screening.objects.order_by("-screen_date")
+                                  )
+                              )
+
     if selected_school_id:
         students = students.filter(school_id=selected_school_id)
 
-    # === Build student data for listing ===
+    # === Build student data WITHOUT extra queries ===
     students_data = []
     for student in students:
-        screenings = Screening.objects.filter(student=student)
+        screenings = student.screening_set.all()
         if selected_year:
             screenings = screenings.filter(screen_date__year=selected_year)
 
@@ -431,14 +437,18 @@ def screened_students(request):
     selected_student = None
 
     if selected_student_id:
-        selected_student = get_object_or_404(Student, pk=selected_student_id)
+        selected_student = get_object_or_404(
+            Student.objects.select_related("school"),
+            pk=selected_student_id
+        )
+
         screening = Screening.objects.filter(student=selected_student).last()
         if not screening:
             screening = Screening.objects.create(student=selected_student)
+
         checklist, _ = ScreeningCheck.objects.get_or_create(screening=screening)
 
         if request.method == "POST":
-            print("🧾 POST DATA:", request.POST)
             student_form = StudentForm(request.POST, instance=selected_student)
             screening_form = ScreeningForm(request.POST, instance=screening)
             checklist_form = ScreeningCheckForm(request.POST, instance=checklist)
@@ -446,37 +456,26 @@ def screened_students(request):
             if student_form.is_valid() and screening_form.is_valid() and checklist_form.is_valid():
                 student = student_form.save(commit=False)
 
-                # ✅ Robust school handling
                 school_id = request.POST.get("school")
-                if school_id and school_id.strip():
+                if school_id:
                     try:
                         student.school = School.objects.get(pk=int(school_id))
-                        print(f"✅ Assigned school: {student.school}")
-                    except (ValueError, School.DoesNotExist):
-                        print("⚠️ Invalid school ID submitted")
-                elif school_id == "":
-                    # Explicitly cleared
-                    student.school = None
-                # else: keep existing if not included
+                    except:
+                        student.school = None
 
                 student.save()
                 screening_form.save()
                 checklist_form.save()
-
-                print(f"✅ Saved student: {student.name} | Final school: {student.school}")
                 return redirect("screened_students")
 
         else:
             student_form = StudentForm(instance=selected_student)
             screening_form = ScreeningForm(instance=screening)
             checklist_form = ScreeningCheckForm(instance=checklist)
-            print(f"🧩 Editing {selected_student.name} | Current school: {selected_student.school}")
 
     # === Years dropdown ===
-    years_qs = Screening.objects.dates("screen_date", "year", order="DESC")
-    years = [d.year for d in years_qs]
+    years = list(Screening.objects.dates("screen_date", "year", order="DESC").values_list("year", flat=True))
 
-    # === Render ===
     context = {
         "students_data": students_data,
         "selected_year": selected_year,
@@ -485,11 +484,10 @@ def screened_students(request):
         "student_form": student_form,
         "screening_form": screening_form,
         "checklist_form": checklist_form,
-        "schools": School.objects.all(),
+        "schools": School.objects.only("id", "name"),
         "years": years,
     }
     return render(request, "core/screened_students.html", context)
-
 
 def format_age(dob, current_date):
     """Return formatted string like '5y 3m'."""
