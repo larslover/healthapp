@@ -61,9 +61,9 @@
           <div class="collapse navbar-collapse" id="navbarNav">
               <ul class="navbar-nav ms-auto">
                   <li class="nav-item"><a class="nav-link" href="{% url 'dashboard' %}">Dashboard</a></li>
-                  <li class="nav-item"><a class="nav-link" href="{% url 'screened_students' %}">Students</a></li>
-                  <li class="nav-item"><a class="nav-link" href="{% url 'screening_summary' %}">Summary</a></li>
-                  <li class="nav-item"><a class="nav-link" href="{% url 'screening_list' %}">Screening</a></li>
+                  <li class="nav-item"><a class="nav-link" href="{% url 'screened_students' %}">Add New Student</a></li>
+                  <li class="nav-item"><a class="nav-link" href="{% url 'screening_summary' %}">View Previous Screenings</a></li>
+                  <li class="nav-item"><a class="nav-link" href="{% url 'screening_list' %}">New Screening</a></li>
                   <li class="nav-item">
                       <form method="post" action="{% url 'logout' %}" class="d-inline">
                           {% csrf_token %}

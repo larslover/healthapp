@@ -114,16 +114,16 @@ class ScreeningCheckForm(forms.ModelForm):
 
     class Meta:
         model = ScreeningCheck
-        exclude = ['screening']  # linked automatically in the view
+        exclude = ['screening']
         widgets = {
-            # Nutritional / medical conditions
+            # -------- Nutritional Conditions --------
             'B1_severe_anemia': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'B2_vitA_deficiency': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'B3_vitD_deficiency': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'B4_goitre': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'B5_oedema': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
 
-            # Other medical conditions
+            # -------- Medical Conditions --------
             'C1_convulsive_dis': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'C2_otitis_media': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'C3_dental_condition': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
@@ -131,7 +131,7 @@ class ScreeningCheckForm(forms.ModelForm):
             'C5_rheumatic_heart_disease': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'C6_others_TB_asthma': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
 
-            # Development / learning difficulties
+            # -------- Developmental / Learning --------
             'D1_difficulty_seeing': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'D2_delay_in_walking': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'D3_stiffness_floppiness': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
@@ -141,14 +141,55 @@ class ScreeningCheckForm(forms.ModelForm):
             'D8_learning_difficulties': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'D9_attention_difficulties': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
 
-            # Other observations
+            # -------- Other Observations --------
             'E3_depression_sleep': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'E4_menarke': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'E5_regularity_period_difficulties': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'E6_UTI_STI': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'E7_discharge': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'E8_menstrual_pain': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-            'E9_remarks': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Enter doctor’s remarks...'}),
+            'E9_remarks': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Enter doctor’s remarks...'
+            }),
+        }
+
+        labels = {
+            # -------- Nutritional --------
+            'B1_severe_anemia': 'B1: Severe Anemia',
+            'B2_vitA_deficiency': 'B2: Vitamin A Deficiency',
+            'B3_vitD_deficiency': 'B3: Vitamin D Deficiency',
+            'B4_goitre': 'B4: Goitre',
+            'B5_oedema': 'B5: Oedema',
+
+            # -------- Medical --------
+            'C1_convulsive_dis': 'C1: Convulsive Disorders',
+            'C2_otitis_media': 'C2: Otitis Media',
+            'C3_dental_condition': 'C3: Dental Condition',
+            'C4_skin_condition': 'C4: Skin Condition',
+            'C5_rheumatic_heart_disease': 'C5: Rheumatic Heart Disease',
+            'C6_others_TB_asthma': 'C6: Respiratory Problem (Suggestive of Asthma/TB)',
+
+            # -------- Developmental --------
+            'D1_difficulty_seeing': 'D1: Vision problem (night vision or day vision),',
+            'D2_delay_in_walking': 'D2: Delay in walking',
+            'D3_stiffness_floppiness': 'D3: Stiffness / Floppiness/reduced strengthin in arms/legs',
+            'D5_reading_writing_calculatory_difficulty': 'D5: Reading / writing / calculatory difficulties',
+            'D6_speaking_difficulty': 'D6: Difficulty in speaking',
+            'D7_hearing_problems': 'D7: Difficulty in hearing',
+            'D8_learning_difficulties': 'D8: Learning difficulties',
+            'D9_attention_difficulties': 'D9: Attention difficulties',
+
+            # -------- Other --------
+            'E3_depression_sleep': 'E3: Feeling unduly tired/depressed',
+            'E4_menarke': 'E4: Menstrual Cycle started?',
+            'E5_regularity_period_difficulties': 'E5: Irregular periods?',
+            'E6_UTI_STI': 'E6: Pain/burning while urinating?',
+            'E7_discharge': 'E7: Discharge/foul smell from genito/urinary area?',
+            'E8_menstrual_pain': 'E8: Menstrual Pain',
+            
+            'E9_remarks': 'Doctor’s Remarks',
         }
 
 # -------------------------------
