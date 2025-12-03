@@ -1,5 +1,7 @@
 
 from core.utils.processor import bmi_category
+from django.db.models import Prefetch
+
 from .forms import StudentForm
 from django.db.models.functions import ExtractYear
 from .models import Student, Screening, ScreeningCheck
@@ -34,6 +36,7 @@ from core.utils.bmi_thresholds_female import bmi_thresholds_female
 import pandas as pd
 from django.utils.safestring import mark_safe
 import json
+import time
 from pathlib import Path
 from django.http import JsonResponse
 from datetime import date
@@ -397,28 +400,50 @@ from core.forms import StudentForm, ScreeningForm, ScreeningCheckForm
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 
+
+
+import logging
+from datetime import date
+from django.db.models import Prefetch
+from django.shortcuts import render, get_object_or_404, redirect
+
+logger = logging.getLogger(__name__)
+
 @login_required(login_url='login')
 def screened_students(request):
+
+    total_start = time.time()   # FULL VIEW TIMER
+
     selected_year = request.GET.get("year")
     selected_school_id = request.GET.get("school")
     selected_student_id = request.GET.get("selected_student")
 
-    # === Base Query with Select/Prefetch ===
+    # === Query Students Start ===
+    t1 = time.time()
+
     students = Student.objects.select_related("school") \
                               .prefetch_related(
                                   Prefetch(
-                                      "screening_set",
+                                      "screenings",
                                       queryset=Screening.objects.order_by("-screen_date")
                                   )
                               )
 
-    if selected_school_id:
-        students = students.filter(school_id=selected_school_id)
+    logger.warning("STEP 1 — student base query: %.4f sec", time.time() - t1)
 
-    # === Build student data WITHOUT extra queries ===
+    # === Filtering by school ===
+    if selected_school_id:
+        t2 = time.time()
+        students = students.filter(school_id=selected_school_id)
+        logger.warning("STEP 2 — filter by school: %.4f sec", time.time() - t2)
+
+    # === Build student data ===
+    t3 = time.time()
     students_data = []
+
     for student in students:
-        screenings = student.screening_set.all()
+        screenings = student.screenings.all()
+
         if selected_year:
             screenings = screenings.filter(screen_date__year=selected_year)
 
@@ -432,7 +457,11 @@ def screened_students(request):
             "age_display": formatted_age,
         })
 
+    logger.warning("STEP 3 — loop building students_data: %.4f sec", time.time() - t3)
+
     # === Handle selected student ===
+    t4 = time.time()
+
     student_form = screening_form = checklist_form = None
     selected_student = None
 
@@ -473,8 +502,17 @@ def screened_students(request):
             screening_form = ScreeningForm(instance=screening)
             checklist_form = ScreeningCheckForm(instance=checklist)
 
+    logger.warning("STEP 4 — update selected student logic: %.4f sec", time.time() - t4)
+
     # === Years dropdown ===
-    years = list(Screening.objects.dates("screen_date", "year", order="DESC").values_list("year", flat=True))
+    t5 = time.time()
+   
+    years = [d.year for d in Screening.objects.dates("screen_date", "year", order="DESC")]
+
+    logger.warning("STEP 5 — load years list: %.4f sec", time.time() - t5)
+
+    total_time = time.time() - total_start
+    logger.warning("TOTAL VIEW TIME: %.4f sec", total_time)
 
     context = {
         "students_data": students_data,
