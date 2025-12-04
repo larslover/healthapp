@@ -45,6 +45,32 @@
       </select>
     </div>
 
+<!-- Student Info Card -->
+<div id="studentInfoCard" class="card mb-4 shadow-sm" style="display:none;">
+  <div class="card-header bg-primary text-white fw-bold">Student Information</div>
+  <div class="card-body">
+    <div class="row mb-2">
+      <div class="col-md-4"><strong>Name:</strong> <span id="infoName"></span></div>
+      <div class="col-md-4"><strong>Gender:</strong> <span id="infoGender"></span></div>
+      <div class="col-md-4"><strong>Age:</strong> <span id="infoAge"></span></div>
+    </div>
+    <div class="row mb-2">
+      <div class="col-md-6"><strong>School:</strong> <span id="infoSchool"></span></div>
+      <div class="col-md-6"><strong>DOB:</strong> <span id="infoDob"></span></div>
+    </div>
+    <div><strong>Known Earlier Disease:</strong> 
+      <span id="infoDisease" class="text-danger">—</span>
+    </div>
+  </div>
+</div>
+<!-- Previous Screenings Summary -->
+<div id="screeningsSummaryCard" class="card mb-4 shadow-sm d-none">
+  <div class="card-header bg-info text-white fw-bold">Last Screening</div>
+  <div class="card-body" id="screeningsSummaryContent"></div>
+</div>
+
+
+
     <!-- Screening Details -->
     <hr class="my-4">
     <h5 class="fw-semibold mb-3">Screening Details</h5>
@@ -131,7 +157,38 @@
       let currentMonths = null;
       let currentGender = null;
       let currentDob = null;
-  
+
+      
+      async function fetchPreviousScreenings(studentId) {
+    const summaryCard = document.getElementById('screeningsSummaryCard');
+    const summaryContent = document.getElementById('screeningsSummaryContent');
+
+    if (!studentId) {
+        summaryCard.classList.add('d-none');
+        summaryContent.innerHTML = '';
+        return;
+    }
+
+    try {
+        const res = await fetch(`/get_previous_screenings/?student_id=${studentId}`);
+        const data = await res.json();
+
+        if (data.html && data.html.trim() !== '') {
+            summaryContent.innerHTML = data.html;
+        } else {
+            summaryContent.innerHTML = '<p class="text-muted">No previous screenings found.</p>';
+        }
+
+        summaryCard.classList.remove('d-none');
+    } catch (err) {
+        console.error('Error fetching previous screenings:', err);
+        summaryContent.innerHTML = '<p class="text-danger">Failed to load previous screenings.</p>';
+        summaryCard.classList.remove('d-none');
+    }
+}
+
+
+      
       // --------------------
       // Utility functions
       // --------------------
@@ -280,26 +337,35 @@
       // Fetch last doctor's remarks
       // --------------------
       studentSelect.addEventListener('change', async function() {
-          const studentId = this.value;
-          if (!studentId) {
-              remarksContainer.style.display = 'none';
-              remarksText.textContent = '';
-              return;
-          }
-          try {
-              const res = await fetch(`/get_last_remarks/?student_id=${studentId}`);
-              const data = await res.json();
-              if (data.remarks) {
-                  remarksText.textContent = data.remarks;
-                  remarksContainer.style.display = 'block';
-              } else {
-                  remarksContainer.style.display = 'none';
-              }
-          } catch (err) {
-              console.error('Error fetching remarks:', err);
-              remarksContainer.style.display = 'none';
-          }
-      });
+    console.log("Student changed:", this.value); // should now appear
+    const studentId = this.value;
+
+    // Show last doctor's remarks
+    if (!studentId) {
+        remarksContainer.style.display = 'none';
+        remarksText.textContent = '';
+        fetchPreviousScreenings(null);
+        return;
+    }
+
+    try {
+        const res = await fetch(`/get_last_remarks/?student_id=${studentId}`);
+        const data = await res.json();
+        if (data.remarks) {
+            remarksText.textContent = data.remarks;
+            remarksContainer.style.display = 'block';
+        } else {
+            remarksContainer.style.display = 'none';
+        }
+    } catch (err) {
+        console.error('Error fetching remarks:', err);
+        remarksContainer.style.display = 'none';
+    }
+
+    // Fetch last 5 screenings
+    fetchPreviousScreenings(studentId);
+});
+
   
       // --------------------
       // Event listeners

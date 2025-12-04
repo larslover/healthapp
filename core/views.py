@@ -567,6 +567,55 @@ from datetime import datetime, date
 from .models import Student, School, Screening, ScreeningCheck
 from .forms import ScreeningForm, ScreeningCheckForm
 from .utils.processor import calculate_age_in_months
+# views.py
+from django.http import JsonResponse
+from .models import Screening, Student
+
+@login_required
+def get_previous_screenings(request):
+    from django.http import JsonResponse
+    from django.template.loader import render_to_string
+
+    student_id = request.GET.get('student_id')
+    html = ""
+
+    if student_id:
+        student = get_object_or_404(Student, id=student_id)
+
+        screening = Screening.objects.filter(student=student, screen_date__isnull=False).order_by('-screen_date').first()
+
+        if screening:
+            checklist_groups = {
+                "Preventive Care": ["deworming", "vaccination"],
+                "Nutritional / Medical Conditions": [
+                    "B1_severe_anemia", "B2_vitA_deficiency", "B3_vitD_deficiency",
+                    "B4_goitre", "B5_oedema"
+                ],
+                "Other Medical Conditions": [
+                    "C1_convulsive_dis", "C2_otitis_media", "C3_dental_condition",
+                    "C4_skin_condition", "C5_rheumatic_heart_disease", "C6_others_TB_asthma"
+                ],
+                "Development / Learning": [
+                    "D1_difficulty_seeing", "D2_delay_in_walking", "D3_stiffness_floppiness",
+                    "D5_reading_writing_calculatory_difficulty", "D6_speaking_difficulty",
+                    "D7_hearing_problems", "D8_learning_difficulties", "D9_attention_difficulties"
+                ],
+                "Other Observations": [
+                    "E3_depression_sleep", "E4_menarke", "E5_regularity_period_difficulties",
+                    "E6_UTI_STI", "E7_discharge", "E8_menstrual_pain", "E9_remarks"
+                ]
+            }
+
+            screening.checklist_dict = get_checklist_for_screening(screening, checklist_groups)
+            screening.muac_category = muac_category_for(screening, student)
+
+            html = render_to_string("core/_screening_card.html", {
+                "screening": screening,
+                "student": student,
+                "checklist_groups": checklist_groups,
+            })
+
+    return JsonResponse({"html": html})
 
 @login_required(login_url='login')
 def add_screening(request):

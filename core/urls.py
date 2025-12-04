@@ -2,6 +2,7 @@ from django.urls import path
 from . import views
 from django.contrib.auth import views as auth_views  # ✅ Import this
 urlpatterns = [
+    path('get_previous_screenings/', views.get_previous_screenings, name='get_previous_screenings'),
     path('login/', views.login_view, name='login'),
     path('logout/', auth_views.LogoutView.as_view(next_page='login'), name='logout'),
     path('', views.dashboard_view, name='dashboard'),
