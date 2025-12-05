@@ -1,47 +1,58 @@
 {% extends "core/base.html" %}
 {% load custom_filters %}
+{% load static %}
 
 {% block title %}Screening Summary{% endblock %}
 
 {% block content %}
 <div class="container my-4">
-  <!-- Header -->
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="fw-bold">Previous Screenings</h2>
-    <div>
-      <a href="{% url 'screened_students' %}" class="btn btn-outline-secondary me-2">&laquo; Back</a>
-      {% if user.is_staff %}
-        <a href="{% url 'screening_list' %}" class="btn btn-primary">Add Screening</a>
-      {% endif %}
-    </div>
-  </div>
+  <h2 class="fw-bold mb-4 d-flex justify-content-between align-items-center">
+    See Screened Students report
+    <a href="{% url 'student_create' %}" class="btn btn-success">Add Student</a>
+  </h2>
+</div>
 
-  <!-- School & Student Filters -->
+<div class="container my-4">
+
+
+
+
+  <!-- Filter Form -->
   <form method="get" class="row g-3 mb-4">
     <div class="col-md-5">
       <label class="form-label">Select School</label>
-      <select name="school" class="form-select" onchange="this.form.submit()">
+      <select 
+          id="schoolSelect"
+          name="school" 
+          class="form-select">
         <option value="">-- Select School --</option>
         {% for school in schools %}
-          <option value="{{ school.id }}" {% if selected_school_id == school.id %}selected{% endif %}>
+          <option value="{{ school.id }}" data-school="{{ school.id }}"
+            {% if selected_school_id == school.id %}selected{% endif %}>
             {{ school.name }}
           </option>
         {% endfor %}
       </select>
     </div>
+
     <div class="col-md-5">
       <label class="form-label">Select Student</label>
-      <select name="student" class="form-select" onchange="this.form.submit()">
+      <select 
+          id="studentSelect"
+          name="student" 
+          class="form-select">
         <option value="">-- Select Student --</option>
         {% for s in students %}
-          <option value="{{ s.id }}" {% if selected_student_id == s.id %}selected{% endif %}>
+          <option 
+            value="{{ s.id }}" 
+            data-school="{{ s.school.id }}"
+            {% if selected_student_id == s.id %}selected{% endif %}>
             {{ s.name }} ({{ s.current_class_section|default:"—" }})
           </option>
         {% endfor %}
       </select>
     </div>
   </form>
-
   {% if student %}
   <!-- Student Info -->
   <div class="card mb-4 shadow-sm">
@@ -63,6 +74,7 @@
   </div>
 
   {% if screenings %}
+  
   <!-- Growth Chart -->
   <div class="card mb-4 shadow-sm">
     <div class="card-header bg-success text-white fw-bold">Growth Chart</div>
@@ -236,7 +248,27 @@
 </div>
 <!-- ✅ Plotly Chart -->
 <script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
+<script src="{% static 'js/school_student_filter.js' %}"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const school = document.getElementById("schoolSelect");
+    const student = document.getElementById("studentSelect");
+
+    school?.addEventListener("change", () => {
+        student.value = "";   // Clear student
+        school.form.submit();
+    });
+
+    student?.addEventListener("change", () => {
+        student.form.submit();
+    });
+});
+</script>
+
+
 {% if chart_mode != "none" %}
+
 <script>
 document.addEventListener("DOMContentLoaded", () => {
   const chartMode = "{{ chart_mode }}";

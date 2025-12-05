@@ -1,6 +1,7 @@
 {% extends "core/base.html" %}
 
 {% block title %}Screened Students{% endblock %}
+{% load static %}
 
 {% block content %}
 
@@ -11,17 +12,8 @@
 
 <!-- Filter Form -->
 <form method="GET" class="row g-3 mb-4">
-    <div class="col-md-3">
-        <label class="form-label">Screening Year</label>
-        <select name="year" class="form-select">
-            <option value="">-- Select Year --</option>
-            {% for y in years %}
-                <option value="{{ y }}" {% if selected_year|default:'' == y|stringformat:"s" %}selected{% endif %}>{{ y }}</option>
-            {% endfor %}
-        </select>
-    </div>
 
-    <!-- School Dropdown with Add Button -->
+    <!-- School -->
     <div class="col-md-4">
         <div class="d-flex justify-content-between align-items-center">
             <label class="form-label mb-0">School</label>
@@ -30,23 +22,36 @@
             </a>
         </div>
 
-        <select name="school" class="form-select mt-1" {% if not schools %}disabled{% endif %}>
-            {% if schools %}
-                <option value="">-- All Schools --</option>
-                {% for school in schools %}
-                    <option value="{{ school.id }}" {% if selected_school_id == school.id %}selected{% endif %}>
-                        {{ school.name }}
-                    </option>
-                {% endfor %}
-            {% else %}
-                <option value="">No schools available</option>
-            {% endif %}
+        <select id="schoolSelect" name="school" class="form-select mt-1">
+            <option value="">-- Select School --</option>
+            {% for school in schools %}
+                <option value="{{ school.id }}"
+                        {% if selected_school_id == school.id %}selected{% endif %}>
+                    {{ school.name }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <!-- Student -->
+    <div class="col-md-4">
+        <label class="form-label mb-0">Student</label>
+        <select id="studentSelect" name="student" class="form-select mt-1">
+            <option value="">-- Select Student --</option>
+            {% for s in all_students %}
+                <option value="{{ s.id }}"
+                        data-school="{{ s.school.id }}"
+                        {% if selected_student == s.id %}selected{% endif %}>
+                    {{ s.name }}
+                </option>
+            {% endfor %}
         </select>
     </div>
 
     <div class="col-md-2 align-self-end">
         <button type="submit" class="btn btn-primary w-100">Filter</button>
     </div>
+
 </form>
 
 <!-- Toggle Button for Table -->
@@ -157,7 +162,23 @@
   <a href="{% url 'screened_students' %}" class="btn btn-secondary ms-2">Cancel</a>
   </form>
   {% endif %}
-  
+  <script src="{% static 'js/school_student_filter.js' %}"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const school = document.getElementById("schoolSelect");
+        const student = document.getElementById("studentSelect");
+    
+        school?.addEventListener("change", () => {
+            student.value = "";
+            school.form.submit();
+        });
+    
+        student?.addEventListener("change", () => {
+            student.form.submit();
+        });
+    });
+    </script>
+    
   <!-- ✅ Styling -->
   <style>
     /* Alternate background for rows */
