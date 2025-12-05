@@ -633,7 +633,14 @@ def add_screening(request):
 
     # --- Fetch all schools & students ---
     schools = School.objects.all()
-    students = Student.objects.all().order_by("name")  # send all students
+
+    selected_school_id = request.GET.get("school")  # or from POST
+
+    if selected_school_id:
+        students = Student.objects.filter(school_id=selected_school_id).order_by("name")
+    else:
+        students = Student.objects.none()  # empty QuerySet
+
 
     student = None
     age_in_months = None
