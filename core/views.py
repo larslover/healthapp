@@ -408,6 +408,23 @@ def screening_summary(request):
 
 
 logger = logging.getLogger(__name__)
+@login_required
+def get_school_students(request):
+    school_id = request.GET.get("school_id")
+
+    students = Student.objects.filter(school_id=school_id).order_by("name")
+
+    data = [
+        {
+            "id": s.id,
+            "name": s.name,
+            "dob": s.date_of_birth.strftime("%Y-%m-%d") if s.date_of_birth else "",
+            "gender": s.gender.lower(),
+        }
+        for s in students
+    ]
+
+    return JsonResponse({"students": data})
 
 @login_required(login_url='login')
 def screened_students(request):
@@ -514,7 +531,11 @@ def screened_students(request):
     total_time = time.time() - total_start
     logger.warning("TOTAL VIEW TIME: %.4f sec", total_time)
     # Pass all students for dropdown filtering
-    all_students = Student.objects.select_related("school").all()
+    if selected_school_id:
+        all_students = Student.objects.filter(school_id=selected_school_id).select_related("school").order_by("name")
+    else:
+        all_students = Student.objects.none()  # empty QuerySet initially
+
 
 
     context = {
@@ -621,35 +642,49 @@ def get_previous_screenings(request):
 
     return JsonResponse({"html": html})
 
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from datetime import datetime
+
+from .models import School, Student, Screening
+from .forms import ScreeningForm, ScreeningCheckForm
+
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from datetime import datetime
+from .models import School, Student, Screening
+from .forms import ScreeningForm, ScreeningCheckForm
+
+
 @login_required(login_url='login')
 def add_screening(request):
-    from django.shortcuts import get_object_or_404
-    from django.contrib import messages
-    from datetime import datetime
-
-    # --- Selected school & student from GET/POST ---
+    # --- Get selected school & student from GET/POST ---
     selected_school_id = request.POST.get("school") or request.GET.get("school")
     selected_student_id = request.POST.get("student") or request.GET.get("student")
 
-    # --- Fetch all schools & students ---
+    # --- Fetch all schools ---
     schools = School.objects.all()
 
-    selected_school_id = request.GET.get("school")  # or from POST
-
+    # --- Fetch students for the selected school ---
     if selected_school_id:
         students = Student.objects.filter(school_id=selected_school_id).order_by("name")
     else:
-        students = Student.objects.none()  # empty QuerySet
+        students = Student.objects.all().order_by("name")  # show all students initially
 
 
+    # --- Initialize variables ---
     student = None
     age_in_months = None
     last_remarks = None
 
-    # --- If a student is selected, fetch details ---
+    # --- Fetch selected student details if provided ---
     if selected_student_id:
         student = get_object_or_404(Student, id=selected_student_id)
 
+        # Calculate age in months if screen date provided
         screen_date_str = request.POST.get("screen_date") or request.GET.get("screen_date")
         if student.date_of_birth and screen_date_str:
             try:
@@ -658,13 +693,10 @@ def add_screening(request):
             except ValueError:
                 age_in_months = None
 
-        # Last doctor's remarks
+        # Get last doctor's remarks
         last_screening = Screening.objects.filter(student=student).order_by("-screen_date").first()
-        if last_screening:
-            try:
-                last_remarks = last_screening.checklist.E9_remarks
-            except AttributeError:
-                last_remarks = None
+        if last_screening and hasattr(last_screening, "checklist"):
+            last_remarks = getattr(last_screening.checklist, "E9_remarks", None)
 
     # --- Handle form submission ---
     if request.method == "POST":
@@ -679,48 +711,59 @@ def add_screening(request):
             screening = screening_form.save(commit=False)
             screening.student = student
             try:
-                screening.calculate_metrics()
+                screening.calculate_metrics()  # make sure your model has this method
             except Exception as e:
                 messages.error(request, f"Error calculating metrics: {e}")
-                return render(request, "core/screening_list.html", {
-                    "students": students,
+                return render(request, "core/new_screening.html", {
                     "schools": schools,
+                    "students": students,
                     "screening_form": screening_form,
                     "screening_check_form": screening_check_form,
                     "age_in_months": age_in_months,
                     "last_remarks": last_remarks,
+                    "selected_school_id": int(selected_school_id) if selected_school_id else None,
+                    "selected_student_id": int(selected_student_id) if selected_student_id else None,
                 })
-            screening.save()
 
+            screening.save()
             check = screening_check_form.save(commit=False)
             check.screening = screening
             check.save()
 
             messages.success(request, f"Screening for {student.name} saved successfully!")
-            return redirect("screening_list")
+            return redirect("new_screening")
         else:
             print("Screening Form Errors:", screening_form.errors)
             print("Checklist Form Errors:", screening_check_form.errors)
-    else:
-        screening_form = ScreeningForm(initial={'school': student.school.id} if student else None)
-        screening_check_form = ScreeningCheckForm()
 
-    return render(request, "core/screening_list.html", {
-        "students": students,
+    # --- Prepare forms for GET or invalid POST ---
+    initial_data = {}
+    if student:
+        initial_data['school'] = student.school.id
+
+    screening_form = ScreeningForm(initial=initial_data)
+    screening_check_form = ScreeningCheckForm()
+
+    # --- Render template ---
+    return render(request, "core/new_screening.html", {
         "schools": schools,
+        "students": students,
         "screening_form": screening_form,
         "screening_check_form": screening_check_form,
         "age_in_months": age_in_months,
-        "student": student,
         "last_remarks": last_remarks,
         "selected_school_id": int(selected_school_id) if selected_school_id else None,
         "selected_student_id": int(selected_student_id) if selected_student_id else None,
     })
-
 def ajax_student_search(request):
     q = request.GET.get('q', '')
-    school_id = request.GET.get('school')
-    students = search_students(query=q, school_id=school_id)
+   
+    school_id = request.GET.get("school_id")
+    if not school_id:
+        return JsonResponse({"students": []})
+
+    students = Student.objects.filter(school_id=int(school_id)).order_by("name")
+
 
     results = [
         {
@@ -731,6 +774,42 @@ def ajax_student_search(request):
         }
         for s in students
     ]
+    return JsonResponse({'results': results})
+
+from django.http import JsonResponse
+from .models import Student
+
+@login_required(login_url='login')
+def ajax_student_search(request):
+    q = request.GET.get('q', '').strip()
+    school_id = request.GET.get("school_id")
+
+    # Return empty if no school is selected
+    if not school_id:
+        return JsonResponse({"results": []})
+
+    # Filter students by school
+    students = Student.objects.filter(school_id=int(school_id))
+
+    # Optional: filter by query if provided
+    if q:
+        students = students.filter(name__icontains=q)
+
+    students = students.order_by("name")
+
+    results = [
+        {
+            'id': s.id,
+            'name': s.name,
+            'class_section': s.class_section or '',
+            'school_id': s.school.id,
+            'school_name': s.school.name,
+            'dob': s.date_of_birth.isoformat() if s.date_of_birth else '',
+            'gender': s.gender.lower() if s.gender else '',
+        }
+        for s in students
+    ]
+
     return JsonResponse({'results': results})
 
 def dashboard_view(request):

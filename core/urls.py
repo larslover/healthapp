@@ -2,6 +2,10 @@ from django.urls import path
 from . import views
 from django.contrib.auth import views as auth_views  # ✅ Import this
 urlpatterns = [
+   path('get_school_students/', views.get_school_students, name='get_school_students'),
+
+
+
     path('get_previous_screenings/', views.get_previous_screenings, name='get_previous_screenings'),
     path('login/', views.login_view, name='login'),
     path('logout/', auth_views.LogoutView.as_view(next_page='login'), name='logout'),
@@ -16,7 +20,7 @@ urlpatterns = [
 
     # Screenings
     # Only one path for screenings/
-    path('screenings/', views.add_screening, name='screening_list'),
+    path('screenings/', views.add_screening, name='new_screening'),
     path('students/add/', views.student_create, name='student_create'),
     path("growth-reference/", views.growth_reference_api, name="growth_reference_api"),
     path('students/ajax-search/', views.ajax_student_search, name='ajax_student_search'),
