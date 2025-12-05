@@ -11,56 +11,34 @@
 </h2>
 
 <!-- Filter Form -->
-<form method="GET" class="row g-3 mb-4">
-
-    <!-- School -->
-    <div class="col-md-4">
-        <div class="d-flex justify-content-between align-items-center">
-            <label class="form-label mb-0">School</label>
-            <a href="{% url 'school_create' %}" class="btn btn-sm btn-outline-success">
-                + Add School
-            </a>
-        </div>
-
-        <select id="schoolSelect" name="school" class="form-select mt-1">
-            <option value="">-- Select School --</option>
-            {% for school in schools %}
-                <option value="{{ school.id }}"
-                        {% if selected_school_id == school.id %}selected{% endif %}>
-                    {{ school.name }}
-                </option>
-            {% endfor %}
-        </select>
+  <!-- Filter Form -->
+  <form method="get" class="row g-3 mb-4">
+    <div class="col-md-5">
+      <label class="form-label">Select School</label>
+      <select 
+          id="schoolSelect"
+          name="school" 
+          class="form-select">
+        <option value="">-- Select School --</option>
+        {% for school in schools %}
+          <option value="{{ school.id }}" data-school="{{ school.id }}"
+            {% if selected_school_id == school.id %}selected{% endif %}>
+            {{ school.name }}
+          </option>
+        {% endfor %}
+      </select>
     </div>
 
-    <!-- Student -->
-    <div class="col-md-4">
-        <label class="form-label mb-0">Student</label>
-        <select id="studentSelect" name="student" class="form-select mt-1">
-            <option value="">-- Select Student --</option>
-            {% for s in all_students %}
-                <option value="{{ s.id }}"
-                        data-school="{{ s.school.id }}"
-                        {% if selected_student == s.id %}selected{% endif %}>
-                    {{ s.name }}
-                </option>
-            {% endfor %}
-        </select>
-    </div>
-
-    <div class="col-md-2 align-self-end">
-        <button type="submit" class="btn btn-primary w-100">Filter</button>
-    </div>
-
-</form>
+   
+  </form>
 
 <!-- Toggle Button for Table -->
-<div class="mb-3">
-    <button class="btn btn-info" type="button" data-bs-toggle="collapse" data-bs-target="#studentsTable" aria-expanded="true" aria-controls="studentsTable">
-        Toggle Students Table
-    </button>
-</div>
 
+<div class="col-md-5">
+    <label class="form-label">Search Student</label>
+    <input type="text" id="studentSearch" class="form-control" placeholder="Type a name to search">
+  </div>
+  
 <!-- Collapsible Students Table -->
 <div class="collapse {% if not selected_student %}show{% endif %}" id="studentsTable">
     <div class="table-responsive mb-4">
@@ -82,10 +60,14 @@
                     <td>{{ data.student.gender|default:"—"|capfirst }}</td>
                     <td>{{ data.student.school.name|default:"—" }}</td>
                     <td>
+                        {% if not selected_student %}
                         <form method="GET" style="display:inline;">
                             <input type="hidden" name="selected_student" value="{{ data.student.id }}">
                             <button type="submit" class="btn btn-sm btn-warning">Edit</button>
                         </form>
+                        {% else %}
+                        <span class="badge bg-success">Editing</span>
+                        {% endif %}
                     </td>
                 </tr>
                 {% empty %}
@@ -163,22 +145,65 @@
   </form>
   {% endif %}
   <script src="{% static 'js/school_student_filter.js' %}"></script>
+
   <script>
     document.addEventListener("DOMContentLoaded", () => {
-        const school = document.getElementById("schoolSelect");
-        const student = document.getElementById("studentSelect");
+        const schoolSelect = document.getElementById("schoolSelect");
+        const studentSelect = document.getElementById("studentSelect");
+        const studentSearch = document.getElementById("studentSearch");
+
+function filterTable() {
+    const query = studentSearch.value.toLowerCase();
+    const rows = document.querySelectorAll("#studentsTable tbody tr");
+
+    rows.forEach(row => {
+        const nameCell = row.querySelector("td:first-child");
+        const name = nameCell?.textContent.toLowerCase() || "";
+        if (!query || name.startsWith(query)) {
+            row.style.display = "";
+        } else {
+            row.style.display = "none";
+        }
+    });
+}
+
+// Filter table on input
+studentSearch.addEventListener("input", filterTable);
+
     
-        school?.addEventListener("change", () => {
-            student.value = "";
-            school.form.submit();
+        function filterStudents() {
+            const schoolId = schoolSelect.value;
+    
+            Array.from(studentSelect.options).forEach(opt => {
+                if (!opt.value) return; // keep placeholder
+                opt.style.display = (!schoolId || opt.dataset.school === schoolId) ? "block" : "none";
+            });
+    
+            // Reset student selection if it is now hidden
+            const selectedOption = studentSelect.selectedOptions[0];
+            if (selectedOption && selectedOption.style.display === "none") {
+                studentSelect.value = "";
+            }
+        }
+    
+        // Filter immediately on page load
+        filterStudents();
+    
+        // Filter when school changes
+        schoolSelect.addEventListener("change", () => {
+            filterStudents();
         });
     
-        student?.addEventListener("change", () => {
-            student.form.submit();
+        // Submit form only when user actually selects a student
+        studentSelect.addEventListener("change", (e) => {
+            const selectedOption = e.target.selectedOptions[0];
+            if (selectedOption && selectedOption.style.display !== "none" && selectedOption.value) {
+                e.target.form.submit();
+            }
         });
     });
     </script>
-    
+              
   <!-- ✅ Styling -->
   <style>
     /* Alternate background for rows */

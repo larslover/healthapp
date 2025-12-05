@@ -1,6 +1,32 @@
 
 from core.utils.processor import bmi_category
 from django.db.models import Prefetch
+# core/views.py (snippet)
+import json
+from django.shortcuts import render, get_object_or_404
+from django.utils.safestring import mark_safe
+from django.contrib.auth.decorators import login_required
+from datetime import date
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import get_object_or_404, redirect, render
+from .models import Student, Screening, ScreeningCheck, School
+from .forms import StudentForm, ScreeningForm, ScreeningCheckForm
+from datetime import date
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from core.models import Student, School, Screening, ScreeningCheck
+from core.forms import StudentForm, ScreeningForm, ScreeningCheckForm
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
+
+
+
+import logging
+from datetime import date
+from django.db.models import Prefetch
+from django.shortcuts import render, get_object_or_404, redirect
+from .models import School, Student, Screening, ScreeningCheck
+from .utils.processor import muac_category, weight_height_category, bmi_category, calculate_age_in_months
 
 from .forms import StudentForm
 from django.db.models.functions import ExtractYear
@@ -168,14 +194,6 @@ def student_create(request):
         form = StudentForm()
 
     return render(request, 'core/student_create.html', {'form': form})
-# core/views.py (snippet)
-import json
-from django.shortcuts import render, get_object_or_404
-from django.utils.safestring import mark_safe
-from django.contrib.auth.decorators import login_required
-
-from .models import School, Student, Screening, ScreeningCheck
-from .utils.processor import muac_category, weight_height_category, bmi_category, calculate_age_in_months
 
 # -------------------------
 # Module-level helper funcs
@@ -387,25 +405,7 @@ def screening_summary(request):
 
     return render(request, "core/screening_summary.html", context)
 
-from datetime import date
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import get_object_or_404, redirect, render
-from .models import Student, Screening, ScreeningCheck, School
-from .forms import StudentForm, ScreeningForm, ScreeningCheckForm
-from datetime import date
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
-from core.models import Student, School, Screening, ScreeningCheck
-from core.forms import StudentForm, ScreeningForm, ScreeningCheckForm
-from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib.auth.decorators import login_required
 
-
-
-import logging
-from datetime import date
-from django.db.models import Prefetch
-from django.shortcuts import render, get_object_or_404, redirect
 
 logger = logging.getLogger(__name__)
 
@@ -513,6 +513,9 @@ def screened_students(request):
 
     total_time = time.time() - total_start
     logger.warning("TOTAL VIEW TIME: %.4f sec", total_time)
+    # Pass all students for dropdown filtering
+    all_students = Student.objects.select_related("school").all()
+
 
     context = {
         "students_data": students_data,
@@ -524,6 +527,7 @@ def screened_students(request):
         "checklist_form": checklist_form,
         "schools": School.objects.only("id", "name"),
         "years": years,
+        "all_students": all_students,
     }
     return render(request, "core/screened_students.html", context)
 
