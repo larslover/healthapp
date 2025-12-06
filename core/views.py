@@ -409,16 +409,18 @@ def screening_summary(request):
 
 logger = logging.getLogger(__name__)
 @login_required
+
+
 def get_school_students(request):
-    school_id = request.GET.get("school_id")
+    school_id = request.GET.get("school")  # match JS parameter
 
     if not school_id:
-        return JsonResponse({"students": []})
+        return JsonResponse([] , safe=False)
 
     students = (
         Student.objects
         .filter(school_id=school_id)
-        .only("id", "name", "date_of_birth", "gender")
+        .only("id", "name", "date_of_birth", "gender", "school_id")
         .order_by("name")
     )
 
@@ -426,13 +428,16 @@ def get_school_students(request):
         {
             "id": s.id,
             "name": s.name,
-            "dob": s.date_of_birth.strftime("%Y-%m-%d") if s.date_of_birth else "",
-            "gender": (s.gender.lower() if s.gender else ""),
+            "date_of_birth": s.date_of_birth.strftime("%Y-%m-%d") if s.date_of_birth else "",
+            "gender": s.gender.lower() if s.gender else "",
+            "school_id": s.school_id,
         }
         for s in students
     ]
 
-    return JsonResponse({"students": data})
+    return JsonResponse(data, safe=False)
+
+    
 
 @login_required(login_url='login')
 def screened_students(request):
