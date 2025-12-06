@@ -412,14 +412,22 @@ logger = logging.getLogger(__name__)
 def get_school_students(request):
     school_id = request.GET.get("school_id")
 
-    students = Student.objects.filter(school_id=school_id).order_by("name")
+    if not school_id:
+        return JsonResponse({"students": []})
+
+    students = (
+        Student.objects
+        .filter(school_id=school_id)
+        .only("id", "name", "date_of_birth", "gender")
+        .order_by("name")
+    )
 
     data = [
         {
             "id": s.id,
             "name": s.name,
             "dob": s.date_of_birth.strftime("%Y-%m-%d") if s.date_of_birth else "",
-            "gender": s.gender.lower(),
+            "gender": (s.gender.lower() if s.gender else ""),
         }
         for s in students
     ]

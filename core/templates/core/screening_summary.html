@@ -37,10 +37,8 @@
 
     <div class="col-md-5">
       <label class="form-label">Select Student</label>
-      <select 
-          id="studentSelect"
-          name="student" 
-          class="form-select">
+      <select id="studentSelect" name="student" class="form-select" {% if not selected_school_id %}disabled{% endif %}>
+
         <option value="">-- Select Student --</option>
         {% for s in students %}
           <option 
