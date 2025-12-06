@@ -270,10 +270,19 @@ document.addEventListener("DOMContentLoaded", () => {
 <script>
 document.addEventListener("DOMContentLoaded", () => {
   const chartMode = "{{ chart_mode }}";
-  const labels = {{ chart_labels|safe }};
+  let labels = {{ chart_labels|safe }}; // currently months
   const values = {{ chart_values|safe }};
   const categories = {{ chart_reference|safe }};
   const whoCurves = {{ chart_who_curves|safe }};
+
+  // Convert months to "Xy Ym" format for x-axis if BMI chart
+  if (chartMode === "bmi") {
+    labels = labels.map(m => {
+      const years = Math.floor(m / 12);
+      const months = m % 12;
+      return `${years}y ${months}m`;
+    });
+  }
 
   const colorMap = {
     "Severe Acute Malnutrition": "red",
@@ -298,25 +307,27 @@ document.addEventListener("DOMContentLoaded", () => {
     line: { color: "#333", width: 1 }
   };
 
-  // 📊 WHO reference lines (-3SD to +3SD)
   const sdColors = [
-    "rgba(255, 0, 0, 0.4)",   // −3SD
-    "rgba(255, 100, 0, 0.4)", // −2SD
-    "rgba(255, 165, 0, 0.4)", // −1SD
-    "rgba(0, 150, 0, 0.4)",   // Median
-    "rgba(0, 100, 255, 0.4)", // +1SD
-    "rgba(100, 0, 255, 0.4)", // +2SD
-    "rgba(150, 0, 150, 0.4)"  // +3SD
+    "rgba(255, 0, 0, 0.4)",   
+    "rgba(255, 100, 0, 0.4)", 
+    "rgba(255, 165, 0, 0.4)", 
+    "rgba(0, 150, 0, 0.4)",   
+    "rgba(0, 100, 255, 0.4)", 
+    "rgba(100, 0, 255, 0.4)", 
+    "rgba(150, 0, 150, 0.4)"  
   ];
   const sdLabels = ["-3SD", "-2SD", "-1SD", "Median", "+1SD", "+2SD", "+3SD"];
-
-  console.log("WHO Curves:", Object.keys(whoCurves));
-  console.log("WHO Curves Data:", whoCurves);
 
   const whoTraces = sdLabels
     .filter(label => whoCurves[label])
     .map((label, i) => ({
-      x: whoCurves[label].x,
+      x: chartMode === "bmi" 
+           ? whoCurves[label].x.map(m => {
+               const y = Math.floor(m / 12);
+               const mo = m % 12;
+               return `${y}y ${mo}m`;
+             })
+           : whoCurves[label].x,
       y: whoCurves[label].y,
       mode: "lines",
       name: label,
@@ -329,11 +340,10 @@ document.addEventListener("DOMContentLoaded", () => {
       showlegend: true
     }));
 
-  // ⚙️ Layout
   const layout = {
     title: chartMode === "bmi" ? "BMI-for-Age (WHO)" : "Weight-for-Height (WHO)",
     xaxis: {
-      title: chartMode === "bmi" ? "Age (months)" : "Height (cm)",
+      title: chartMode === "bmi" ? "Age (years & months)" : "Height (cm)",
       gridcolor: "rgba(200,200,200,0.2)"
     },
     yaxis: {
@@ -348,6 +358,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   Plotly.newPlot("growthChart", [...whoTraces, studentTrace], layout);
 });
+
 </script>
 
 
