@@ -429,58 +429,10 @@ def get_school_students(request):
 @login_required(login_url='login')
 def screened_students(request):
 
-    total_start = time.time()   # FULL VIEW TIMER
-
-    selected_year = request.GET.get("year")
     selected_school_id = request.GET.get("school")
     selected_student_id = request.GET.get("selected_student")
 
-    # === Query Students Start ===
-    # === Query Students Start ===
-    t1 = time.time()
-
-    if selected_school_id:
-        students = (
-            Student.objects
-            .filter(school_id=selected_school_id)
-            .select_related("school")
-            .prefetch_related(
-                Prefetch(
-                    "screenings",
-                    queryset=Screening.objects.order_by("-screen_date")
-                )
-            )
-        )
-    else:
-        students = Student.objects.none()
-
-    logger.warning("STEP 1 — student query (conditional): %.4f sec", time.time() - t1)
-
-    # === Build student data ===
-    t3 = time.time()
-    students_data = []
-
-    for student in students:
-        screenings = student.screenings.all()
-
-        if selected_year:
-            screenings = screenings.filter(screen_date__year=selected_year)
-
-        formatted_age = "—"
-        if student.date_of_birth:
-            formatted_age = format_age(student.date_of_birth, date.today())
-
-        students_data.append({
-            "student": student,
-            "screenings": screenings,
-            "age_display": formatted_age,
-        })
-
-    logger.warning("STEP 3 — loop building students_data: %.4f sec", time.time() - t3)
-
     # === Handle selected student ===
-    t4 = time.time()
-
     student_form = screening_form = checklist_form = None
     selected_student = None
 
@@ -496,6 +448,7 @@ def screened_students(request):
 
         checklist, _ = ScreeningCheck.objects.get_or_create(screening=screening)
 
+        # --- Saving the forms ---
         if request.method == "POST":
             student_form = StudentForm(request.POST, instance=selected_student)
             screening_form = ScreeningForm(request.POST, instance=screening)
@@ -521,40 +474,28 @@ def screened_students(request):
             screening_form = ScreeningForm(instance=screening)
             checklist_form = ScreeningCheckForm(instance=checklist)
 
-    logger.warning("STEP 4 — update selected student logic: %.4f sec", time.time() - t4)
-
-    # === Years dropdown ===
-    t5 = time.time()
-   
-    years = [d.year for d in Screening.objects.dates("screen_date", "year", order="DESC")]
-
-    logger.warning("STEP 5 — load years list: %.4f sec", time.time() - t5)
-
-    total_time = time.time() - total_start
-    logger.warning("TOTAL VIEW TIME: %.4f sec", total_time)
-    # Pass all students for dropdown filtering
+    # === All students for dropdown ===
     all_students = (
-    Student.objects
-    .select_related("school")
-    .only("id", "name", "school_id")
-    .order_by("name")
-)
-
-
-
+        Student.objects
+        .select_related("school")
+        .only("id", "name", "school_id")
+        .order_by("name")
+    )
 
     context = {
-        "students_data": students_data,
-        "selected_year": selected_year,
         "selected_school_id": int(selected_school_id) if selected_school_id else None,
         "selected_student": selected_student,
+
+        # forms
         "student_form": student_form,
         "screening_form": screening_form,
         "checklist_form": checklist_form,
+
+        # dropdowns
         "schools": School.objects.only("id", "name"),
-        "years": years,
         "all_students": all_students,
     }
+
     return render(request, "core/screened_students.html", context)
 
 def format_age(dob, current_date):
