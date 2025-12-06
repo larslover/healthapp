@@ -436,23 +436,25 @@ def screened_students(request):
     selected_student_id = request.GET.get("selected_student")
 
     # === Query Students Start ===
+    # === Query Students Start ===
     t1 = time.time()
 
-    students = Student.objects.select_related("school") \
-                              .prefetch_related(
-                                  Prefetch(
-                                      "screenings",
-                                      queryset=Screening.objects.order_by("-screen_date")
-                                  )
-                              )
-
-    logger.warning("STEP 1 — student base query: %.4f sec", time.time() - t1)
-
-    # === Filtering by school ===
     if selected_school_id:
-        t2 = time.time()
-        students = students.filter(school_id=selected_school_id)
-        logger.warning("STEP 2 — filter by school: %.4f sec", time.time() - t2)
+        students = (
+            Student.objects
+            .filter(school_id=selected_school_id)
+            .select_related("school")
+            .prefetch_related(
+                Prefetch(
+                    "screenings",
+                    queryset=Screening.objects.order_by("-screen_date")
+                )
+            )
+        )
+    else:
+        students = Student.objects.none()
+
+    logger.warning("STEP 1 — student query (conditional): %.4f sec", time.time() - t1)
 
     # === Build student data ===
     t3 = time.time()
@@ -531,10 +533,13 @@ def screened_students(request):
     total_time = time.time() - total_start
     logger.warning("TOTAL VIEW TIME: %.4f sec", total_time)
     # Pass all students for dropdown filtering
-    if selected_school_id:
-        all_students = Student.objects.filter(school_id=selected_school_id).select_related("school").order_by("name")
-    else:
-        all_students = Student.objects.none()  # empty QuerySet initially
+    all_students = (
+    Student.objects
+    .select_related("school")
+    .only("id", "name", "school_id")
+    .order_by("name")
+)
+
 
 
 

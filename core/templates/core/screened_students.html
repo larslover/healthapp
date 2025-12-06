@@ -28,16 +28,26 @@
         {% endfor %}
       </select>
     </div>
-
-   
+    
+    <div class="col-md-5">
+      <label class="form-label">Select Student</label>
+      <select id="studentSelect" name="selected_student" class="form-select">
+        <option value="">-- Select Student --</option>
+    
+        {% for s in all_students %}
+          <option value="{{ s.id }}" data-school="{{ s.school_id }}"
+            {% if selected_student and selected_student.id == s.id %}selected{% endif %}>
+            {{ s.name }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+    
   </form>
 
 <!-- Toggle Button for Table -->
 
-<div class="col-md-5">
-    <label class="form-label">Search Student</label>
-    <input type="text" id="studentSearch" class="form-control" placeholder="Type a name to search">
-  </div>
+
   
 <!-- Collapsible Students Table -->
 <div class="collapse {% if not selected_student %}show{% endif %}" id="studentsTable">
