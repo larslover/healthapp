@@ -266,101 +266,106 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 {% if chart_mode != "none" %}
-
 <script>
-document.addEventListener("DOMContentLoaded", () => {
-  const chartMode = "{{ chart_mode }}";
-  let labels = {{ chart_labels|safe }}; // currently months
-  const values = {{ chart_values|safe }};
-  const categories = {{ chart_reference|safe }};
-  const whoCurves = {{ chart_who_curves|safe }};
-
-  // Convert months to "Xy Ym" format for x-axis if BMI chart
-  if (chartMode === "bmi") {
-    labels = labels.map(m => {
-      const years = Math.floor(m / 12);
-      const months = m % 12;
-      return `${years}y ${months}m`;
-    });
-  }
-
-  const colorMap = {
-    "Severe Acute Malnutrition": "red",
-    "Moderate Acute Malnutrition": "orange",
-    "Normal": "green",
-    "Overweight": "blue",
-    "Obese": "purple",
-    "N/A": "gray"
-  };
-
-  // 🧒 Student data trace
-  const studentTrace = {
-    x: labels,
-    y: values,
-    mode: "markers+lines",
-    name: "Student",
-    marker: {
-      size: 10,
-      color: categories.map(c => colorMap[c] || "gray"),
-      line: { width: 1, color: "#222" }
-    },
-    line: { color: "#333", width: 1 }
-  };
-
-  const sdColors = [
-    "rgba(255, 0, 0, 0.4)",   
-    "rgba(255, 100, 0, 0.4)", 
-    "rgba(255, 165, 0, 0.4)", 
-    "rgba(0, 150, 0, 0.4)",   
-    "rgba(0, 100, 255, 0.4)", 
-    "rgba(100, 0, 255, 0.4)", 
-    "rgba(150, 0, 150, 0.4)"  
-  ];
-  const sdLabels = ["-3SD", "-2SD", "-1SD", "Median", "+1SD", "+2SD", "+3SD"];
-
-  const whoTraces = sdLabels
-    .filter(label => whoCurves[label])
-    .map((label, i) => ({
-      x: chartMode === "bmi" 
-           ? whoCurves[label].x.map(m => {
-               const y = Math.floor(m / 12);
-               const mo = m % 12;
-               return `${y}y ${mo}m`;
-             })
-           : whoCurves[label].x,
-      y: whoCurves[label].y,
-      mode: "lines",
-      name: label,
-      line: {
-        width: label === "Median" ? 2.5 : 1.2,
-        dash: label.includes("SD") ? "solid" : "dot",
-        color: sdColors[i]
+  document.addEventListener("DOMContentLoaded", () => {
+    const chartMode = "{{ chart_mode }}";
+    let labels = {{ chart_labels|safe }};
+    let values = {{ chart_values|safe }};
+    let categories = {{ chart_reference|safe }};
+    const whoCurves = {{ chart_who_curves|safe }};
+  
+    // Convert months to "Xy Ym" for BMI chart
+    if (chartMode === "bmi") {
+      labels = labels.map(m => {
+        const years = Math.floor(m / 12);
+        const months = m % 12;
+        return `${years}y ${months}m`;
+      });
+    }
+  
+    // For WFH, sort points by height to prevent line crossing
+    if (chartMode === "wfh") {
+      const points = labels.map((h, i) => ({ x: h, y: values[i], category: categories[i] }));
+      points.sort((a, b) => a.x - b.x);  // sort by height ascending
+      labels = points.map(p => p.x);
+      values = points.map(p => p.y);
+      categories = points.map(p => p.category);
+    }
+  
+    const colorMap = {
+      "Severe Acute Malnutrition": "red",
+      "Moderate Acute Malnutrition": "orange",
+      "Normal": "green",
+      "Overweight": "blue",
+      "Obese": "purple",
+      "N/A": "gray"
+    };
+  
+    const studentTrace = {
+      x: labels,
+      y: values,
+      mode: "markers+lines",
+      name: "Student",
+      marker: {
+        size: 10,
+        color: categories.map(c => colorMap[c] || "gray"),
+        line: { width: 1, color: "#222" }
       },
-      hoverinfo: "none",
-      showlegend: true
-    }));
-
-  const layout = {
-    title: chartMode === "bmi" ? "BMI-for-Age (WHO)" : "Weight-for-Height (WHO)",
-    xaxis: {
-      title: chartMode === "bmi" ? "Age (years & months)" : "Height (cm)",
-      gridcolor: "rgba(200,200,200,0.2)"
-    },
-    yaxis: {
-      title: chartMode === "bmi" ? "BMI (kg/m²)" : "Weight (kg)",
-      gridcolor: "rgba(200,200,200,0.2)"
-    },
-    legend: { orientation: "h", y: -0.2 },
-    plot_bgcolor: "#f9f9f9",
-    paper_bgcolor: "#fff",
-    margin: { t: 60, b: 60, l: 60, r: 20 }
-  };
-
-  Plotly.newPlot("growthChart", [...whoTraces, studentTrace], layout);
-});
-
-</script>
-
-
+      line: { color: "#333", width: 1 }
+    };
+  
+    const sdColors = [
+      "rgba(255, 0, 0, 0.4)",   
+      "rgba(255, 100, 0, 0.4)", 
+      "rgba(255, 165, 0, 0.4)", 
+      "rgba(0, 150, 0, 0.4)",   
+      "rgba(0, 100, 255, 0.4)", 
+      "rgba(100, 0, 255, 0.4)", 
+      "rgba(150, 0, 150, 0.4)"  
+    ];
+    const sdLabels = ["-3SD", "-2SD", "-1SD", "Median", "+1SD", "+2SD", "+3SD"];
+  
+    const whoTraces = sdLabels
+      .filter(label => whoCurves[label])
+      .map((label, i) => ({
+        x: chartMode === "bmi" 
+             ? whoCurves[label].x.map(m => {
+                 const y = Math.floor(m / 12);
+                 const mo = m % 12;
+                 return `${y}y ${mo}m`;
+               })
+             : whoCurves[label].x,
+        y: whoCurves[label].y,
+        mode: "lines",
+        name: label,
+        line: {
+          width: label === "Median" ? 2.5 : 1.2,
+          dash: label.includes("SD") ? "solid" : "dot",
+          color: sdColors[i]
+        },
+        hoverinfo: "none",
+        showlegend: true
+      }));
+  
+    const layout = {
+      title: chartMode === "bmi" ? "BMI-for-Age (WHO)" : "Weight-for-Height (WHO)",
+      xaxis: {
+        title: chartMode === "bmi" ? "Age (years & months)" : "Height (cm)",
+        gridcolor: "rgba(200,200,200,0.2)"
+      },
+      yaxis: {
+        title: chartMode === "bmi" ? "BMI (kg/m²)" : "Weight (kg)",
+        gridcolor: "rgba(200,200,200,0.2)"
+      },
+      legend: { orientation: "h", y: -0.2 },
+      plot_bgcolor: "#f9f9f9",
+      paper_bgcolor: "#fff",
+      margin: { t: 60, b: 60, l: 60, r: 20 }
+    };
+  
+    Plotly.newPlot("growthChart", [...whoTraces, studentTrace], layout);
+  });
+  </script>
+  
 {% endif %}
 {% endblock %}

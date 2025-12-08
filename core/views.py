@@ -240,9 +240,8 @@ def determine_growth_for_screening(screening, student):
     # Weight-for-Height window: 24–60 months
     if 24 <= age_m <= 60 and has_w_h and gender in ("male", "female"):
         cat = weight_height_category(screening.weight, screening.height, age_m, gender)
-        # compute the BMI-equivalent value for plotting (weight / height^2) so the axis is comparable
-        plot_val = screening.weight / ((screening.height / 100) ** 2) if screening.height != 0 else None
-        return "Weight-for-Height", cat, round(plot_val, 2) if plot_val is not None else None, age_m
+        return "Weight-for-Height", cat, round(screening.weight, 2), age_m  # <-- use actual weight
+
 
     # BMI-for-age: > 60 months
     if age_m > 60 and has_bmi and gender in ("male", "female"):
@@ -283,9 +282,13 @@ def build_chart_data_for_student(screenings, student):
             values.append(plot_value)
             refs.append(category)
         elif chart_mode == "wfh" and indicator == "Weight-for-Height":
-            labels.append(s.height)  # x-axis = height (cm)
-            values.append(plot_value)
+            # collect tuples first
+       
+            labels.append(s.height)   # x-axis = height
+            values.append(plot_value)  # y-axis = actual weight
             refs.append(category)
+
+
 
     # Get WHO reference curves for current chart type + gender
     gender = "male" if student.gender.lower().startswith("m") else "female"
