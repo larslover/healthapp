@@ -21,7 +21,8 @@
     <!-- School Selection -->
     <div class="mb-4">
       <label for="schoolSelect" class="form-label fw-semibold">Select School</label>
-      <select id="schoolSelect" class="form-select">
+      <select id="schoolSelect" name="school" class="form-select">
+
         <option value="">-- All Schools --</option>
         {% for school in schools %}
           <option value="{{ school.id }}">{{ school.name }}</option>
@@ -34,6 +35,10 @@
       <label for="studentSelect" class="form-label fw-semibold">Select Existing Student</label>
       <select id="studentSelect" name="student" class="form-select" required>
         <option value="">-- Select a student --</option>
+        <option value="{{ school.id }}" {% if school.id|stringformat:"s" == selected_school_id|stringformat:"s" %}selected{% endif %}>
+          {{ school.name }}
+      </option>
+      
         {% for student in students %}
           <option value="{{ student.id }}"
                   data-dob="{{ student.date_of_birth|date:'Y-m-d' }}"
@@ -133,7 +138,7 @@
   </form>
 </div>
 
-<<script>
+<script>
   document.addEventListener('DOMContentLoaded', function() {
       const schoolSelect = document.getElementById('schoolSelect');
       const studentSelect = document.getElementById('studentSelect');
@@ -246,7 +251,8 @@
           if (!schoolId) return;
   
           try {
-              const res = await fetch(`/get_students/?school=${schoolId}`);
+            const res = await fetch('/get_school_students/?school=' + encodeURIComponent(schoolId));
+
               const data = await res.json();
               data.forEach(s => {
                   const opt = document.createElement('option');

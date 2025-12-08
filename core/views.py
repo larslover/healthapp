@@ -631,7 +631,7 @@ def add_screening(request):
     if selected_school_id:
         students = Student.objects.filter(school_id=selected_school_id).order_by("name")
     else:
-        students = Student.objects.all().order_by("name")  # show all students initially
+        students = Student.objects.none()  # show all students initially
 
 
     # --- Initialize variables ---
@@ -702,6 +702,8 @@ def add_screening(request):
 
     screening_form = ScreeningForm(initial=initial_data)
     screening_check_form = ScreeningCheckForm()
+    print("Selected school:", selected_school_id)
+
 
     # --- Render template ---
     return render(request, "core/new_screening.html", {
@@ -714,26 +716,8 @@ def add_screening(request):
         "selected_school_id": int(selected_school_id) if selected_school_id else None,
         "selected_student_id": int(selected_student_id) if selected_student_id else None,
     })
-def ajax_student_search(request):
-    q = request.GET.get('q', '')
-   
-    school_id = request.GET.get("school_id")
-    if not school_id:
-        return JsonResponse({"students": []})
-
-    students = Student.objects.filter(school_id=int(school_id)).order_by("name")
-
-
-    results = [
-        {
-            'id': s.id,
-            'name': s.name,
-            'class_section': s.class_section or '',
-            'school_name': s.school_name or ''
-        }
-        for s in students
-    ]
-    return JsonResponse({'results': results})
+from django.http import JsonResponse
+from .models import Student
 
 from django.http import JsonResponse
 from .models import Student
