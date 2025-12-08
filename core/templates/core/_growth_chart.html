@@ -1,0 +1,99 @@
+<!-- core/_growth_chart.html -->
+<div class="card mb-4 shadow-sm" id="growthChartCard">
+  <div class="card-header bg-success text-white fw-bold">Growth Chart</div>
+  <div class="card-body">
+    <p class="mb-2">
+      <strong>Chart Type:</strong> 
+      {% if chart_mode == "bmi" %}
+        BMI-for-Age (WHO Reference)
+      {% elif chart_mode == "wfh" %}
+        Weight-for-Height (WHO Reference)
+      {% else %}
+        Growth Tracking
+      {% endif %}
+    </p>
+    <div id="growthChart" style="width:100%;height:400px;"></div>
+    {% if not labels %}
+      <p class="text-muted">No growth data available for this student yet.</p>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+function renderGrowthChart(chartData) {
+    if (!chartData || !chartData.labels || chartData.labels.length === 0) {
+        document.getElementById("growthChart").innerHTML = "<p class='text-muted'>No data available</p>";
+        return;
+    }
+
+    let chartMode = chartData.chart_mode;
+    let labels = chartData.labels;
+    let values = chartData.values;
+    let categories = chartData.reference;
+    const whoCurves = chartData.who_curves || {};
+
+    // Convert months to "Xy Ym" for BMI
+    if (chartMode === "bmi") {
+        labels = labels.map(m => {
+            const years = Math.floor(m / 12);
+            const months = m % 12;
+            return `${years}y ${months}m`;
+        });
+    }
+
+    // Sort for WFH chart
+    if (chartMode === "wfh") {
+        const points = labels.map((h, i) => ({ x: h, y: values[i], category: categories[i] }));
+        points.sort((a,b) => a.x - b.x);
+        labels = points.map(p => p.x);
+        values = points.map(p => p.y);
+        categories = points.map(p => p.category);
+    }
+
+    const colorMap = {
+        "Severe Acute Malnutrition": "red",
+        "Moderate Acute Malnutrition": "orange",
+        "Normal": "green",
+        "Overweight": "blue",
+        "Obese": "purple",
+        "N/A": "gray"
+    };
+
+    const studentTrace = {
+        x: labels,
+        y: values,
+        mode: "markers+lines",
+        name: "Student",
+        marker: { size:10, color: categories.map(c=>colorMap[c]||"gray"), line:{width:1,color:"#222"} },
+        line: { color:"#333", width:1 }
+    };
+
+    const sdColors = [
+        "rgba(255, 0, 0, 0.4)", "rgba(255, 100, 0, 0.4)", "rgba(255, 165, 0, 0.4)",
+        "rgba(0, 150, 0, 0.4)", "rgba(0, 100, 255, 0.4)", "rgba(100, 0, 255, 0.4)", "rgba(150, 0, 150, 0.4)"
+    ];
+    const sdLabels = ["-3SD","-2SD","-1SD","Median","+1SD","+2SD","+3SD"];
+
+    const whoTraces = sdLabels.filter(label => whoCurves[label]).map((label,i) => ({
+        x: chartMode === "bmi"
+            ? whoCurves[label].x.map(m => `${Math.floor(m/12)}y ${m%12}m`)
+            : whoCurves[label].x,
+        y: whoCurves[label].y,
+        mode: "lines",
+        name: label,
+        line: { width: label==="Median"?2.5:1.2, dash:label.includes("SD")?"solid":"dot", color:sdColors[i] },
+        hoverinfo:"none",
+        showlegend:true
+    }));
+
+    Plotly.newPlot("growthChart", [...whoTraces, studentTrace], {
+        title: chartMode==="bmi"?"BMI-for-Age (WHO)":"Weight-for-Height (WHO)",
+        xaxis: { title: chartMode==="bmi"?"Age (years & months)":"Height (cm)", gridcolor:"rgba(200,200,200,0.2)" },
+        yaxis: { title: chartMode==="bmi"?"BMI (kg/m²)":"Weight (kg)", gridcolor:"rgba(200,200,200,0.2)" },
+        legend:{orientation:"h", y:-0.2},
+        plot_bgcolor:"#f9f9f9",
+        paper_bgcolor:"#fff",
+        margin:{t:60,b:60,l:60,r:20}
+    });
+}
+</script>

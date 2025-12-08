@@ -4,6 +4,10 @@ from django.contrib.auth import views as auth_views  # ✅ Import this
 urlpatterns = [
    path('get_school_students/', views.get_school_students, name='get_school_students'),
     path('get_student_card/', views.get_student_card, name='get_student_card'),
+    # urls.py
+ path('get_student_growth_chart_partial/', views.get_student_growth_chart_partial, name='get_student_growth_chart_partial'),
+
+
 
 
 

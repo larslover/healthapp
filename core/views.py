@@ -19,7 +19,13 @@ from core.forms import StudentForm, ScreeningForm, ScreeningCheckForm
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from datetime import datetime
 
+from .models import School, Student, Screening
+from .forms import ScreeningForm, ScreeningCheckForm
 
 import logging
 from datetime import date
@@ -35,7 +41,7 @@ from .forms import StudentForm, ScreeningForm, ScreeningCheckForm
 from .models import Screening, School,LegacyStudent
 from django.http import JsonResponse
 from core.legacy_helpers import get_all_students, search_students
-from core.utils.processor import calculate_bmi, bmi_category, muac_category, calculate_age_in_months
+
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from .models import Student, School, Screening, ScreeningCheck
@@ -599,13 +605,7 @@ def get_previous_screenings(request):
 
     return JsonResponse({"html": html})
 
-from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
-from datetime import datetime
 
-from .models import School, Student, Screening
-from .forms import ScreeningForm, ScreeningCheckForm
 
 
 from django.shortcuts import render, redirect, get_object_or_404
@@ -615,6 +615,29 @@ from datetime import datetime
 from .models import School, Student, Screening
 from .forms import ScreeningForm, ScreeningCheckForm
 from django.template.loader import render_to_string
+
+from django.http import JsonResponse
+from .models import Screening
+@login_required
+def get_student_growth_chart_partial(request):
+    student_id = request.GET.get("student_id")
+    student = get_object_or_404(Student, id=student_id)
+    screenings = Screening.objects.filter(student=student).order_by("screen_date")
+
+    chart_mode = "bmi" if any(s.age_in_month >= 60 for s in screenings) else "wfh"
+    labels = [s.age_in_month for s in screenings if s.age_in_month is not None]
+    values = [s.bmi if s.age_in_month >= 60 else s.weight for s in screenings]
+    reference = [s.bmi_category if s.age_in_month >= 60 else s.weight_for_height for s in screenings]
+
+    data = {
+        "labels": labels,
+        "values": values,
+        "reference": reference,
+        "chart_mode": chart_mode,
+        "who_curves": {},  # optional WHO data
+    }
+    return JsonResponse(data)
+
 @login_required(login_url='login')
 def get_student_card(request):
     student_id = request.GET.get("student_id")
@@ -747,49 +770,10 @@ def ajax_student_search(request):
 from django.http import JsonResponse
 from .models import Student
 
-@login_required(login_url='login')
-def ajax_student_search(request):
-    q = request.GET.get('q', '').strip()
-    school_id = request.GET.get("school_id")
-
-    # Return empty if no school is selected
-    if not school_id:
-        return JsonResponse({"results": []})
-
-    # Filter students by school
-    students = Student.objects.filter(school_id=int(school_id))
-
-    # Optional: filter by query if provided
-    if q:
-        students = students.filter(name__icontains=q)
-
-    students = students.order_by("name")
-
-    results = [
-        {
-            'id': s.id,
-            'name': s.name,
-            'class_section': s.class_section or '',
-            'school_id': s.school.id,
-            'school_name': s.school.name,
-            'dob': s.date_of_birth.isoformat() if s.date_of_birth else '',
-            'gender': s.gender.lower() if s.gender else '',
-        }
-        for s in students
-    ]
-
-    return JsonResponse({'results': results})
-
 def dashboard_view(request):
     return render(request, "core/dashboard.html")
 
-# -------------------------------
-# Student Views
-# ------------------------------
 
-# -------------------------------
-# Screening Views
-# -------------------------------
 
 
 

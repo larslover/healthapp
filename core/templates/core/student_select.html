@@ -1,0 +1,31 @@
+<!-- _student_select.html -->
+<div class="mb-4">
+  <label for="schoolSelect" class="form-label fw-semibold">Select School</label>
+  <select id="schoolSelect" class="form-select">
+    <option value="">-- All Schools --</option>
+    {% for school in schools %}
+      <option value="{{ school.id }}">{{ school.name }}</option>
+    {% endfor %}
+  </select>
+</div>
+
+<div class="mb-4">
+  <label for="studentSelect" class="form-label fw-semibold">Select Existing Student</label>
+  <select id="studentSelect" name="student" class="form-select" required>
+    <option value="">-- Select a student --</option>
+    {% for student in students %}
+      <option value="{{ student.id }}"
+              data-dob="{{ student.date_of_birth|date:'Y-m-d' }}"
+              data-gender="{{ student.gender|lower }}"
+              data-school="{{ student.school.id }}">
+        {{ student.name }}
+      </option>
+    {% endfor %}
+  </select>
+</div>
+
+<!-- Last Doctor’s Remarks -->
+<div id="remarksContainer" class="alert alert-danger fw-semibold mb-4" style="display:none;">
+  <strong>Last Doctor’s Remarks:</strong><br>
+  <span id="remarksText"></span>
+</div>

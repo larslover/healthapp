@@ -1,5 +1,6 @@
 {% extends "core/base.html" %}
 {% block title %}Add Screening{% endblock %}
+{% include "core/_student_select.html" %}
 
 {% block content %}
 <div class="container my-4">
@@ -54,12 +55,28 @@
       {% endif %}
     </div>
     <!-- Previous Screenings Summary -->
-<div id="screeningsSummaryCard" class="card mb-4 shadow-sm d-none">
-  <div class="card-header bg-info text-white fw-bold">Last Screening</div>
-  <div class="card-body" id="screeningsSummaryContent"></div>
+<div id="screeningsSummaryCard" class="card mb-4 shadow-sm {% if not screenings %}d-none{% endif %}">
+  <div class="card-header bg-info text-white fw-bold">Previous Screenings</div>
+  <div class="card-body" id="screeningsSummaryContent">
+    {% if screenings %}
+      {% for screening in screenings %}
+        {% include "core/_screening_card.html" with screening=screening student=student %}
+      {% endfor %}
+    {% else %}
+      <p class="text-muted">No screenings available.</p>
+    {% endif %}
+  </div>
 </div>
 
+   <!-- Growth Chart -->
+<div id="studentGrowthChartCard" class="card mb-4 shadow-sm d-none">
+  <div class="card-header bg-success text-white fw-bold">Growth Chart</div>
+  <div class="card-body">
+    <div id="studentGrowthChart" style="width:100%; height:400px;"></div>
+  </div>
+</div>
 
+    
 
     <!-- Screening Details -->
     <hr class="my-4">
@@ -125,13 +142,15 @@
 
 <script>
   document.addEventListener('DOMContentLoaded', function() {
+      // --------------------
+      // Elements
+      // --------------------
       const schoolSelect = document.getElementById('schoolSelect');
       const studentSelect = document.getElementById('studentSelect');
       const remarksContainer = document.getElementById('remarksContainer');
       const remarksText = document.getElementById('remarksText');
       const screenDateInput = document.getElementById('id_screen_date');
       const ageField = document.getElementById('id_age_screening');
-      const muacField = document.getElementById('id_muac');
       const weightInput = document.getElementById('id_weight');
       const heightInput = document.getElementById('id_height');
       const indicatorField = document.getElementById('growthIndicator');
@@ -143,58 +162,26 @@
       const E5Wrapper = document.getElementById('E5Wrapper');
       const E8Wrapper = document.getElementById('E8Wrapper');
       const muacWrapper = document.getElementById('muacWrapper');
+      const muacField = document.getElementById('id_muac');
   
-      let currentMonths = null;
-      let currentGender = null;
+      const studentInfoCardWrapper = document.getElementById('studentInfoCardWrapper');
+      const screeningsSummaryCard = document.getElementById('screeningsSummaryCard');
+      const screeningsSummaryContent = document.getElementById('screeningsSummaryContent');
+      const chartCard = document.getElementById('studentGrowthChartCard');
+      const chartDiv = document.getElementById('studentGrowthChart');
+  
       let currentDob = null;
-
-      
-      async function fetchPreviousScreenings(studentId) {
-    const summaryCard = document.getElementById('screeningsSummaryCard');
-    const summaryContent = document.getElementById('screeningsSummaryContent');
-
-    if (!studentId) {
-        summaryCard.classList.add('d-none');
-        summaryContent.innerHTML = '';
-        return;
-    }
-
-    try {
-        const res = await fetch(`/get_previous_screenings/?student_id=${studentId}`);
-        const data = await res.json();
-
-        if (data.html && data.html.trim() !== '') {
-            summaryContent.innerHTML = data.html;
-        } else {
-            summaryContent.innerHTML = '<p class="text-muted">No previous screenings found.</p>';
-        }
-
-        summaryCard.classList.remove('d-none');
-    } catch (err) {
-        console.error('Error fetching previous screenings:', err);
-        summaryContent.innerHTML = '<p class="text-danger">Failed to load previous screenings.</p>';
-        summaryCard.classList.remove('d-none');
-    }
-}
+      let currentGender = null;
+      let currentMonths = null;
+  
 
 
       
       // --------------------
       // Utility functions
       // --------------------
-      function showElement(el) {
-          if (el) {
-              el.classList.remove('d-none');
-              if (el.classList.contains('fade')) el.classList.add('show');
-          }
-      }
-  
-      function hideElement(el) {
-          if (el) {
-              el.classList.add('d-none');
-              el.classList.remove('show');
-          }
-      }
+      function showElement(el) { if(el){el.classList.remove('d-none'); if(el.classList.contains('fade')) el.classList.add('show');} }
+      function hideElement(el) { if(el){el.classList.add('d-none'); el.classList.remove('show');} }
   
       function getTotalMonths(dob, screenDate) {
           if (!dob || !screenDate) return null;
@@ -212,10 +199,132 @@
           return `${years}y ${months}m (${totalMonths} months)`;
       }
   
-      async function fetchGrowthReference(gender, weight, height, dob, screenDate) {
-          if (!gender || !dob || !screenDate || !weight || !height) return;
-          const url = `/growth-reference/?gender=${gender}&weight=${weight}&height=${height}&dob=${dob}&screen_date=${screenDate}`;
+      // --------------------
+      // Fetch previous screenings
+      // --------------------
+      async function fetchPreviousScreenings(studentId) {
+          if (!studentId) {
+              screeningsSummaryCard.classList.add('d-none');
+              screeningsSummaryContent.innerHTML = '';
+              return;
+          }
           try {
+              const res = await fetch(`/get_previous_screenings/?student_id=${studentId}`);
+              const data = await res.json();
+              screeningsSummaryContent.innerHTML = data.html?.trim() || '<p class="text-muted">No previous screenings found.</p>';
+              screeningsSummaryCard.classList.remove('d-none');
+          } catch(err) {
+              console.error('Error fetching previous screenings:', err);
+              screeningsSummaryContent.innerHTML = '<p class="text-danger">Failed to load previous screenings.</p>';
+              screeningsSummaryCard.classList.remove('d-none');
+          }
+      }
+  
+      // --------------------
+      // Fetch growth chart
+      // --------------------
+      async function fetchStudentGrowthChart(studentId) {
+    const chartCard = document.getElementById("studentGrowthChartCard");
+    const chartDiv = document.getElementById("studentGrowthChart");
+
+    if (!studentId) {
+        chartCard.classList.add("d-none");
+        chartDiv.innerHTML = '';
+        return;
+    }
+
+    try {
+        const res = await fetch(`/get_student_growth_chart_partial/?student_id=${studentId}`);
+        const data = await res.json();
+
+        if (!data.labels || data.labels.length === 0) {
+            chartDiv.innerHTML = "<p class='text-muted'>No chart data available.</p>";
+            chartCard.classList.remove("d-none");
+            return;
+        }
+
+        chartCard.classList.remove("d-none");
+
+        const labels = data.labels.map(m => `${Math.floor(m/12)}y ${m%12}m`);
+        const studentTrace = {
+            x: labels,
+            y: data.values,
+            mode: "lines+markers",
+            name: "Student",
+            marker: { size: 10, color: "blue" },
+            line: { color: "#333", width: 1 }
+        };
+
+        Plotly.newPlot(chartDiv, [studentTrace], {
+            title: data.chart_mode === "bmi" ? "BMI-for-Age" : "Weight-for-Height",
+            xaxis: { title: "Age", gridcolor: "rgba(200,200,200,0.2)" },
+            yaxis: { title: data.chart_mode === "bmi" ? "BMI" : "Weight (kg)", gridcolor: "rgba(200,200,200,0.2)" },
+            plot_bgcolor: "#f9f9f9",
+            paper_bgcolor: "#fff"
+        });
+
+    } catch(err) {
+        console.error("Error fetching growth chart:", err);
+        chartCard.classList.add("d-none");
+    }
+}
+
+
+      // --------------------
+      // Fetch last doctor's remarks
+      // --------------------
+      async function fetchLastRemarks(studentId) {
+          if (!studentId) {
+              remarksContainer.style.display = 'none';
+              remarksText.textContent = '';
+              return;
+          }
+          try {
+              const res = await fetch(`/get_last_remarks/?student_id=${studentId}`);
+              const data = await res.json();
+              if (data.remarks) {
+                  remarksText.textContent = data.remarks;
+                  remarksContainer.style.display = 'block';
+              } else {
+                  remarksContainer.style.display = 'none';
+              }
+          } catch(err) {
+              console.error('Error fetching remarks:', err);
+              remarksContainer.style.display = 'none';
+          }
+      }
+  
+      // --------------------
+      // Fetch student card
+      // --------------------
+      async function fetchStudentCard(studentId) {
+          if (!studentId) {
+              studentInfoCardWrapper.innerHTML = `<div class="card mb-4 shadow-sm"><div class="card-body text-muted">Select a student to view info</div></div>`;
+              return;
+          }
+          try {
+              const res = await fetch(`/get_student_card/?student_id=${studentId}`);
+              const html = await res.text();
+              studentInfoCardWrapper.innerHTML = html;
+          } catch(err) {
+              console.error('Error loading student card:', err);
+          }
+      }
+  
+      // --------------------
+      // Update growth reference
+      // --------------------
+      async function updateGrowthReference() {
+          const weight = parseFloat(weightInput?.value);
+          const height = parseFloat(heightInput?.value);
+          const screenDate = screenDateInput?.value;
+          if (!weight || !height || !currentDob || !currentGender || !screenDate) {
+              indicatorField.value = valueField.value = categoryField.value = '';
+              return;
+          }
+  
+          try {
+              const url = `/growth-reference/?gender=${currentGender}&weight=${weight}&height=${height}&dob=${currentDob}&screen_date=${screenDate}`;
               const res = await fetch(url);
               if (!res.ok) return;
               const data = await res.json();
@@ -229,41 +338,24 @@
                   valueField.value = data.bmi;
                   categoryField.value = data.bmi_category;
               } else {
-                  indicatorField.value = '';
-                  valueField.value = '';
-                  categoryField.value = '';
+                  indicatorField.value = valueField.value = categoryField.value = '';
               }
-          } catch (err) {
+          } catch(err) {
               console.error('Error fetching growth data:', err);
           }
       }
   
-      function updateGrowthReference() {
-          const weight = parseFloat(weightInput?.value);
-          const height = parseFloat(heightInput?.value);
-          const screenDate = screenDateInput?.value;
-          if (!weight || !height || !currentDob || !currentGender || !screenDate) {
-              indicatorField.value = '';
-              valueField.value = '';
-              categoryField.value = '';
-              return;
-          }
-          fetchGrowthReference(currentGender, weight, height, currentDob, screenDate);
-      }
-  
       // --------------------
-      // Update visibility and age
+      // Update visibility of fields
       // --------------------
       function updateVisibility() {
           const selectedOption = studentSelect.selectedOptions[0];
           if (!selectedOption || !selectedOption.dataset.dob || !selectedOption.dataset.gender) {
-              [E4Wrapper, E5Wrapper, E8Wrapper, B5Wrapper].forEach(hideElement);
+              [E4Wrapper,E5Wrapper,E8Wrapper,B5Wrapper].forEach(hideElement);
               hideElement(muacWrapper);
               if (muacField) muacField.disabled = true;
               if (ageField) ageField.value = '';
-              indicatorField.value = '';
-              valueField.value = '';
-              categoryField.value = '';
+              indicatorField.value = valueField.value = categoryField.value = '';
               return;
           }
   
@@ -277,25 +369,21 @@
   
           if (ageField) ageField.value = formatAge(currentMonths);
   
-          // Female-specific fields
           if (gender === 'female' || gender === 'f') {
               showElement(E4Wrapper);
               const E4Checkbox = document.getElementById('id_E4_menarke');
-              if (E4Checkbox) {
-                  if (E4Checkbox.checked) { showElement(E5Wrapper); showElement(E8Wrapper); }
-                  E4Checkbox.addEventListener('change', function() {
-                      if (E4Checkbox.checked) { showElement(E5Wrapper); showElement(E8Wrapper); }
+              if(E4Checkbox){
+                  if(E4Checkbox.checked) { showElement(E5Wrapper); showElement(E8Wrapper); }
+                  E4Checkbox.addEventListener('change', function(){
+                      if(E4Checkbox.checked){ showElement(E5Wrapper); showElement(E8Wrapper); }
                       else { hideElement(E5Wrapper); hideElement(E8Wrapper); }
                   });
               }
-          } else {
-              [E4Wrapper, E5Wrapper, E8Wrapper].forEach(hideElement);
-          }
+          } else { [E4Wrapper,E5Wrapper,E8Wrapper].forEach(hideElement); }
   
-          // Age-based fields
           if (currentMonths >= 24 && currentMonths <= 72) showElement(B5Wrapper); else hideElement(B5Wrapper);
-          if (currentMonths >= 6 && currentMonths <= 60) { showElement(muacWrapper); if (muacField) muacField.disabled = false; } 
-          else { hideElement(muacWrapper); if (muacField) muacField.disabled = true; }
+          if (currentMonths >=6 && currentMonths <= 60){ showElement(muacWrapper); if(muacField) muacField.disabled=false; } 
+          else { hideElement(muacWrapper); if(muacField) muacField.disabled=true; }
   
           updateGrowthReference();
       }
@@ -304,80 +392,55 @@
       // Filter students by school
       // --------------------
       function filterStudentsBySchool() {
-          const selectedSchool = schoolSelect.value;
-          Array.from(studentSelect.options).forEach(opt => {
-              if (opt.value === "") { opt.style.display = ''; return; } // always show placeholder
-              const studentSchool = opt.dataset.school;
-              opt.style.display = (!selectedSchool || studentSchool === selectedSchool) ? '' : 'none';
-          });
-  
-          // Reset selection if hidden
-          const selOpt = studentSelect.selectedOptions[0];
-          if (selOpt && selOpt.style.display === 'none') {
-              studentSelect.value = '';
-              remarksContainer.style.display = 'none';
-              remarksText.textContent = '';
-          }
-  
-          // Update age/MUAC/B5/E4/E5/E8
-          updateVisibility();
-      }
-  
-      // --------------------
-      // Fetch last doctor's remarks
-      // --------------------
-      studentSelect.addEventListener('change', async function() {
-    console.log("Student changed:", this.value);
-    const studentId = this.value;
+    const selectedSchool = schoolSelect.value;
 
-    // If no student selected, reset info and remarks
-    if (!studentId) {
-        document.getElementById('studentInfoCardWrapper').innerHTML = `
-          <div class="card mb-4 shadow-sm">
-            <div class="card-body text-muted">Select a student to view info</div>
-          </div>
-        `;
+    // Store all options once
+    const allOptions = Array.from(studentSelect.options);
+    studentSelect.innerHTML = '';
+
+    // Add default placeholder
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = '-- Select a student --';
+    studentSelect.appendChild(placeholder);
+
+    // Add filtered students
+    allOptions.forEach(opt => {
+        if (opt.value === '') return; // skip placeholder
+        const studentSchool = opt.dataset.school;
+        if (!selectedSchool || studentSchool === selectedSchool) {
+            studentSelect.appendChild(opt);
+        }
+    });
+
+    // Reset selection if previous selection hidden
+    if (!studentSelect.value) {
         remarksContainer.style.display = 'none';
         remarksText.textContent = '';
-        fetchPreviousScreenings(null);
-        return;
     }
 
-    // Fetch last doctor's remarks
-    try {
-        const res = await fetch(`/get_last_remarks/?student_id=${studentId}`);
-        const data = await res.json();
-        if (data.remarks) {
-            remarksText.textContent = data.remarks;
-            remarksContainer.style.display = 'block';
-        } else {
-            remarksContainer.style.display = 'none';
-        }
-    } catch (err) {
-        console.error('Error fetching remarks:', err);
-        remarksContainer.style.display = 'none';
-    }
+    updateVisibility();
+}
 
-    // Fetch student info card partial
-    try {
-        const res = await fetch(`/get_student_card/?student_id=${studentId}`);
-        const html = await res.text();
-        document.getElementById('studentInfoCardWrapper').innerHTML = html;
-    } catch (err) {
-        console.error('Error loading student card:', err);
-    }
-
-
-    // Fetch last 5 screenings
-    fetchPreviousScreenings(studentId);
-});
-
+      // --------------------
+      // Student selection change
+      // --------------------
+      async function onStudentChange() {
+          const studentId = studentSelect.value;
+  
+          await fetchLastRemarks(studentId);
+          await fetchStudentCard(studentId);
+          await fetchPreviousScreenings(studentId);
+          await fetchStudentGrowthChart(studentId);
+          updateVisibility();
+          updateGrowthReference();
+      }
   
       // --------------------
       // Event listeners
       // --------------------
-      schoolSelect.addEventListener('change', filterStudentsBySchool);
-      studentSelect.addEventListener('change', updateVisibility);
+      schoolSelect?.addEventListener('change', filterStudentsBySchool);
+      studentSelect?.addEventListener('change', onStudentChange);
       screenDateInput?.addEventListener('input', updateVisibility);
       screenDateInput?.addEventListener('change', updateVisibility);
       weightInput?.addEventListener('input', updateGrowthReference);
@@ -389,8 +452,7 @@
       filterStudentsBySchool();
   });
   </script>
-    
-
+  
 
 <style>
 .form-check-input{width:1.4em;height:1.4em;border:2px solid #000!important;cursor:pointer;}
