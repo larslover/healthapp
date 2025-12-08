@@ -44,26 +44,16 @@
         {% endfor %}
       </select>
     </div>
-
-<!-- Student Info Card -->
-<div id="studentInfoCard" class="card mb-4 shadow-sm" style="display:none;">
-  <div class="card-header bg-primary text-white fw-bold">Student Information</div>
-  <div class="card-body">
-    <div class="row mb-2">
-      <div class="col-md-4"><strong>Name:</strong> <span id="infoName"></span></div>
-      <div class="col-md-4"><strong>Gender:</strong> <span id="infoGender"></span></div>
-      <div class="col-md-4"><strong>Age:</strong> <span id="infoAge"></span></div>
+    <div id="studentInfoCardWrapper">
+      {% if student %}
+        {% include "core/_student_card.html" %}
+      {% else %}
+        <div class="card mb-4 shadow-sm">
+          <div class="card-body text-muted">Select a student to view info</div>
+        </div>
+      {% endif %}
     </div>
-    <div class="row mb-2">
-      <div class="col-md-6"><strong>School:</strong> <span id="infoSchool"></span></div>
-      <div class="col-md-6"><strong>DOB:</strong> <span id="infoDob"></span></div>
-    </div>
-    <div><strong>Known Earlier Disease:</strong> 
-      <span id="infoDisease" class="text-danger">—</span>
-    </div>
-  </div>
-</div>
-<!-- Previous Screenings Summary -->
+    <!-- Previous Screenings Summary -->
 <div id="screeningsSummaryCard" class="card mb-4 shadow-sm d-none">
   <div class="card-header bg-info text-white fw-bold">Last Screening</div>
   <div class="card-body" id="screeningsSummaryContent"></div>
@@ -337,17 +327,23 @@
       // Fetch last doctor's remarks
       // --------------------
       studentSelect.addEventListener('change', async function() {
-    console.log("Student changed:", this.value); // should now appear
+    console.log("Student changed:", this.value);
     const studentId = this.value;
 
-    // Show last doctor's remarks
+    // If no student selected, reset info and remarks
     if (!studentId) {
+        document.getElementById('studentInfoCardWrapper').innerHTML = `
+          <div class="card mb-4 shadow-sm">
+            <div class="card-body text-muted">Select a student to view info</div>
+          </div>
+        `;
         remarksContainer.style.display = 'none';
         remarksText.textContent = '';
         fetchPreviousScreenings(null);
         return;
     }
 
+    // Fetch last doctor's remarks
     try {
         const res = await fetch(`/get_last_remarks/?student_id=${studentId}`);
         const data = await res.json();
@@ -361,6 +357,16 @@
         console.error('Error fetching remarks:', err);
         remarksContainer.style.display = 'none';
     }
+
+    // Fetch student info card partial
+    try {
+        const res = await fetch(`/get_student_card/?student_id=${studentId}`);
+        const html = await res.text();
+        document.getElementById('studentInfoCardWrapper').innerHTML = html;
+    } catch (err) {
+        console.error('Error loading student card:', err);
+    }
+
 
     // Fetch last 5 screenings
     fetchPreviousScreenings(studentId);

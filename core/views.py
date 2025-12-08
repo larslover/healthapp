@@ -614,8 +614,13 @@ from django.contrib import messages
 from datetime import datetime
 from .models import School, Student, Screening
 from .forms import ScreeningForm, ScreeningCheckForm
-
-
+from django.template.loader import render_to_string
+@login_required(login_url='login')
+def get_student_card(request):
+    student_id = request.GET.get("student_id")
+    student = get_object_or_404(Student, id=student_id)
+    html = render_to_string("core/_student_card.html", {"student": student})
+    return HttpResponse(html)
 @login_required(login_url='login')
 def add_screening(request):
     # --- Get selected school & student from GET/POST ---
@@ -631,11 +636,11 @@ def add_screening(request):
     else:
         students = Student.objects.all().order_by("name")  # show all students initially
 
-
     # --- Initialize variables ---
     student = None
     age_in_months = None
     last_remarks = None
+    student_card_html = ""  # rendered partial
 
     # --- Fetch selected student details if provided ---
     if selected_student_id:
@@ -655,6 +660,10 @@ def add_screening(request):
         if last_screening and hasattr(last_screening, "checklist"):
             last_remarks = getattr(last_screening.checklist, "E9_remarks", None)
 
+        # Render student card partial
+        from django.template.loader import render_to_string
+        student_card_html = render_to_string("core/_student_card.html", {"student": student})
+
     # --- Handle form submission ---
     if request.method == "POST":
         if not student:
@@ -668,7 +677,7 @@ def add_screening(request):
             screening = screening_form.save(commit=False)
             screening.student = student
             try:
-                screening.calculate_metrics()  # make sure your model has this method
+                screening.calculate_metrics()
             except Exception as e:
                 messages.error(request, f"Error calculating metrics: {e}")
                 return render(request, "core/new_screening.html", {
@@ -678,6 +687,7 @@ def add_screening(request):
                     "screening_check_form": screening_check_form,
                     "age_in_months": age_in_months,
                     "last_remarks": last_remarks,
+                    "student_card_html": student_card_html,
                     "selected_school_id": int(selected_school_id) if selected_school_id else None,
                     "selected_student_id": int(selected_student_id) if selected_student_id else None,
                 })
@@ -709,6 +719,7 @@ def add_screening(request):
         "screening_check_form": screening_check_form,
         "age_in_months": age_in_months,
         "last_remarks": last_remarks,
+        "student_card_html": student_card_html,  # pass rendered partial
         "selected_school_id": int(selected_school_id) if selected_school_id else None,
         "selected_student_id": int(selected_student_id) if selected_student_id else None,
     })
