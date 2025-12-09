@@ -3,6 +3,11 @@ from core.utils.processor import bmi_category
 from django.db.models import Prefetch
 # core/views.py (snippet)
 import json
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
+from .models import Student, Screening, ScreeningCheck, School
+from .forms import StudentForm, ScreeningForm, ScreeningCheckForm
 from django.shortcuts import render, get_object_or_404
 from django.utils.safestring import mark_safe
 from django.contrib.auth.decorators import login_required
@@ -26,6 +31,13 @@ from datetime import datetime
 
 from .models import School, Student, Screening
 from .forms import ScreeningForm, ScreeningCheckForm
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from datetime import datetime
+from .models import School, Student, Screening
+from .forms import ScreeningForm, ScreeningCheckForm
+from django.template.loader import render_to_string
 
 import logging
 from datetime import date
@@ -41,7 +53,16 @@ from .forms import StudentForm, ScreeningForm, ScreeningCheckForm
 from .models import Screening, School,LegacyStudent
 from django.http import JsonResponse
 from core.legacy_helpers import get_all_students, search_students
-
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from datetime import datetime, date
+from .models import Student, School, Screening, ScreeningCheck
+from .forms import ScreeningForm, ScreeningCheckForm
+from .utils.processor import calculate_age_in_months
+# views.py
+from django.http import JsonResponse
+from .models import Screening, Student
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from .models import Student, School, Screening, ScreeningCheck
@@ -417,39 +438,22 @@ def screening_summary(request):
 
 
 logger = logging.getLogger(__name__)
-@login_required
-def get_school_students(request):
-    school_id = request.GET.get("school_id")
 
-    if not school_id:
-        return JsonResponse({"students": []})
 
-    students = (
-        Student.objects
-        .filter(school_id=school_id)
-        .only("id", "name", "date_of_birth", "gender")
-        .order_by("name")
-    )
-
-    data = [
-        {
-            "id": s.id,
-            "name": s.name,
-            "dob": s.date_of_birth.strftime("%Y-%m-%d") if s.date_of_birth else "",
-            "gender": (s.gender.lower() if s.gender else ""),
-        }
-        for s in students
-    ]
-
-    return JsonResponse({"students": data})
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
+from .models import Student, Screening, ScreeningCheck, School
+from .forms import StudentForm, ScreeningForm, ScreeningCheckForm
 
 @login_required(login_url='login')
 def screened_students(request):
-
+    # --- Filters ---
     selected_school_id = request.GET.get("school")
     selected_student_id = request.GET.get("selected_student")
+    name_query = request.GET.get("name", "").strip()
 
-    # === Handle selected student ===
+    # --- Selected student & forms ---
     student_form = screening_form = checklist_form = None
     selected_student = None
 
@@ -465,7 +469,6 @@ def screened_students(request):
 
         checklist, _ = ScreeningCheck.objects.get_or_create(screening=screening)
 
-        # --- Saving the forms ---
         if request.method == "POST":
             student_form = StudentForm(request.POST, instance=selected_student)
             screening_form = ScreeningForm(request.POST, instance=screening)
@@ -473,44 +476,43 @@ def screened_students(request):
 
             if student_form.is_valid() and screening_form.is_valid() and checklist_form.is_valid():
                 student = student_form.save(commit=False)
-
                 school_id = request.POST.get("school")
                 if school_id:
                     try:
                         student.school = School.objects.get(pk=int(school_id))
-                    except:
+                    except School.DoesNotExist:
                         student.school = None
-
                 student.save()
                 screening_form.save()
                 checklist_form.save()
                 return redirect("screened_students")
-
         else:
             student_form = StudentForm(instance=selected_student)
             screening_form = ScreeningForm(instance=screening)
             checklist_form = ScreeningCheckForm(instance=checklist)
 
-    # === All students for dropdown ===
-    all_students = (
-        Student.objects
-        .select_related("school")
-        .only("id", "name", "school_id")
-        .order_by("name")
-    )
+    # --- Student filtering ---
+    students = Student.objects.select_related("school").only("id", "name", "school_id").order_by("name")
+    if name_query:
+        students = students.filter(name__icontains=name_query)
+    if selected_school_id:
+        students = students.filter(school_id=selected_school_id)
 
+    # --- Pagination ---
+    paginator = Paginator(students, 20)  # 20 per page
+    page_number = request.GET.get("page", 1)
+    students_page = paginator.get_page(page_number)
+
+    # --- Context ---
     context = {
         "selected_school_id": int(selected_school_id) if selected_school_id else None,
         "selected_student": selected_student,
-
-        # forms
         "student_form": student_form,
         "screening_form": screening_form,
         "checklist_form": checklist_form,
-
-        # dropdowns
         "schools": School.objects.only("id", "name"),
-        "all_students": all_students,
+        "students_page": students_page,
+        "name_query": name_query,
     }
 
     return render(request, "core/screened_students.html", context)
@@ -548,16 +550,7 @@ def get_last_remarks(request):
             pass
     return JsonResponse({"remarks": remarks})
 
-from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
-from datetime import datetime, date
-from .models import Student, School, Screening, ScreeningCheck
-from .forms import ScreeningForm, ScreeningCheckForm
-from .utils.processor import calculate_age_in_months
-# views.py
-from django.http import JsonResponse
-from .models import Screening, Student
+
 
 @login_required
 def get_previous_screenings(request):
@@ -608,13 +601,6 @@ def get_previous_screenings(request):
 
 
 
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
-from datetime import datetime
-from .models import School, Student, Screening
-from .forms import ScreeningForm, ScreeningCheckForm
-from django.template.loader import render_to_string
 
 from django.http import JsonResponse
 from .models import Screening
@@ -644,6 +630,34 @@ def get_student_card(request):
     student = get_object_or_404(Student, id=student_id)
     html = render_to_string("core/_student_card.html", {"student": student})
     return HttpResponse(html)
+
+@login_required
+def get_school_students(request):
+    school_id = request.GET.get("school_id")
+
+    if not school_id:
+        return JsonResponse({"students": []})
+
+    students = (
+        Student.objects
+        .filter(school_id=school_id)
+        .only("id", "name", "date_of_birth", "gender")
+        .order_by("name")
+    )
+
+    data = [
+        {
+            "id": s.id,
+            "name": s.name,
+            "dob": s.date_of_birth.strftime("%Y-%m-%d") if s.date_of_birth else "",
+            "gender": (s.gender.lower() if s.gender else ""),
+        }
+        for s in students
+    ]
+
+    return JsonResponse({"students": data})
+
+
 @login_required(login_url='login')
 def add_screening(request):
     # --- Get selected school & student from GET/POST ---
@@ -657,7 +671,8 @@ def add_screening(request):
     if selected_school_id:
         students = Student.objects.filter(school_id=selected_school_id).order_by("name")
     else:
-        students = Student.objects.all().order_by("name")  # show all students initially
+        students = []  # do NOT load thousands of students
+ # show all students initially
 
     # --- Initialize variables ---
     student = None
@@ -747,24 +762,30 @@ def add_screening(request):
         "selected_student_id": int(selected_student_id) if selected_student_id else None,
     })
 def ajax_student_search(request):
-    q = request.GET.get('q', '')
-   
+    q = request.GET.get('q', '').strip()
     school_id = request.GET.get("school_id")
+
     if not school_id:
-        return JsonResponse({"students": []})
+        return JsonResponse({"results": []})
 
-    students = Student.objects.filter(school_id=int(school_id)).order_by("name")
+    qs = Student.objects.filter(school_id=school_id)
 
+    # Apply search only if user typed something
+    if q:
+        qs = qs.filter(name__icontains=q)
+
+    # Limit results for speed
+    qs = qs.order_by("name")[:30]
 
     results = [
         {
             'id': s.id,
             'name': s.name,
             'class_section': s.class_section or '',
-            'school_name': s.school_name or ''
         }
-        for s in students
+        for s in qs
     ]
+
     return JsonResponse({'results': results})
 
 from django.http import JsonResponse

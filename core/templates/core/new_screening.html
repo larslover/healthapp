@@ -1,6 +1,6 @@
 {% extends "core/base.html" %}
 {% block title %}Add Screening{% endblock %}
-{% include "core/_student_select.html" %}
+
 
 {% block content %}
 <div class="container my-4">
@@ -35,15 +35,8 @@
       <label for="studentSelect" class="form-label fw-semibold">Select Existing Student</label>
       <select id="studentSelect" name="student" class="form-select" required>
         <option value="">-- Select a student --</option>
-        {% for student in students %}
-          <option value="{{ student.id }}"
-                  data-dob="{{ student.date_of_birth|date:'Y-m-d' }}"
-                  data-gender="{{ student.gender|lower }}"
-                  data-school="{{ student.school.id }}">
-            {{ student.name }}
-          </option>
-        {% endfor %}
-      </select>
+    </select>
+    
     </div>
     <div id="studentInfoCardWrapper">
       {% if student %}
@@ -173,6 +166,24 @@
       let currentDob = null;
       let currentGender = null;
       let currentMonths = null;
+
+      // --------------------
+// Event listeners
+// --------------------
+schoolSelect?.addEventListener("change", loadStudentsForSchool);
+studentSelect?.addEventListener("change", onStudentChange);
+
+screenDateInput?.addEventListener("input", updateVisibility);
+screenDateInput?.addEventListener("change", updateVisibility);
+
+weightInput?.addEventListener("input", updateGrowthReference);
+heightInput?.addEventListener("input", updateGrowthReference);
+
+// --------------------
+// Initialize
+// --------------------
+loadStudentsForSchool();
+
   
 
 
@@ -391,36 +402,39 @@
       // --------------------
       // Filter students by school
       // --------------------
-      function filterStudentsBySchool() {
-    const selectedSchool = schoolSelect.value;
+      // --------------------
+// Load students via AJAX based on selected school
+// --------------------
+async function loadStudentsForSchool() {
+    const schoolId = schoolSelect.value;
+    studentSelect.innerHTML = '<option value="">Loading...</option>';
 
-    // Store all options once
-    const allOptions = Array.from(studentSelect.options);
-    studentSelect.innerHTML = '';
-
-    // Add default placeholder
-    const placeholder = document.createElement('option');
-    placeholder.value = '';
-    placeholder.textContent = '-- Select a student --';
-    studentSelect.appendChild(placeholder);
-
-    // Add filtered students
-    allOptions.forEach(opt => {
-        if (opt.value === '') return; // skip placeholder
-        const studentSchool = opt.dataset.school;
-        if (!selectedSchool || studentSchool === selectedSchool) {
-            studentSelect.appendChild(opt);
-        }
-    });
-
-    // Reset selection if previous selection hidden
-    if (!studentSelect.value) {
-        remarksContainer.style.display = 'none';
-        remarksText.textContent = '';
+    if (!schoolId) {
+        studentSelect.innerHTML = '<option value="">-- Select a student --</option>';
+        return;
     }
 
-    updateVisibility();
+    try {
+        const res = await fetch(`/get_school_students/?school_id=${schoolId}`);
+        const data = await res.json();
+
+        studentSelect.innerHTML = '<option value="">-- Select a student --</option>';
+
+        data.students.forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s.id;
+            opt.textContent = s.name;
+            opt.dataset.dob = s.dob;
+            opt.dataset.gender = s.gender;
+            studentSelect.appendChild(opt);
+        });
+
+    } catch (error) {
+        console.error("Error loading students:", error);
+        studentSelect.innerHTML = '<option value="">-- Failed to load --</option>';
+    }
 }
+
 
       // --------------------
       // Student selection change
@@ -439,17 +453,14 @@
       // --------------------
       // Event listeners
       // --------------------
-      schoolSelect?.addEventListener('change', filterStudentsBySchool);
-      studentSelect?.addEventListener('change', onStudentChange);
-      screenDateInput?.addEventListener('input', updateVisibility);
-      screenDateInput?.addEventListener('change', updateVisibility);
-      weightInput?.addEventListener('input', updateGrowthReference);
-      heightInput?.addEventListener('input', updateGrowthReference);
+     
+ 
   
       // --------------------
       // Initialize
       // --------------------
-      filterStudentsBySchool();
+      loadStudentsForSchool();
+
   });
   </script>
   
