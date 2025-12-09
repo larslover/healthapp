@@ -39,17 +39,14 @@ def evaluate_vision(left_vision: str, right_vision: str) -> str:
 
     return "no"
 
-
-# ============================================================
-# Age, BMI, and MUAC Calculations
-# ============================================================
-def calculate_age_in_months(dob: date, reference_date: date) -> int:
-    """Calculate a student's age in months."""
+def calculate_age_in_months(dob: date | None, reference_date: date | None) -> int:
+    """Calculate a student's age in months. Returns 0 if dob or reference_date is missing."""
+    if not dob or not reference_date:
+        return 0
     months = (reference_date.year - dob.year) * 12 + (reference_date.month - dob.month)
     if reference_date.day < dob.day:
         months -= 1
     return months
-
 
 def calculate_bmi(weight: float, height_cm: float) -> float | None:
     """Calculate BMI given weight (kg) and height (cm)."""

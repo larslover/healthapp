@@ -6,71 +6,111 @@
 
 {% block content %}
 <div class="container my-4">
-  <h2 class="fw-bold mb-4 d-flex justify-content-between align-items-center">
-    See Screened Students report
-    <a href="{% url 'student_create' %}" class="btn btn-success">Add Student</a>
-  </h2>
-</div>
 
-<div class="container my-4">
-
-
-
-
-  <!-- Filter Form -->
   <form method="get" class="row g-3 mb-4">
-    <div class="col-md-5">
-      <label class="form-label">Select School</label>
-      <select 
-          id="schoolSelect"
-          name="school" 
-          class="form-select">
+    <div class="col-md-4">
+      <label class="form-label">Student Name</label>
+      <input type="text" name="student_name" class="form-control" value="{{ student_name_query }}">
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">School</label>
+      <select name="school" class="form-select">
         <option value="">-- Select School --</option>
         {% for school in schools %}
-          <option value="{{ school.id }}" data-school="{{ school.id }}"
-            {% if selected_school_id == school.id %}selected{% endif %}>
+          <option value="{{ school.id }}" {% if selected_school_id == school.id %}selected{% endif %}>
             {{ school.name }}
           </option>
         {% endfor %}
       </select>
     </div>
-
-    <div class="col-md-5">
-      <label class="form-label">Select Student</label>
-      <select id="studentSelect" name="student" class="form-select" {% if not selected_school_id %}disabled{% endif %}>
-
-        <option value="">-- Select Student --</option>
-        {% for s in students %}
-          <option 
-            value="{{ s.id }}" 
-            data-school="{{ s.school.id }}"
-            {% if selected_student_id == s.id %}selected{% endif %}>
-            {{ s.name }} ({{ s.current_class_section|default:"—" }})
-          </option>
-        {% endfor %}
-      </select>
+    <div class="col-md-4 d-flex align-items-end">
+      <button type="submit" class="btn btn-primary">Filter</button>
     </div>
   </form>
+  
+  <!-- Selected Student Info -->
   {% if student %}
-  <!-- Student Info -->
-  <div class="card mb-4 shadow-sm">
-    <div class="card-header bg-primary text-white fw-bold">Student Information</div>
-    <div class="card-body">
-      <div class="row mb-2">
-        <div class="col-md-4"><strong>Name:</strong> {{ student.name }}</div>
-        <div class="col-md-4"><strong>Gender:</strong> {{ student.gender|default:"—" }}</div>
-        <div class="col-md-4"><strong>Age:</strong> {{ student.age_in_years }} years</div>
-      </div>
-      <div class="row mb-2">
-        <div class="col-md-6"><strong>School:</strong> {{ student.school.name|default:"—" }}</div>
-        <div class="col-md-6"><strong>DOB:</strong> {{ student.date_of_birth|date:"Y-m-d" }}</div>
-      </div>
-      <div><strong>Known Earlier Disease:</strong> 
-        <span class="text-danger">{{ student.known_earlier_disease|default:"—" }}</span>
+    <div class="card mb-4 shadow-sm">
+      <div class="card-header bg-primary text-white fw-bold">Student Information</div>
+      <div class="card-body">
+        <div class="row mb-2">
+          <div class="col-md-4"><strong>Name:</strong> {{ student.name }}</div>
+          <div class="col-md-4"><strong>Gender:</strong> {{ student.gender|default:"—" }}</div>
+          <div class="col-md-4"><strong>Age:</strong> {{ student.age_in_years }} years</div>
+        </div>
+        <div class="row mb-2">
+          <div class="col-md-6"><strong>School:</strong> {{ student.school.name|default:"—" }}</div>
+          <div class="col-md-6"><strong>DOB:</strong> {{ student.date_of_birth|date:"Y-m-d" }}</div>
+        </div>
+        <div><strong>Known Earlier Disease:</strong> 
+          <span class="text-danger">{{ student.known_earlier_disease|default:"—" }}</span>
+        </div>
       </div>
     </div>
-  </div>
+  {% endif %}
 
+  <!-- Students Table -->
+  {% if students_page %}
+    <div class="card mb-4 shadow-sm">
+      <div class="card-header bg-secondary text-white fw-bold">Students</div>
+      <div class="card-body p-0">
+        <table class="table table-striped mb-0">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>School</th>
+              <th>Gender</th>
+              <th>DOB</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in students_page %}
+              <tr>
+                <td>{{ s.name }}</td>
+                <td>{{ s.school.name|default:"—" }}</td>
+                <td>{{ s.gender|default:"—" }}</td>
+                <td>{{ s.date_of_birth|date:"Y-m-d" }}</td>
+                <td>
+                  <a href="?student_name={{ student_name }}&school={{ selected_school_id }}&selected_student={{ s.id }}" class="btn btn-sm btn-primary">View</a>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="5" class="text-muted text-center">No students found.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center">
+      <div>Page {{ students_page.number }} of {{ students_page.paginator.num_pages }}</div>
+      <div>
+        <nav>
+          <ul class="pagination mb-0">
+            {% if students_page.has_previous %}
+              <li class="page-item">
+                <a class="page-link" href="?page={{ students_page.previous_page_number }}{% if selected_school_id %}&school={{ selected_school_id }}{% endif %}{% if student_name_query %}&student_name={{ student_name_query }}{% endif %}">Previous</a>
+              </li>
+            {% else %}
+              <li class="page-item disabled"><span class="page-link">Previous</span></li>
+            {% endif %}
+            {% endif %}
+    
+            {% if students_page.has_next %}
+              <li class="page-item">
+                <a class="page-link" href="?page={{ students_page.next_page_number }}{% if selected_school_id %}&school={{ selected_school_id }}{% endif %}{% if student_name_query %}&student_name={{ student_name_query }}{% endif %}">Next</a>
+              </li>
+            {% else %}
+              <li class="page-item disabled"><span class="page-link">Next</span></li>
+            {% endif %}
+          </ul>
+        </nav>
+      </div>
+    </div>
+    
   {% if screenings %}
   
   <!-- Growth Chart -->
@@ -242,27 +282,10 @@
   {% else %}
     <p class="text-muted">No screenings found for this student.</p>
   {% endif %}
-  {% endif %}
+
 </div>
 <!-- ✅ Plotly Chart -->
 <script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
-<script src="{% static 'js/school_student_filter.js' %}"></script>
-
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-    const school = document.getElementById("schoolSelect");
-    const student = document.getElementById("studentSelect");
-
-    school?.addEventListener("change", () => {
-        student.value = "";   // Clear student
-        school.form.submit();
-    });
-
-    student?.addEventListener("change", () => {
-        student.form.submit();
-    });
-});
-</script>
 
 
 {% if chart_mode != "none" %}

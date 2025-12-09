@@ -3,6 +3,7 @@ from core.utils.processor import bmi_category
 from django.db.models import Prefetch
 # core/views.py (snippet)
 import json
+from django.core.paginator import Paginator
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
@@ -357,85 +358,97 @@ def build_chart_data_for_student(screenings, student):
 # -------------------------
 
 @login_required(login_url='login')
-def screening_summary(request):
-    schools = School.objects.all()
-    students = Student.objects.none()
-    selected_school_id = request.GET.get('school')
-    selected_student_id = request.GET.get('student')
 
+
+def screening_summary(request):
+    # --- Get filter params ---
+    selected_school_id = request.GET.get('school')
+    student_name_query = request.GET.get('student_name', '').strip()
+    selected_student_id = request.GET.get('selected_student')
+    
+    # --- Fetch all schools ---
+    schools = School.objects.all()
+    
+    # --- Filter students by selected school and name ---
+    students_qs = Student.objects.all()
+    if selected_school_id and selected_school_id != "None":
+        students_qs = students_qs.filter(school_id=selected_school_id)
+    if student_name_query:
+        students_qs = students_qs.filter(name__icontains=student_name_query)
+    students_qs = students_qs.order_by('name')
+    
+    # --- Paginate students ---
+    paginator = Paginator(students_qs, 10)
+    page_number = request.GET.get('page')
+    students_page = paginator.get_page(page_number)
+    
+    # --- Initialize defaults ---
     student = None
     screenings = []
-    checklist_groups = {}
-
-    # default empty chart data
-    chart_mode = "none"
-    chart_labels = mark_safe("[]")
-    chart_values = mark_safe("[]")
-    chart_reference = mark_safe("[]")
-    chart_who_curves = mark_safe("{}")  # ✅ use empty object instead of list
-
-    if selected_school_id:
-        students = Student.objects.filter(school_id=selected_school_id)
-
-    if selected_student_id:
+    checklist_groups = {
+        "Preventive Care": ["deworming", "vaccination"],
+        "Nutritional / Medical Conditions": [
+            "B1_severe_anemia", "B2_vitA_deficiency", "B3_vitD_deficiency",
+            "B4_goitre", "B5_oedema"
+        ],
+        "Other Medical Conditions": [
+            "C1_convulsive_dis", "C2_otitis_media", "C3_dental_condition",
+            "C4_skin_condition", "C5_rheumatic_heart_disease", "C6_others_TB_asthma"
+        ],
+        "Development / Learning": [
+            "D1_difficulty_seeing", "D2_delay_in_walking", "D3_stiffness_floppiness",
+            "D5_reading_writing_calculatory_difficulty", "D6_speaking_difficulty",
+            "D7_hearing_problems", "D8_learning_difficulties", "D9_attention_difficulties"
+        ],
+        "Other Observations": [
+            "E3_depression_sleep", "E4_menarke", "E5_regularity_period_difficulties",
+            "E6_UTI_STI", "E7_discharge", "E8_menstrual_pain", "E9_remarks"
+        ]
+    }
+    
+    # --- If a student is selected ---
+    if selected_student_id and selected_student_id != "None":
         student = get_object_or_404(Student, id=selected_student_id)
         screenings = list(Screening.objects.filter(student=student).order_by('screen_date'))
-
-        checklist_groups = {
-            "Preventive Care": ["deworming", "vaccination"],
-            "Nutritional / Medical Conditions": [
-                "B1_severe_anemia", "B2_vitA_deficiency", "B3_vitD_deficiency",
-                "B4_goitre", "B5_oedema"
-            ],
-            "Other Medical Conditions": [
-                "C1_convulsive_dis", "C2_otitis_media", "C3_dental_condition",
-                "C4_skin_condition", "C5_rheumatic_heart_disease", "C6_others_TB_asthma"
-            ],
-            "Development / Learning": [
-                "D1_difficulty_seeing", "D2_delay_in_walking", "D3_stiffness_floppiness",
-                "D5_reading_writing_calculatory_difficulty", "D6_speaking_difficulty",
-                "D7_hearing_problems", "D8_learning_difficulties", "D9_attention_difficulties"
-            ],
-            "Other Observations": [
-                "E3_depression_sleep", "E4_menarke", "E5_regularity_period_difficulties",
-                "E6_UTI_STI", "E7_discharge", "E8_menstrual_pain", "E9_remarks"
-            ]
-        }
-
-        # annotate screenings with checklist and MUAC category, and keep them for template rendering
+        
         for s in screenings:
             s.checklist_dict = get_checklist_for_screening(s, checklist_groups)
             s.muac_category = muac_category_for(s, student)
-
-            # also fill growth indicator/category/age for template use
-            indicator, category, plot_value, age_m = determine_growth_for_screening(s, student)
+            
+            if student.date_of_birth:
+                indicator, category, plot_value, age_m = determine_growth_for_screening(s, student)
+            else:
+                indicator, category, plot_value, age_m = None, None, None, 0
+            
             s.growth_indicator = indicator
             s.growth_category = category
             s.age_in_months = age_m
-
-        # build chart data consistently
-        chart_mode, chart_labels, chart_values, chart_reference, chart_who_curves = build_chart_data_for_student(screenings, student)
-
-
+        
+        # Build chart data only if DOB exists
+        if student.date_of_birth:
+            chart_mode, chart_labels, chart_values, chart_reference, chart_who_curves = build_chart_data_for_student(screenings, student)
+        else:
+            chart_mode, chart_labels, chart_values, chart_reference, chart_who_curves = "none", mark_safe("[]"), mark_safe("[]"), mark_safe("[]"), mark_safe("{}")
+    else:
+        chart_mode, chart_labels, chart_values, chart_reference, chart_who_curves = "none", mark_safe("[]"), mark_safe("[]"), mark_safe("[]"), mark_safe("{}")
+    
     context = {
-    "schools": schools,
-    "students": students,
-    "selected_school_id": int(selected_school_id) if selected_school_id else None,
-    "selected_student_id": int(selected_student_id) if selected_student_id else None,
-    "student": student,
-    "screenings": screenings,
-    "checklist_groups": checklist_groups,
-    "chart_mode": chart_mode,
-    "chart_labels": chart_labels,
-    "chart_values": chart_values,
-    "chart_reference": chart_reference,
-    "chart_who_curves": chart_who_curves,  # ← add this line
+        "schools": schools,
+        "students_page": students_page,
+        "selected_school_id": int(selected_school_id) if selected_school_id and selected_school_id != "None" else None,
+        "student_name": student_name_query,
+        "selected_student_id": int(selected_student_id) if selected_student_id and selected_student_id != "None" else None,
+        "student": student,
+        "screenings": screenings,
+        "checklist_groups": checklist_groups,
+        "chart_mode": chart_mode,
+        "chart_labels": chart_labels,
+        "chart_values": chart_values,
+        "chart_reference": chart_reference,
+        "chart_who_curves": chart_who_curves,
     }
-
-
+    
     return render(request, "core/screening_summary.html", context)
-
-
 
 logger = logging.getLogger(__name__)
 
