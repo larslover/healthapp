@@ -2,7 +2,15 @@
 from core.utils.processor import bmi_category
 from django.db.models import Prefetch
 from django.urls import reverse
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from django.urls import reverse
+from django.core.paginator import Paginator
+import json
+from django.core.serializers.json import DjangoJSONEncoder
 
+from .models import Student, Screening, School
+from .forms import ScreeningForm, ScreeningCheckForm
 # core/views.py (snippet)
 import json
 from django.core.paginator import Paginator
@@ -672,47 +680,31 @@ def get_school_students(request):
 
     return JsonResponse({"students": data})
 
-from django.shortcuts import render, redirect
-from django.contrib.auth.decorators import login_required
-from django.urls import reverse
-from django.core.paginator import Paginator
-import json
-from django.core.serializers.json import DjangoJSONEncoder
 
-from .models import Student, Screening, School
-from .forms import ScreeningForm, ScreeningCheckForm
 
 @login_required
 def add_screening(request):
-    # ------------------------------------------
-    # GET parameters
-    # ------------------------------------------
+    # --- GET params ---
     selected_school_id = request.GET.get("school")
     student_name_query = request.GET.get("student_name", "")
     selected_student_id = request.GET.get("selected_student")
 
-    # Convert selected_school_id to int if possible
     try:
         selected_school_id = int(selected_school_id)
     except (TypeError, ValueError):
         selected_school_id = None
 
-    # ------------------------------------------
-    # Student list (always available)
-    # ------------------------------------------
+    # --- Students queryset ---
     students = Student.objects.all()
     if selected_school_id:
         students = students.filter(school_id=selected_school_id)
     if student_name_query:
         students = students.filter(name__icontains=student_name_query)
-
     paginator = Paginator(students.order_by("name"), 20)
     page_number = request.GET.get("page")
     students_page = paginator.get_page(page_number)
 
-    # ------------------------------------------
-    # Resolve selected student
-    # ------------------------------------------
+    # --- Selected student ---
     student = None
     if selected_student_id:
         try:
@@ -720,26 +712,11 @@ def add_screening(request):
         except (Student.DoesNotExist, ValueError):
             student = None
 
-    # ------------------------------------------
-    # Fetch previous screenings
-    # ------------------------------------------
-    previous_screenings = []
-    if student:
-        previous_screenings = (
-            Screening.objects
-            .filter(student=student)
-            .select_related("checklist")
-            .order_by("-screen_date")
-        )
-
-    # ------------------------------------------
-    # Forms
-    # ------------------------------------------
+    # --- Forms ---
     if request.method == "POST":
         screening_form = ScreeningForm(request.POST)
         screening_check_form = ScreeningCheckForm(request.POST)
-
-        if screening_form.is_valid() and screening_check_form.is_valid():
+        if screening_form.is_valid() and screening_check_form.is_valid() and student:
             screening = screening_form.save(commit=False)
             screening.student = student
             screening.save()
@@ -748,56 +725,62 @@ def add_screening(request):
             checklist.screening = screening
             checklist.save()
 
-            # Redirect to the same page with query parameters preserved
             return redirect(
                 f"{reverse('add_screening')}?school={selected_school_id or ''}"
                 f"&student_name={student_name_query}&selected_student={student.id}"
             )
     else:
-        screening_form = ScreeningForm(initial={
-            "school": student.school_id if student else None
-        })
+        screening_form = ScreeningForm(initial={"school": student.school_id if student else None})
         screening_check_form = ScreeningCheckForm()
 
-    # ------------------------------------------
-    # Growth chart data for template scripts
-    # ------------------------------------------
-    screenings_for_chart = list(previous_screenings) if student else []
+    # --- Previous screenings ---
+    previous_screenings = list(Screening.objects.filter(student=student).order_by("-screen_date")) if student else []
 
-    # Prepare JSON-safe chart data
-    chart_labels = [s.screen_date.strftime("%Y-%m-%d") for s in screenings_for_chart]
-    chart_values = [s.bmi for s in screenings_for_chart]
-    chart_categories = [s.bmi_category for s in screenings_for_chart]
+    # --- Growth chart ---
+    from django.utils.safestring import mark_safe
+    from core.utils.processor import calculate_age_in_months, calculate_bmi, bmi_category, muac_category
 
-    chart_who_curves = {
-        "-2SD": {"x": [0, 12, 24, 36], "y": [10, 12, 14, 16]},
-        "Median": {"x": [0, 12, 24, 36], "y": [12, 14, 16, 18]},
-        "+2SD": {"x": [0, 12, 24, 36], "y": [14, 16, 18, 20]},
-    }
+    screenings_for_chart = previous_screenings.copy()
+    if student and student.date_of_birth:
+        for s in screenings_for_chart:
+            s.age_in_months = calculate_age_in_months(student.date_of_birth, s.screen_date)
+            s.bmi = calculate_bmi(s.weight, s.height)
+            s.bmi_category = bmi_category(student.gender, s.age_in_months, s.bmi) if s.bmi else "N/A"
+            s.muac_category = muac_category(s.muac, s.age_in_months) if hasattr(s, "muac") else "N/A"
 
-    # ------------------------------------------
-    # Render template
-    # ------------------------------------------
+        chart_mode, chart_labels, chart_values, chart_reference, chart_who_curves = build_chart_data_for_student(
+            screenings_for_chart, student
+        )
+        chart_labels = mark_safe(chart_labels)
+        chart_values = mark_safe(chart_values)
+        chart_reference = mark_safe(chart_reference)
+        chart_who_curves = mark_safe(chart_who_curves)
+    else:
+        chart_mode = "none"
+        chart_labels = mark_safe("[]")
+        chart_values = mark_safe("[]")
+        chart_reference = mark_safe("[]")
+        chart_who_curves = mark_safe("{}")
+
+    # --- Final render ---
     return render(request, "core/new_screening.html", {
         "schools": School.objects.all(),
         "students_page": students_page,
         "selected_school_id": selected_school_id,
         "student_name_query": student_name_query,
         "selected_student_id": selected_student_id,
-
         "student": student,
         "screening_form": screening_form,
         "screening_check_form": screening_check_form,
-
         "previous_screenings": previous_screenings,
         "screenings": screenings_for_chart,
-
-        "chart_mode": "bmi",
-        "chart_labels": json.dumps(chart_labels, cls=DjangoJSONEncoder),
-        "chart_values": json.dumps(chart_values, cls=DjangoJSONEncoder),
-        "chart_reference": json.dumps(chart_categories, cls=DjangoJSONEncoder),
-        "chart_who_curves": json.dumps(chart_who_curves, cls=DjangoJSONEncoder),
+        "chart_mode": chart_mode,
+        "chart_labels": chart_labels,
+        "chart_values": chart_values,
+        "chart_reference": chart_reference,
+        "chart_who_curves": chart_who_curves,
     })
+
 
 def ajax_student_search(request):
     q = request.GET.get('q', '').strip()

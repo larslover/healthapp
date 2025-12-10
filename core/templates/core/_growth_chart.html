@@ -34,12 +34,10 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
     }
 
-    // Convert months to "Xy Ym" for BMI chart
     if (chartMode === "bmi") {
         labels = labels.map(m => `${Math.floor(m/12)}y ${m%12}m`);
     }
 
-    // Sort WFH by height
     if (chartMode === "wfh") {
         const points = labels.map((h,i)=>({x:h,y:values[i],category:categories[i]}));
         points.sort((a,b)=>a.x-b.x);
