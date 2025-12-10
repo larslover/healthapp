@@ -3,9 +3,7 @@
 
 {% block content %}
 <div class="container my-4">
-  <div style="color:red;">
-    DEBUG selected_student: {{ selected_student_id }}
-  </div>
+  
   <!-- Page Header -->
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h2 class="fw-bold">New Screening</h2>
@@ -152,6 +150,29 @@
       <div class="col-md-3">{{ screening_form.height.label_tag }} {{ screening_form.height }}</div>
     </div>
 
+
+    <div class="card mb-4 shadow-sm">
+      <div class="card-header bg-info text-white fw-bold">Growth Reference (Live)</div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label>Indicator</label>
+            <input type="text" id="growthIndicator" class="form-control" readonly>
+          </div>
+    
+          <div class="col-md-4">
+            <label>Value</label>
+            <input type="text" id="growthValue" class="form-control" readonly>
+          </div>
+    
+          <div class="col-md-4">
+            <label>Category</label>
+            <input type="text" id="growthCategory" class="form-control" readonly>
+          </div>
+        </div>
+      </div>
+    </div>
+    
     <!-- Previous Screenings -->
     <div id="screeningsSummaryCard" class="card mb-4 shadow-sm {% if not screenings %}d-none{% endif %}">
       <div class="card-header bg-info text-white fw-bold">Previous Screenings</div>
@@ -251,7 +272,8 @@ document.addEventListener('DOMContentLoaded', function() {
       const height = parseFloat(heightInput?.value);
       const screenDate = screenDateInput?.value;
 
-      if (!weight || !height || !currentDob || !currentGender || !screenDate) {
+      if (!weightInput.value || !heightInput.value || !currentDob || !currentGender || !screenDate) {
+
           indicatorField.value = valueField.value = categoryField.value = '';
           return;
       }

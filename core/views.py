@@ -149,16 +149,28 @@ def growth_reference_api(request):
         screen_date = datetime.strptime(screen_date, "%Y-%m-%d").date()
 
         age_months = calculate_age_in_months(dob, screen_date)
+
+        response = {"age_months": age_months}
+
+        # ----------------------------
+        # Under 5 years → Weight-for-Height only
+        # ----------------------------
+        if age_months <= 60:
+            wfh_cat = weight_height_category(weight, height, age_months, gender)
+            response["weight_for_height"] = wfh_cat
+            return JsonResponse(response)
+
+        # ----------------------------
+        # Over 5 years → BMI-for-age only
+        # ----------------------------
         bmi = calculate_bmi(weight, height)
         bmi_cat = bmi_category(gender, age_months, bmi)
-        wfh_cat = weight_height_category(weight, height, age_months, gender)
 
-        return JsonResponse({
-            "age_months": age_months,
-            "bmi": bmi,
-            "bmi_category": bmi_cat,
-            "weight_for_height": wfh_cat
-        })
+        response["bmi"] = bmi
+        response["bmi_category"] = bmi_cat
+
+        return JsonResponse(response)
+
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
 
