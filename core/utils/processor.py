@@ -89,16 +89,16 @@ def bmi_category(gender: str, age_months: int, bmi_value: float) -> str:
         return "overweight"
     else:
         return "obese"
-
-def muac_category(muac_value: float, age_months: int) -> str:
+def muac_category(muac_value: float | None, age_months: int) -> str:
     """
     Classify MUAC (Mid-Upper Arm Circumference) for ages 6–60 months.
     Returns: 'normal', 'severe acute malnutrition', or 'N/A'.
     """
+    if muac_value is None:
+        return "N/A"
     if age_months < 6 or age_months > 60:
         return "N/A"
     return "normal" if muac_value >= 11.5 else "severe acute malnutrition"
-
 
 # ============================================================
 # Weight-for-Height Category
