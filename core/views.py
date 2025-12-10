@@ -343,34 +343,53 @@ def build_chart_data_for_student(screenings, student):
 # The view
 # -------------------------
 
+
+
+
 @login_required(login_url='login')
-
-
 def screening_summary(request):
-    # --- Get filter params ---
+
+    # -----------------------------------
+    # 1. GET FILTER PARAMETERS
+    # -----------------------------------
     selected_school_id = request.GET.get('school')
     student_name_query = request.GET.get('student_name', '').strip()
     selected_student_id = request.GET.get('selected_student')
-    
-    # --- Fetch all schools ---
+
+    # -----------------------------------
+    # 2. SCHOOLS LIST
+    # -----------------------------------
     schools = School.objects.all()
-    
-    # --- Filter students by selected school and name ---
+
+    # -----------------------------------
+    # 3. FILTER STUDENTS
+    # -----------------------------------
     students_qs = Student.objects.all()
-    if selected_school_id and selected_school_id != "None":
+
+    if selected_school_id and selected_school_id not in ("None", ""):
         students_qs = students_qs.filter(school_id=selected_school_id)
+
     if student_name_query:
         students_qs = students_qs.filter(name__icontains=student_name_query)
-    students_qs = students_qs.order_by('name')
-    
-    # --- Paginate students ---
+
+    students_qs = students_qs.order_by("name")
+
+    # Pagination
     paginator = Paginator(students_qs, 10)
-    page_number = request.GET.get('page')
+    page_number = request.GET.get("page")
     students_page = paginator.get_page(page_number)
-    
-    # --- Initialize defaults ---
-    student = None
-    screenings = []
+
+    # -----------------------------------
+    # 4. DEFAULTS FOR CHART (always defined!)
+    # -----------------------------------
+    chart_mode = "none"
+    bmi_labels = bmi_values = bmi_categories = mark_safe("[]")
+    wfh_labels = wfh_values = wfh_categories = mark_safe("[]")
+    chart_who_curves = mark_safe("{}")
+
+    # -----------------------------------
+    # 5. CHECKLIST GROUPS (static)
+    # -----------------------------------
     checklist_groups = {
         "Preventive Care": ["deworming", "vaccination"],
         "Nutritional / Medical Conditions": [
@@ -391,49 +410,75 @@ def screening_summary(request):
             "E6_UTI_STI", "E7_discharge", "E8_menstrual_pain", "E9_remarks"
         ]
     }
-    
-    # --- If a student is selected ---
-    if selected_student_id and selected_student_id != "None":
+
+    # -----------------------------------
+    # 6. LOAD SCREENINGS FOR SELECTED STUDENT
+    # -----------------------------------
+    student = None
+    screenings = []
+
+    if selected_student_id and selected_student_id not in ("None", ""):
         student = get_object_or_404(Student, id=selected_student_id)
-        screenings = list(Screening.objects.filter(student=student).order_by('screen_date'))
-        
+
+        screenings = list(
+            Screening.objects.filter(student=student).order_by("screen_date")
+        )
+
+        # Enrich screenings
         for s in screenings:
             s.checklist_dict = get_checklist_for_screening(s, checklist_groups)
             s.muac_category = muac_category_for(s, student)
-            
+
             if student.date_of_birth:
-                indicator, category, plot_value, age_m = determine_growth_for_screening(s, student)
+                indicator, cat, plot_val, age_m = determine_growth_for_screening(s, student)
             else:
-                indicator, category, plot_value, age_m = None, None, None, 0
-            
+                indicator, cat, plot_val, age_m = None, None, None, 0
+
             s.growth_indicator = indicator
-            s.growth_category = category
+            s.growth_category = cat
             s.age_in_months = age_m
-        
-        # Build chart data only if DOB exists
+
+        # -----------------------------------
+        # 7. Build Chart Data (safe)
+        # -----------------------------------
         if student.date_of_birth:
-            chart_mode, chart_labels, chart_values, chart_reference, chart_who_curves = build_chart_data_for_student(screenings, student)
-        else:
-            chart_mode, chart_labels, chart_values, chart_reference, chart_who_curves = "none", mark_safe("[]"), mark_safe("[]"), mark_safe("[]"), mark_safe("{}")
-    else:
-        chart_mode, chart_labels, chart_values, chart_reference, chart_who_curves = "none", mark_safe("[]"), mark_safe("[]"), mark_safe("[]"), mark_safe("{}")
-    
+            (
+                bmi_labels,
+                bmi_values,
+                bmi_categories,
+                wfh_labels,
+                wfh_values,
+                wfh_categories,
+                chart_who_curves
+            ) = build_chart_data_for_student(screenings, student)
+
+            # For now default to BMI chart
+            chart_mode = "bmi"
+
+    # -----------------------------------
+    # 8. CONTEXT
+    # -----------------------------------
     context = {
         "schools": schools,
         "students_page": students_page,
-        "selected_school_id": int(selected_school_id) if selected_school_id and selected_school_id != "None" else None,
+        "selected_school_id": int(selected_school_id) if selected_school_id and selected_school_id not in ("None", "") else None,
         "student_name": student_name_query,
-        "selected_student_id": int(selected_student_id) if selected_student_id and selected_student_id != "None" else None,
+        "selected_student_id": int(selected_student_id) if selected_student_id and selected_student_id not in ("None", "") else None,
         "student": student,
         "screenings": screenings,
         "checklist_groups": checklist_groups,
+
+        # Chart Data
         "chart_mode": chart_mode,
-        "chart_labels": chart_labels,
-        "chart_values": chart_values,
-        "chart_reference": chart_reference,
+        "bmi_labels": bmi_labels,
+        "bmi_values": bmi_values,
+        "bmi_categories": bmi_categories,
+        "wfh_labels": wfh_labels,
+        "wfh_values": wfh_values,
+        "wfh_categories": wfh_categories,
         "chart_who_curves": chart_who_curves,
     }
-    
+
     return render(request, "core/screening_summary.html", context)
 
 logger = logging.getLogger(__name__)
