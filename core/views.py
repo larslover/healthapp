@@ -303,76 +303,40 @@ def determine_growth_for_screening(screening, student):
 
 
 def build_chart_data_for_student(screenings, student):
-    """
-    Decide chart_mode based on latest screening age:
-      - If any screening has age > 60 months => 'bmi' mode
-      - else => 'wfh' (weight-for-height) mode
-
-    Returns:
-      (chart_mode, labels_json, values_json, refs_json, who_curves_json)
-    """
     if not screenings:
-        return "none", mark_safe("[]"), mark_safe("[]"), mark_safe("[]"), mark_safe("{}")
+        empty = mark_safe("[]")
+        return empty, empty, empty, empty, empty, empty, empty
 
-    # Compute ages for each screening
-    ages = [calculate_age_in_months(student.date_of_birth, s.screen_date) or 0 for s in screenings]
-    latest_age = max(ages) if ages else 0
-    chart_mode = "bmi" if latest_age > 60 else "wfh"
-
-    labels, values, refs = [], [], []
+    bmi_labels, bmi_values, bmi_categories = [], [], []
+    wfh_labels, wfh_values, wfh_categories = [], [], []
 
     for s in screenings:
         indicator, category, plot_value, age_m = determine_growth_for_screening(s, student)
-
         if plot_value is None:
             continue
 
-        if chart_mode == "bmi" and indicator == "BMI-for-Age":
-            labels.append(age_m)  # x-axis = age (months)
-            values.append(plot_value)
-            refs.append(category)
-        elif chart_mode == "wfh" and indicator == "Weight-for-Height":
-            # collect tuples first
-       
-            labels.append(s.height)   # x-axis = height
-            values.append(plot_value)  # y-axis = actual weight
-            refs.append(category)
+        if indicator == "BMI-for-Age":
+            bmi_labels.append(age_m)
+            bmi_values.append(plot_value)
+            bmi_categories.append(category)
+        elif indicator == "Weight-for-Height":
+            wfh_labels.append(s.height)
+            wfh_values.append(plot_value)
+            wfh_categories.append(category)
 
-
-
-    # Get WHO reference curves for current chart type + gender
+    # WHO curves (for both charts)
     gender = "male" if student.gender.lower().startswith("m") else "female"
-    who_curves = get_who_reference_curves(chart_mode, gender)
-
-    # Format background SD lines for plotting (like BMI chart)
-    background_lines = []
-    for label, curve in who_curves.items():
-        background_lines.append({
-            "label": label,  # e.g. "-2SD"
-            "x": curve["x"],
-            "y": curve["y"],
-        })
-
-    combined_data = {
-        "background": background_lines,  # seven WHO reference lines
-        "student": {
-            "x": labels,
-            "y": values,
-            "categories": refs,
-        },
-    }
-    print("=== WHO CURVES DEBUG ===")
-    print("Chart Mode:", chart_mode)
-    print("Gender:", gender)
-    print("Curves Keys:", list(who_curves.keys()))
+    who_curves = get_who_reference_curves("bmi", gender)  # BMI curves
+    # Optionally, WFH curves separately if needed
 
     return (
-        chart_mode,
-        mark_safe(json.dumps(labels)),
-        mark_safe(json.dumps(values)),
-        mark_safe(json.dumps(refs)),
+        mark_safe(json.dumps(bmi_labels)),
+        mark_safe(json.dumps(bmi_values)),
+        mark_safe(json.dumps(bmi_categories)),
+        mark_safe(json.dumps(wfh_labels)),
+        mark_safe(json.dumps(wfh_values)),
+        mark_safe(json.dumps(wfh_categories)),
         mark_safe(json.dumps(who_curves)),
-  # contains both student + reference lines
     )
 
 # -------------------------
@@ -760,38 +724,35 @@ def add_screening(request):
             s.bmi_category = bmi_category(student.gender, s.age_in_months, s.bmi) if s.bmi else "N/A"
             s.muac_category = muac_category(s.muac, s.age_in_months) if hasattr(s, "muac") else "N/A"
 
-        chart_mode, chart_labels, chart_values, chart_reference, chart_who_curves = build_chart_data_for_student(
+        bmi_labels, bmi_values, bmi_categories, wfh_labels, wfh_values, wfh_categories, chart_who_curves = build_chart_data_for_student(
             screenings_for_chart, student
         )
-        chart_labels = mark_safe(chart_labels)
-        chart_values = mark_safe(chart_values)
-        chart_reference = mark_safe(chart_reference)
-        chart_who_curves = mark_safe(chart_who_curves)
     else:
-        chart_mode = "none"
-        chart_labels = mark_safe("[]")
-        chart_values = mark_safe("[]")
-        chart_reference = mark_safe("[]")
+        bmi_labels = bmi_values = bmi_categories = mark_safe("[]")
+        wfh_labels = wfh_values = wfh_categories = mark_safe("[]")
         chart_who_curves = mark_safe("{}")
 
     # --- Final render ---
     return render(request, "core/new_screening.html", {
-        "schools": School.objects.all(),
-        "students_page": students_page,
-        "selected_school_id": selected_school_id,
-        "student_name_query": student_name_query,
-        "selected_student_id": selected_student_id,
-        "student": student,
-        "screening_form": screening_form,
-        "screening_check_form": screening_check_form,
-        "previous_screenings": previous_screenings,
-        "screenings": screenings_for_chart,
-        "chart_mode": chart_mode,
-        "chart_labels": chart_labels,
-        "chart_values": chart_values,
-        "chart_reference": chart_reference,
-        "chart_who_curves": chart_who_curves,
-    })
+    "schools": School.objects.all(),
+    "students_page": students_page,
+    "selected_school_id": selected_school_id,
+    "student_name_query": student_name_query,
+    "selected_student_id": selected_student_id,
+    "student": student,
+    "screening_form": screening_form,
+    "screening_check_form": screening_check_form,
+    "previous_screenings": previous_screenings,
+    "screenings": screenings_for_chart,
+    "bmi_labels": bmi_labels,
+    "bmi_values": bmi_values,
+    "bmi_categories": bmi_categories,
+    "wfh_labels": wfh_labels,
+    "wfh_values": wfh_values,
+    "wfh_categories": wfh_categories,
+    "chart_who_curves": chart_who_curves,
+})
+
 
 
 def ajax_student_search(request):

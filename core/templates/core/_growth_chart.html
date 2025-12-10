@@ -11,7 +11,15 @@
         Growth Tracking
       {% endif %}
     </p>
-    <div id="growthChart" style="width:100%;height:500px;"></div>
+
+    <div id="bmiChartWrapper" class="mb-4" {% if not bmi_labels or bmi_labels|length == 0 %}style="display:none;"{% endif %}>
+      <div id="bmiChart" style="width:100%;height:500px;"></div>
+    </div>
+
+    <div id="wfhChartWrapper" {% if not wfh_labels or wfh_labels|length == 0 %}style="display:none;"{% endif %}>
+      <div id="wfhChart" style="width:100%;height:500px;"></div>
+    </div>
+
     {% if not chart_labels %}
       <p class="text-muted">No growth data available for this student yet.</p>
     {% endif %}
@@ -23,28 +31,16 @@
 {% if chart_mode != "none" %}
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-    const chartMode = "{{ chart_mode }}";
-    let labels = {{ chart_labels|default:"[]"|safe }};
-    let values = {{ chart_values|default:"[]"|safe }};
-    let categories = {{ chart_reference|default:"[]"|safe }};
-    const whoCurves = {{ chart_who_curves|default:"{}"|safe }};
 
-    if (!labels.length) {
-        document.getElementById("growthChart").innerHTML = "<p class='text-muted'>No data available</p>";
-        return;
-    }
+    const bmiLabels = JSON.parse(`{{ bmi_labels|default:"[]"|escapejs }}`);
+    const bmiValues = JSON.parse(`{{ bmi_values|default:"[]"|escapejs }}`);
+    const bmiCats   = JSON.parse(`{{ bmi_categories|default:"[]"|escapejs }}`);
 
-    if (chartMode === "bmi") {
-        labels = labels.map(m => `${Math.floor(m/12)}y ${m%12}m`);
-    }
+    const wfhLabels = JSON.parse(`{{ wfh_labels|default:"[]"|escapejs }}`);
+    const wfhValues = JSON.parse(`{{ wfh_values|default:"[]"|escapejs }}`);
+    const wfhCats   = JSON.parse(`{{ wfh_categories|default:"[]"|escapejs }}`);
 
-    if (chartMode === "wfh") {
-        const points = labels.map((h,i)=>({x:h,y:values[i],category:categories[i]}));
-        points.sort((a,b)=>a.x-b.x);
-        labels = points.map(p=>p.x);
-        values = points.map(p=>p.y);
-        categories = points.map(p=>p.category);
-    }
+    const whoCurves = JSON.parse(`{{ chart_who_curves|default:"{}"|escapejs }}`);
 
     const colorMap = {
         "Severe Acute Malnutrition": "red",
@@ -55,40 +51,78 @@ document.addEventListener("DOMContentLoaded", () => {
         "N/A": "gray"
     };
 
-    const studentTrace = {
-        x: labels,
-        y: values,
-        mode: "markers+lines",
-        name: "Student",
-        marker: { size: 10, color: categories.map(c => colorMap[c] || "gray"), line:{width:1,color:"#222"} },
-        line: { color:"#333", width:1 }
-    };
+    const sdColors = [
+        "rgba(255,0,0,0.4)", "rgba(255,100,0,0.4)", "rgba(255,165,0,0.4)",
+        "rgba(0,150,0,0.4)", "rgba(0,100,255,0.4)", "rgba(100,0,255,0.4)",
+        "rgba(150,0,150,0.4)"
+    ];
 
-    const sdColors = ["rgba(255,0,0,0.4)","rgba(255,100,0,0.4)","rgba(255,165,0,0.4)","rgba(0,150,0,0.4)","rgba(0,100,255,0.4)","rgba(100,0,255,0.4)","rgba(150,0,150,0.4)"];
     const sdLabels = ["-3SD","-2SD","-1SD","Median","+1SD","+2SD","+3SD"];
 
-    const whoTraces = sdLabels.filter(label => whoCurves[label] && whoCurves[label].x && whoCurves[label].y)
-        .map((label,i)=>({
-            x: chartMode==="bmi"
-                ? whoCurves[label].x.map(m=>`${Math.floor(m/12)}y ${m%12}m`)
-                : whoCurves[label].x,
-            y: whoCurves[label].y,
-            mode: "lines",
-            name: label,
-            line: { width: label==="Median"?2.5:1.2, dash:"solid", color:sdColors[i] },
-            hoverinfo:"none",
-            showlegend:true
-        }));
+    function buildWhoTraces(mapToAge) {
+        return sdLabels
+            .filter(label => whoCurves[label]?.x && whoCurves[label]?.y)
+            .map((label, i) => ({
+                x: mapToAge
+                    ? whoCurves[label].x.map(m => `${Math.floor(m/12)}y ${m%12}m`)
+                    : whoCurves[label].x,
+                y: whoCurves[label].y,
+                mode: "lines",
+                name: label,
+                line: { width: label === "Median" ? 2.5 : 1.2, color: sdColors[i] },
+                hoverinfo: "none",
+                showlegend: true
+            }));
+    }
 
-    Plotly.newPlot("growthChart", [...whoTraces, studentTrace], {
-        title: chartMode==="bmi"?"BMI-for-Age (WHO)":"Weight-for-Height (WHO)",
-        xaxis: { title: chartMode==="bmi"?"Age (years & months)":"Height (cm)", gridcolor:"rgba(200,200,200,0.2)" },
-        yaxis: { title: chartMode==="bmi"?"BMI (kg/m²)":"Weight (kg)", gridcolor:"rgba(200,200,200,0.2)" },
-        legend:{orientation:"h", y:-0.2},
-        plot_bgcolor:"#f9f9f9",
-        paper_bgcolor:"#fff",
-        margin:{t:60,b:60,l:60,r:20}
-    });
+    // --------------------------- BMI CHART ---------------------------
+    if (bmiLabels.length && bmiValues.length) {
+        const studentTrace = {
+            x: bmiLabels.map(m => `${Math.floor(m/12)}y ${m%12}m`),
+            y: bmiValues,
+            mode: "markers+lines",
+            name: "Student",
+            marker: {
+                size: 10,
+                color: bmiCats.map(c => colorMap[c] || "gray"),
+                line: { width: 1, color: "#222" }
+            }
+        };
+
+        Plotly.newPlot("bmiChart", [...buildWhoTraces(true), studentTrace], {
+            title: "BMI-for-Age (WHO)",
+            xaxis: { title: "" },
+            yaxis: { title: "BMI (kg/m²)" },
+            legend: { orientation: "h", y: -0.2 }
+        });
+    } else {
+        document.getElementById("bmiChartWrapper").style.display = "none";
+    }
+
+    // --------------------------- WFH CHART ---------------------------
+    if (wfhLabels.length && wfhValues.length) {
+        const studentTrace = {
+            x: wfhLabels,
+            y: wfhValues,
+            mode: "markers+lines",
+            name: "Student",
+            marker: {
+                size: 10,
+                color: wfhCats.map(c => colorMap[c] || "gray"),
+                line: { width: 1, color: "#222" }
+            }
+        };
+
+        Plotly.newPlot("wfhChart", [...buildWhoTraces(false), studentTrace], {
+            title: "Weight-for-Height (WHO)",
+            xaxis: { title: "Height (cm)" },
+            yaxis: { title: "Weight (kg)" },
+            legend: { orientation: "h", y: -0.2 }
+        });
+    } else {
+        document.getElementById("wfhChartWrapper").style.display = "none";
+    }
+
 });
 </script>
 {% endif %}
