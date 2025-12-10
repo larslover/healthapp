@@ -1,6 +1,8 @@
 
 from core.utils.processor import bmi_category
 from django.db.models import Prefetch
+from django.urls import reverse
+
 # core/views.py (snippet)
 import json
 from django.core.paginator import Paginator
@@ -670,138 +672,97 @@ def get_school_students(request):
 
     return JsonResponse({"students": data})
 
-@login_required(login_url='login')
+@login_required
 def add_screening(request):
-
-    # -----------------------------
-    # FILTER INPUTS
-    # -----------------------------
-    student_name_query = request.GET.get("student_name", "").strip()
     selected_school_id = request.GET.get("school")
+    student_name_query = request.GET.get("student_name", "")
     selected_student_id = request.GET.get("selected_student")
 
-    # Normalize school id
-    if selected_school_id in ["", "None", None]:
-        selected_school_id = None
-    else:
-        selected_school_id = int(selected_school_id)
-
-    # Normalize student id
-    if selected_student_id in ["", "None", None]:
-        selected_student_id = None
-    else:
-        selected_student_id = int(selected_student_id)
-
-    page_number = request.GET.get("page")
-
-    # -----------------------------
-    # FETCH SCHOOLS
-    # -----------------------------
-    schools = School.objects.all()
-
-    # -----------------------------
-    # BUILD STUDENT QUERY
-    # -----------------------------
-    students_qs = Student.objects.all().order_by("name")
+    # ------------------------------------------
+    # Student list (always available)
+    # ------------------------------------------
+    students = Student.objects.all()
 
     if selected_school_id:
-        students_qs = students_qs.filter(school_id=selected_school_id)
+        students = students.filter(school_id=selected_school_id)
 
     if student_name_query:
-        students_qs = students_qs.filter(name__icontains=student_name_query)
+        students = students.filter(name__icontains=student_name_query)
 
-    paginator = Paginator(students_qs, 10)
+    paginator = Paginator(students.order_by("name"), 20)
+    page_number = request.GET.get("page")
     students_page = paginator.get_page(page_number)
 
-    # -----------------------------
-    # SELECTED STUDENT DETAILS
-    # -----------------------------
+    # ------------------------------------------
+    # Resolve selected student
+    # ------------------------------------------
     student = None
-    age_in_months = None
-    last_remarks = None
-    student_card_html = ""
-
     if selected_student_id:
-        student = get_object_or_404(Student, id=selected_student_id)
+        try:
+            student = Student.objects.get(id=selected_student_id)
+        except Student.DoesNotExist:
+            student = None
 
-        # Age calculation date
-        screen_date_str = request.GET.get("screen_date") or request.POST.get("screen_date")
-        if student.date_of_birth and screen_date_str:
-            try:
-                screen_date = datetime.strptime(screen_date_str, "%Y-%m-%d").date()
-                age_in_months = calculate_age_in_months(student.date_of_birth, screen_date)
-            except:
-                age_in_months = None
+    # ------------------------------------------
+    # Fetch previous screenings
+    # ------------------------------------------
+    previous_screenings = []
+    if student:
+        previous_screenings = (
+            Screening.objects
+            .filter(student=student)
+            .select_related("checklist")
+            .order_by("-screen_date")
+        )
 
-        # Last remarks
-        last_screening = Screening.objects.filter(student=student).order_by("-screen_date").first()
-        if last_screening and hasattr(last_screening, "checklist"):
-            last_remarks = getattr(last_screening.checklist, "E9_remarks", None)
-
-        # Render student card partial
-        student_card_html = render_to_string("core/_student_card.html", {"student": student})
-
-    # -----------------------------
-    # FORM SUBMISSION
-    # -----------------------------
+    # ------------------------------------------
+    # Create forms (bound or unbound)
+    # ------------------------------------------
     if request.method == "POST":
-
-        if not student:
-            messages.error(request, "Please select a student first.")
-            return redirect("new_screening")
-
         screening_form = ScreeningForm(request.POST)
         screening_check_form = ScreeningCheckForm(request.POST)
 
         if screening_form.is_valid() and screening_check_form.is_valid():
-
             screening = screening_form.save(commit=False)
             screening.student = student
-
-            try:
-                screening.calculate_metrics()
-            except Exception as e:
-                messages.error(request, f"Error calculating metrics: {e}")
-                return render(request, "core/new_screening.html", {
-                    "schools": schools,
-                    "students_page": students_page,
-                    "screening_form": screening_form,
-                    "screening_check_form": screening_check_form,
-                    "age_in_months": age_in_months,
-                    "last_remarks": last_remarks,
-                    "student_card_html": student_card_html,
-                    "student_name_query": student_name_query,
-                    "selected_school_id": selected_school_id,
-                    "selected_student_id": selected_student_id,
-                })
-
             screening.save()
-            check = screening_check_form.save(commit=False)
-            check.screening = screening
-            check.save()
 
-            messages.success(request, f"Screening for {student.name} saved successfully!")
-            return redirect("new_screening")
+            checklist = screening_check_form.save(commit=False)
+            checklist.screening = screening
+            checklist.save()
 
-    # -----------------------------
-    # RENDER PAGE
-    # -----------------------------
-    screening_form = ScreeningForm()
-    screening_check_form = ScreeningCheckForm()
+            return redirect(
+                reverse("add_screening")
+                + f"?school={selected_school_id}&student_name={student_name_query}&selected_student={student.id}"
+            )
+    else:
+        screening_form = ScreeningForm(initial={
+            "school": student.school_id if student else None
+        })
+        screening_check_form = ScreeningCheckForm()
 
+    # ------------------------------------------
+    # Growth chart data for template scripts
+    # ------------------------------------------
+    screenings_for_chart = list(previous_screenings) if student else []
+
+    # ------------------------------------------
+    # Render page
+    # ------------------------------------------
+   
     return render(request, "core/new_screening.html", {
-        "schools": schools,
+        "schools": School.objects.all(),
         "students_page": students_page,
+        "selected_school_id": selected_school_id,
+        "student_name_query": student_name_query,
+        "selected_student_id": selected_student_id,
+
+        "student": student,
         "screening_form": screening_form,
         "screening_check_form": screening_check_form,
-        "age_in_months": age_in_months,
-        "last_remarks": last_remarks,
-        "student_card_html": student_card_html,
-         "student": student,  #   <---  FIX
 
-        "student_name_query": student_name_query,
-        "selected_school_id": selected_school_id,
-        "selected_student_id": selected_student_id,
+        "previous_screenings": previous_screenings,
+        "screenings": screenings_for_chart,
     })
 
 
