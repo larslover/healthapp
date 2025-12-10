@@ -1,9 +1,8 @@
-<!-- core/_growth_chart.html -->
 <div class="card mb-4 shadow-sm" id="growthChartCard">
   <div class="card-header bg-success text-white fw-bold">Growth Chart</div>
   <div class="card-body">
     <p class="mb-2">
-      <strong>Chart Type:</strong> 
+      <strong>Chart Type:</strong>
       {% if chart_mode == "bmi" %}
         BMI-for-Age (WHO Reference)
       {% elif chart_mode == "wfh" %}
@@ -12,42 +11,41 @@
         Growth Tracking
       {% endif %}
     </p>
-    <div id="growthChart" style="width:100%;height:400px;"></div>
-    {% if not labels %}
+    <div id="growthChart" style="width:100%;height:500px;"></div>
+    {% if not chart_labels %}
       <p class="text-muted">No growth data available for this student yet.</p>
     {% endif %}
   </div>
 </div>
 
+<script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
+
+{% if chart_mode != "none" %}
 <script>
-function renderGrowthChart(chartData) {
-    if (!chartData || !chartData.labels || chartData.labels.length === 0) {
+document.addEventListener("DOMContentLoaded", () => {
+    const chartMode = "{{ chart_mode }}";
+    let labels = {{ chart_labels|default:"[]"|safe }};
+    let values = {{ chart_values|default:"[]"|safe }};
+    let categories = {{ chart_reference|default:"[]"|safe }};
+    const whoCurves = {{ chart_who_curves|default:"{}"|safe }};
+
+    if (!labels.length) {
         document.getElementById("growthChart").innerHTML = "<p class='text-muted'>No data available</p>";
         return;
     }
 
-    let chartMode = chartData.chart_mode;
-    let labels = chartData.labels;
-    let values = chartData.values;
-    let categories = chartData.reference;
-    const whoCurves = chartData.who_curves || {};
-
-    // Convert months to "Xy Ym" for BMI
+    // Convert months to "Xy Ym" for BMI chart
     if (chartMode === "bmi") {
-        labels = labels.map(m => {
-            const years = Math.floor(m / 12);
-            const months = m % 12;
-            return `${years}y ${months}m`;
-        });
+        labels = labels.map(m => `${Math.floor(m/12)}y ${m%12}m`);
     }
 
-    // Sort for WFH chart
+    // Sort WFH by height
     if (chartMode === "wfh") {
-        const points = labels.map((h, i) => ({ x: h, y: values[i], category: categories[i] }));
-        points.sort((a,b) => a.x - b.x);
-        labels = points.map(p => p.x);
-        values = points.map(p => p.y);
-        categories = points.map(p => p.category);
+        const points = labels.map((h,i)=>({x:h,y:values[i],category:categories[i]}));
+        points.sort((a,b)=>a.x-b.x);
+        labels = points.map(p=>p.x);
+        values = points.map(p=>p.y);
+        categories = points.map(p=>p.category);
     }
 
     const colorMap = {
@@ -64,27 +62,25 @@ function renderGrowthChart(chartData) {
         y: values,
         mode: "markers+lines",
         name: "Student",
-        marker: { size:10, color: categories.map(c=>colorMap[c]||"gray"), line:{width:1,color:"#222"} },
+        marker: { size: 10, color: categories.map(c => colorMap[c] || "gray"), line:{width:1,color:"#222"} },
         line: { color:"#333", width:1 }
     };
 
-    const sdColors = [
-        "rgba(255, 0, 0, 0.4)", "rgba(255, 100, 0, 0.4)", "rgba(255, 165, 0, 0.4)",
-        "rgba(0, 150, 0, 0.4)", "rgba(0, 100, 255, 0.4)", "rgba(100, 0, 255, 0.4)", "rgba(150, 0, 150, 0.4)"
-    ];
+    const sdColors = ["rgba(255,0,0,0.4)","rgba(255,100,0,0.4)","rgba(255,165,0,0.4)","rgba(0,150,0,0.4)","rgba(0,100,255,0.4)","rgba(100,0,255,0.4)","rgba(150,0,150,0.4)"];
     const sdLabels = ["-3SD","-2SD","-1SD","Median","+1SD","+2SD","+3SD"];
 
-    const whoTraces = sdLabels.filter(label => whoCurves[label]).map((label,i) => ({
-        x: chartMode === "bmi"
-            ? whoCurves[label].x.map(m => `${Math.floor(m/12)}y ${m%12}m`)
-            : whoCurves[label].x,
-        y: whoCurves[label].y,
-        mode: "lines",
-        name: label,
-        line: { width: label==="Median"?2.5:1.2, dash:label.includes("SD")?"solid":"dot", color:sdColors[i] },
-        hoverinfo:"none",
-        showlegend:true
-    }));
+    const whoTraces = sdLabels.filter(label => whoCurves[label] && whoCurves[label].x && whoCurves[label].y)
+        .map((label,i)=>({
+            x: chartMode==="bmi"
+                ? whoCurves[label].x.map(m=>`${Math.floor(m/12)}y ${m%12}m`)
+                : whoCurves[label].x,
+            y: whoCurves[label].y,
+            mode: "lines",
+            name: label,
+            line: { width: label==="Median"?2.5:1.2, dash:"solid", color:sdColors[i] },
+            hoverinfo:"none",
+            showlegend:true
+        }));
 
     Plotly.newPlot("growthChart", [...whoTraces, studentTrace], {
         title: chartMode==="bmi"?"BMI-for-Age (WHO)":"Weight-for-Height (WHO)",
@@ -95,5 +91,6 @@ function renderGrowthChart(chartData) {
         paper_bgcolor:"#fff",
         margin:{t:60,b:60,l:60,r:20}
     });
-}
+});
 </script>
+{% endif %}

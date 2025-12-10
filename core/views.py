@@ -672,20 +672,37 @@ def get_school_students(request):
 
     return JsonResponse({"students": data})
 
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from django.urls import reverse
+from django.core.paginator import Paginator
+import json
+from django.core.serializers.json import DjangoJSONEncoder
+
+from .models import Student, Screening, School
+from .forms import ScreeningForm, ScreeningCheckForm
+
 @login_required
 def add_screening(request):
+    # ------------------------------------------
+    # GET parameters
+    # ------------------------------------------
     selected_school_id = request.GET.get("school")
     student_name_query = request.GET.get("student_name", "")
     selected_student_id = request.GET.get("selected_student")
+
+    # Convert selected_school_id to int if possible
+    try:
+        selected_school_id = int(selected_school_id)
+    except (TypeError, ValueError):
+        selected_school_id = None
 
     # ------------------------------------------
     # Student list (always available)
     # ------------------------------------------
     students = Student.objects.all()
-
     if selected_school_id:
         students = students.filter(school_id=selected_school_id)
-
     if student_name_query:
         students = students.filter(name__icontains=student_name_query)
 
@@ -700,7 +717,7 @@ def add_screening(request):
     if selected_student_id:
         try:
             student = Student.objects.get(id=selected_student_id)
-        except Student.DoesNotExist:
+        except (Student.DoesNotExist, ValueError):
             student = None
 
     # ------------------------------------------
@@ -716,7 +733,7 @@ def add_screening(request):
         )
 
     # ------------------------------------------
-    # Create forms (bound or unbound)
+    # Forms
     # ------------------------------------------
     if request.method == "POST":
         screening_form = ScreeningForm(request.POST)
@@ -731,9 +748,10 @@ def add_screening(request):
             checklist.screening = screening
             checklist.save()
 
+            # Redirect to the same page with query parameters preserved
             return redirect(
-                reverse("add_screening")
-                + f"?school={selected_school_id}&student_name={student_name_query}&selected_student={student.id}"
+                f"{reverse('add_screening')}?school={selected_school_id or ''}"
+                f"&student_name={student_name_query}&selected_student={student.id}"
             )
     else:
         screening_form = ScreeningForm(initial={
@@ -746,10 +764,20 @@ def add_screening(request):
     # ------------------------------------------
     screenings_for_chart = list(previous_screenings) if student else []
 
+    # Prepare JSON-safe chart data
+    chart_labels = [s.screen_date.strftime("%Y-%m-%d") for s in screenings_for_chart]
+    chart_values = [s.bmi for s in screenings_for_chart]
+    chart_categories = [s.bmi_category for s in screenings_for_chart]
+
+    chart_who_curves = {
+        "-2SD": {"x": [0, 12, 24, 36], "y": [10, 12, 14, 16]},
+        "Median": {"x": [0, 12, 24, 36], "y": [12, 14, 16, 18]},
+        "+2SD": {"x": [0, 12, 24, 36], "y": [14, 16, 18, 20]},
+    }
+
     # ------------------------------------------
-    # Render page
+    # Render template
     # ------------------------------------------
-   
     return render(request, "core/new_screening.html", {
         "schools": School.objects.all(),
         "students_page": students_page,
@@ -763,8 +791,13 @@ def add_screening(request):
 
         "previous_screenings": previous_screenings,
         "screenings": screenings_for_chart,
-    })
 
+        "chart_mode": "bmi",
+        "chart_labels": json.dumps(chart_labels, cls=DjangoJSONEncoder),
+        "chart_values": json.dumps(chart_values, cls=DjangoJSONEncoder),
+        "chart_reference": json.dumps(chart_categories, cls=DjangoJSONEncoder),
+        "chart_who_curves": json.dumps(chart_who_curves, cls=DjangoJSONEncoder),
+    })
 
 def ajax_student_search(request):
     q = request.GET.get('q', '').strip()

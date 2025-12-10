@@ -138,6 +138,9 @@
   {% if student %}
   <form method="POST" class="needs-validation" novalidate>
     {% csrf_token %}
+
+    {% include "core/_growth_chart.html" %}
+
     
     <!-- Screening Basic Info -->
     <div class="row g-3 mb-4">
