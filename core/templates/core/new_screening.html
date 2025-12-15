@@ -381,7 +381,33 @@
       visionLeft?.addEventListener("change", updateVision);
       visionRight?.addEventListener("change", updateVision);
       visionBoth?.addEventListener("change", updateVision);
-  
+      function updateMUACVisibility() {
+    const totalMonths = getTotalMonths(currentDob, screenDateInput?.value || new Date().toISOString().slice(0,10));
+    if (totalMonths > 60) {
+        muacWrapper?.classList.add('d-none');
+    } else {
+        muacWrapper?.classList.remove('d-none');
+    }
+}
+
+screenDateInput?.addEventListener('input', updateMUACVisibility);
+updateMUACVisibility();  // run on page load
+
+function updateOedemaVisibility() {
+    const totalMonths = getTotalMonths(currentDob, screenDateInput?.value || new Date().toISOString().slice(0,10));
+    if (totalMonths > 60) {
+        rowB5?.classList.add('d-none');
+    } else {
+        rowB5?.classList.remove('d-none');
+    }
+}
+
+// Make sure you define rowB5
+const rowB5 = document.getElementById("B5Wrapper");
+
+screenDateInput?.addEventListener('input', updateOedemaVisibility);
+updateOedemaVisibility();  // run on page load
+
       
       // -----------------------------
       // Menstrual Logic E4 → E5 & E8
