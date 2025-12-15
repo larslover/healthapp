@@ -489,6 +489,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from .models import Student, Screening, ScreeningCheck, School
 from .forms import StudentForm, ScreeningForm, ScreeningCheckForm
+from django.contrib import messages
 
 @login_required(login_url='login')
 def screened_students(request):
@@ -507,6 +508,7 @@ def screened_students(request):
             pk=selected_student_id
         )
 
+        # Get the last screening (you can change later to all screenings)
         screening = Screening.objects.filter(student=selected_student).last()
         if not screening:
             screening = Screening.objects.create(student=selected_student)
@@ -519,6 +521,7 @@ def screened_students(request):
             checklist_form = ScreeningCheckForm(request.POST, instance=checklist)
 
             if student_form.is_valid() and screening_form.is_valid() and checklist_form.is_valid():
+                # Save student
                 student = student_form.save(commit=False)
                 school_id = request.POST.get("school")
                 if school_id:
@@ -527,9 +530,21 @@ def screened_students(request):
                     except School.DoesNotExist:
                         student.school = None
                 student.save()
+
+                # Save screening and checklist
                 screening_form.save()
                 checklist_form.save()
-                return redirect("screened_students")
+
+                # Optional: show success message
+                messages.success(request, f"Student {student.name} updated successfully.")
+
+                # Redirect to the same student edit view
+                redirect_url = f"{reverse('screened_students')}?selected_student={student.id}"
+                if selected_school_id:
+                    redirect_url += f"&school={selected_school_id}"
+                if name_query:
+                    redirect_url += f"&name={name_query}"
+                return redirect(redirect_url)
         else:
             student_form = StudentForm(instance=selected_student)
             screening_form = ScreeningForm(instance=screening)
