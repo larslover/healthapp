@@ -39,6 +39,22 @@
         </div>
         {% endif %}
       </div>
+      {% if age_months >= 24 and age_months <= 60 %}
+<div class="row mb-2">
+    <div class="col-md-4">
+        <strong>Weight-for-Height:</strong> 
+        {% if screening.weight and screening.height %}
+            {{ screening.weight }} kg / {{ screening.height }} cm
+            (<span class="{% if screening.wfh_category != 'Normal' %}text-danger{% else %}text-success{% endif %}">
+                {{ screening.wfh_category }}
+            </span>)
+        {% else %}
+            —
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
 
       {% if age_months >= 24 and age_months <= 60 %}
       <div class="row mb-2">

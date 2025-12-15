@@ -778,8 +778,10 @@ def add_screening(request):
 
     # --- Growth chart ---
     from django.utils.safestring import mark_safe
-    from core.utils.processor import calculate_age_in_months, calculate_bmi, bmi_category, muac_category
+    from core.utils.processor import calculate_age_in_months, calculate_bmi, bmi_category, muac_category, weight_height_category
 
+
+    
     screenings_for_chart = previous_screenings.copy()
     if student and student.date_of_birth:
         for s in screenings_for_chart:
@@ -787,6 +789,13 @@ def add_screening(request):
             s.bmi = calculate_bmi(s.weight, s.height)
             s.bmi_category = bmi_category(student.gender, s.age_in_months, s.bmi) if s.bmi else "N/A"
             s.muac_category = muac_category(s.muac, s.age_in_months) if hasattr(s, "muac") else "N/A"
+
+            s.wfh_category = weight_height_category(
+            s.weight,
+            s.height,
+            s.age_in_months,
+            student.gender
+        ) if s.weight and s.height else "N/A"
 
         bmi_labels, bmi_values, bmi_categories, wfh_labels, wfh_values, wfh_categories, chart_who_curves = build_chart_data_for_student(
             screenings_for_chart, student
