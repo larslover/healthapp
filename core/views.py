@@ -489,39 +489,31 @@ from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from .models import Student, Screening, ScreeningCheck, School
 from .forms import StudentForm, ScreeningForm, ScreeningCheckForm
-from django.contrib import messages
-
 @login_required(login_url='login')
 def screened_students(request):
-    # --- Filters ---
     selected_school_id = request.GET.get("school")
+    if selected_school_id in [None, "", "None"]:
+        selected_school_id = None
+    else:
+        selected_school_id = int(selected_school_id)
+
     selected_student_id = request.GET.get("selected_student")
     name_query = request.GET.get("name", "").strip()
 
-    # --- Selected student & forms ---
-    student_form = screening_form = checklist_form = None
+    student_form = None
+    screening_forms = []
     selected_student = None
 
     if selected_student_id:
-        selected_student = get_object_or_404(
-            Student.objects.select_related("school"),
-            pk=selected_student_id
-        )
+        selected_student = get_object_or_404(Student, pk=selected_student_id)
 
-        # Get the last screening (you can change later to all screenings)
-        screening = Screening.objects.filter(student=selected_student).last()
-        if not screening:
-            screening = Screening.objects.create(student=selected_student)
+        # --- All screenings for this student ---
+        screenings = Screening.objects.filter(student=selected_student).order_by('-screen_date')
 
-        checklist, _ = ScreeningCheck.objects.get_or_create(screening=screening)
-
+        # If POST, save student info first
         if request.method == "POST":
             student_form = StudentForm(request.POST, instance=selected_student)
-            screening_form = ScreeningForm(request.POST, instance=screening)
-            checklist_form = ScreeningCheckForm(request.POST, instance=checklist)
-
-            if student_form.is_valid() and screening_form.is_valid() and checklist_form.is_valid():
-                # Save student
+            if student_form.is_valid():
                 student = student_form.save(commit=False)
                 school_id = request.POST.get("school")
                 if school_id:
@@ -531,44 +523,46 @@ def screened_students(request):
                         student.school = None
                 student.save()
 
-                # Save screening and checklist
-                screening_form.save()
-                checklist_form.save()
+            # Save all screenings
+            for screening in screenings:
+                prefix = f'screening_{screening.id}'
+                screening_form = ScreeningForm(request.POST, instance=screening, prefix=prefix)
+                checklist, _ = ScreeningCheck.objects.get_or_create(screening=screening)
+                checklist_form = ScreeningCheckForm(request.POST, instance=checklist, prefix=prefix)
+                if screening_form.is_valid() and checklist_form.is_valid():
+                    screening_form.save()
+                    checklist_form.save()
 
-                # Optional: show success message
-                messages.success(request, f"Student {student.name} updated successfully.")
+            return redirect(f"{request.path}?selected_student={selected_student.id}&school={selected_school_id}&name={name_query}")
 
-                # Redirect to the same student edit view
-                redirect_url = f"{reverse('screened_students')}?selected_student={student.id}"
-                if selected_school_id:
-                    redirect_url += f"&school={selected_school_id}"
-                if name_query:
-                    redirect_url += f"&name={name_query}"
-                return redirect(redirect_url)
         else:
+            # GET: prepare forms for all screenings with unique prefixes
             student_form = StudentForm(instance=selected_student)
-            screening_form = ScreeningForm(instance=screening)
-            checklist_form = ScreeningCheckForm(instance=checklist)
+            for screening in screenings:
+                prefix = f'screening_{screening.id}'
+                screening_form = ScreeningForm(instance=screening, prefix=prefix)
+                checklist, _ = ScreeningCheck.objects.get_or_create(screening=screening)
+                checklist_form = ScreeningCheckForm(instance=checklist, prefix=prefix)
+                screening_forms.append({
+                    "screening_form": screening_form,
+                    "checklist_form": checklist_form
+                })
 
-    # --- Student filtering ---
+    # --- Student filtering & pagination ---
     students = Student.objects.select_related("school").only("id", "name", "school_id").order_by("name")
     if name_query:
         students = students.filter(name__icontains=name_query)
     if selected_school_id:
         students = students.filter(school_id=selected_school_id)
-
-    # --- Pagination ---
-    paginator = Paginator(students, 20)  # 20 per page
+    paginator = Paginator(students, 20)
     page_number = request.GET.get("page", 1)
     students_page = paginator.get_page(page_number)
 
-    # --- Context ---
     context = {
         "selected_school_id": int(selected_school_id) if selected_school_id else None,
         "selected_student": selected_student,
         "student_form": student_form,
-        "screening_form": screening_form,
-        "checklist_form": checklist_form,
+        "screening_forms": screening_forms,
         "schools": School.objects.only("id", "name"),
         "students_page": students_page,
         "name_query": name_query,
