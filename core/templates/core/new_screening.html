@@ -136,6 +136,8 @@
   {% if student %}
   <form method="POST" class="needs-validation" novalidate>
     {% csrf_token %}
+    <input type="hidden" name="selected_student" value="{{ student.id }}">
+
 
     {% include "core/_growth_chart.html" %}
 
@@ -144,7 +146,7 @@
     <div class="row g-3 mb-4">
       <div class="col-md-3">{{ screening_form.screen_date.label_tag }} {{ screening_form.screen_date }}</div>
       <div class="col-md-3">{{ screening_form.class_section.label_tag }} {{ screening_form.class_section }}</div>
-      <div class="col-md-3">{{ screening_form.school.label_tag }} {{ screening_form.school }}</div>
+     
       <div class="col-md-3">{{ screening_form.age_screening.label_tag }} {{ screening_form.age_screening }}</div>
       <div class="col-md-3">{{ screening_form.weight.label_tag }} {{ screening_form.weight }}</div>
       <div class="col-md-3">{{ screening_form.height.label_tag }} {{ screening_form.height }}</div>
@@ -187,6 +189,41 @@
       </div>
     </div>
 
+<!-- Vision Test -->
+<div class="card mb-4 shadow-sm">
+  <div class="card-header bg-warning text-dark fw-bold">Vision Test</div>
+  <div class="card-body">
+    <div class="row g-3">
+
+      <div class="col-md-4">
+        {{ screening_form.vision_both.label_tag }}
+        {{ screening_form.vision_both }}
+      </div>
+
+      <div class="col-md-4">
+        {{ screening_form.vision_left.label_tag }}
+        {{ screening_form.vision_left }}
+      </div>
+
+      <div class="col-md-4">
+        {{ screening_form.vision_right.label_tag }}
+        {{ screening_form.vision_right }}
+      </div>
+
+      <!-- Auto Evaluation -->
+      <div class="col-md-12 mt-3">
+        <label class="fw-semibold">Vision Problem</label>
+        <input type="text" id="visionResult"
+               class="form-control fw-bold"
+               readonly
+               style="background:#eef2ff;">
+      </div>
+
+    </div>
+  </div>
+</div>
+
+    
     <!-- Screening Checklist -->
     <hr class="my-4">
     <h5 class="fw-semibold mb-3">Screening Checklist</h5>
@@ -198,11 +235,12 @@
         {% if field.name == 'B5_oedema' %}
           <div class="mb-3" id="B5Wrapper">{{ field.label_tag }} {{ field }}</div>
         {% elif field.name == 'E4_menarke' %}
-          <div class="mb-3 fade d-none" id="E4Wrapper">{{ field.label_tag }} {{ field }}</div>
+        <div class="mb-3 d-none" id="E4Wrapper">{{ field.label_tag }} {{ field }}</div>
+
         {% elif field.name == 'E5_regularity_period_difficulties' %}
-          <div class="mb-3 fade d-none" id="E5Wrapper">{{ field.label_tag }} {{ field }}</div>
+          <div class="mb-3 d-none" id="E5Wrapper">{{ field.label_tag }} {{ field }}</div>
         {% elif field.name == 'E8_menstrual_pain' %}
-          <div class="mb-3 fade d-none" id="E8Wrapper">{{ field.label_tag }} {{ field }}</div>
+          <div class="mb-3 d-none" id="E8Wrapper">{{ field.label_tag }} {{ field }}</div>
         {% else %}
           <div class="mb-3">{{ field.label_tag }} {{ field }}</div>
         {% endif %}
@@ -217,90 +255,166 @@
   {% endif %}
 
 </div>
+
 <!-- Hidden container to store student info -->
 <div id="screeningData"
      data-dob="{% if student %}{{ student.date_of_birth|date:'Y-m-d' }}{% endif %}"
      data-gender="{% if student %}{{ student.gender|lower }}{% endif %}">
 </div>
-
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-  // --------------------
-  // Elements
-  // --------------------
-  const screeningData = document.getElementById('screeningData');
-  const screenDateInput = document.getElementById('id_screen_date');
-  const weightInput = document.getElementById('id_weight');
-  const heightInput = document.getElementById('id_height');
-  const ageField = document.getElementById('id_age_screening');
-  const indicatorField = document.getElementById('growthIndicator');
-  const valueField = document.getElementById('growthValue');
-  const categoryField = document.getElementById('growthCategory');
+  document.addEventListener('DOMContentLoaded', function() {
+  
+      // --------------------
+      // Elements
+      // --------------------
+      const screeningData = document.getElementById('screeningData');
+      const screenDateInput = document.getElementById('id_screen_date');
+      const weightInput = document.getElementById('id_weight');
+      const heightInput = document.getElementById('id_height');
+      const ageField = document.getElementById('id_age_screening');
+      const indicatorField = document.getElementById('growthIndicator');
+      const valueField = document.getElementById('growthValue');
+      const categoryField = document.getElementById('growthCategory');
+  
+      // Vision elements
+      const visionBoth = document.getElementById("id_vision_both");
+      const visionLeft = document.getElementById("id_vision_left");
+      const visionRight = document.getElementById("id_vision_right");
+      const visionResult = document.getElementById("visionResult");
+  
+      // Menstrual fields
+      const fieldE4 = document.getElementById("id_E4_menarke");
+      const rowE4 = document.getElementById("E4Wrapper");
+      const rowE5 = document.getElementById("E5Wrapper");
+      const rowE8 = document.getElementById("E8Wrapper");
 
-  let currentDob = screeningData.dataset.dob || "";
-  let currentGender = screeningData.dataset.gender || "";
-
-  // --------------------
-  // Utility functions
-  // --------------------
-  function getTotalMonths(dob, screenDate) {
-      if (!dob || !screenDate) return null;
-      const birth = new Date(dob);
-      const screen = new Date(screenDate);
-      let months = (screen.getFullYear() - birth.getFullYear()) * 12 + (screen.getMonth() - birth.getMonth());
-      if (screen.getDate() < birth.getDate()) months -= 1;
-      return months >= 0 ? Math.floor(months) : null;
-  }
-
-  function formatAge(totalMonths) {
-      if (totalMonths === null) return '';
-      const years = Math.floor(totalMonths / 12);
-      const months = totalMonths % 12;
-      return `${years}y ${months}m (${totalMonths} months)`;
-  }
-
-  function updateGrowthReference() {
-      const weight = parseFloat(weightInput?.value);
-      const height = parseFloat(heightInput?.value);
-      const screenDate = screenDateInput?.value;
-
-      if (!weightInput.value || !heightInput.value || !currentDob || !currentGender || !screenDate) {
-
-          indicatorField.value = valueField.value = categoryField.value = '';
-          return;
+      const muacWrapper = document.getElementById('muacWrapper');
+  
+      // --------------------
+      // Data from student
+      // --------------------
+      const currentDob = screeningData.dataset.dob || "";
+      const currentGender = screeningData.dataset.gender || "";
+  
+      // --------------------
+      // Growth Reference
+      // --------------------
+      function getTotalMonths(dob, screenDate) {
+          if (!dob || !screenDate) return null;
+          const birth = new Date(dob);
+          const screen = new Date(screenDate);
+          let months = (screen.getFullYear() - birth.getFullYear()) * 12 + (screen.getMonth() - birth.getMonth());
+          if (screen.getDate() < birth.getDate()) months -= 1;
+          return months >= 0 ? Math.floor(months) : null;
       }
-
-      fetch(`/growth-reference/?gender=${currentGender}&weight=${weight}&height=${height}&dob=${currentDob}&screen_date=${screenDate}`)
-      .then(res => res.json())
-      .then(data => {
-          const totalMonths = getTotalMonths(currentDob, screenDate);
-
-          if (totalMonths <= 60 && data.weight_for_height) {
-              indicatorField.value = "Weight-for-Height";
-              valueField.value = weight;
-              categoryField.value = data.weight_for_height;
-          } else if (totalMonths > 60 && data.bmi) {
-              indicatorField.value = "BMI-for-Age";
-              valueField.value = data.bmi;
-              categoryField.value = data.bmi_category;
-          } else {
+  
+      function formatAge(totalMonths) {
+          if (totalMonths === null) return '';
+          const years = Math.floor(totalMonths / 12);
+          const months = totalMonths % 12;
+          return `${years}y ${months}m (${totalMonths} months)`;
+      }
+  
+      function updateGrowthReference() {
+          const weight = parseFloat(weightInput?.value);
+          const height = parseFloat(heightInput?.value);
+          const screenDate = screenDateInput?.value;
+  
+          if (!weightInput.value || !heightInput.value || !currentDob || !currentGender || !screenDate) {
               indicatorField.value = valueField.value = categoryField.value = '';
+              return;
           }
-      }).catch(console.error);
-  }
-
-  // --------------------
-  // Event listeners
-  // --------------------
-  screenDateInput?.addEventListener('input', () => {
-      if (ageField) ageField.value = formatAge(getTotalMonths(currentDob, screenDateInput.value));
-      updateGrowthReference();
+  
+          fetch(`/growth-reference/?gender=${currentGender}&weight=${weight}&height=${height}&dob=${currentDob}&screen_date=${screenDate}`)
+          .then(res => res.json())
+          .then(data => {
+              const totalMonths = getTotalMonths(currentDob, screenDate);
+  
+              if (totalMonths <= 60 && data.weight_for_height) {
+                  indicatorField.value = "Weight-for-Height";
+                  valueField.value = weight;
+                  categoryField.value = data.weight_for_height;
+              } else if (totalMonths > 60 && data.bmi) {
+                  indicatorField.value = "BMI-for-Age";
+                  valueField.value = data.bmi;
+                  categoryField.value = data.bmi_category;
+              } else {
+                  indicatorField.value = valueField.value = categoryField.value = '';
+              }
+          }).catch(console.error);
+      }
+  
+      screenDateInput?.addEventListener('input', () => {
+          if (ageField) ageField.value = formatAge(getTotalMonths(currentDob, screenDateInput.value));
+          updateGrowthReference();
+      });
+      weightInput?.addEventListener('input', updateGrowthReference);
+      heightInput?.addEventListener('input', updateGrowthReference);
+  
+      // -----------------------------
+      // Vision Evaluation
+      // -----------------------------
+      const criticalVision = {{ critical_vision_set|safe }};
+      const visionList = {{ vision_list|safe }};
+  
+      function evaluateVisionJS(left, right) {
+          if (!left || !right) return "";
+          const leftIndex = visionList.indexOf(left);
+          const rightIndex = visionList.indexOf(right);
+          if (leftIndex === -1 || rightIndex === -1) return "";
+  
+          if (criticalVision.includes(left) || criticalVision.includes(right)) {
+              return "YES – Immediate Attention";
+          }
+          if (Math.abs(leftIndex - rightIndex) > 2) {
+              return "YES – Significant Difference";
+          }
+          return "NO – Normal";
+      }
+  
+      function updateVision() {
+          const left = visionLeft?.value || "";
+          const right = visionRight?.value || "";
+          visionResult.value = evaluateVisionJS(left, right) || "";
+      }
+  
+      visionLeft?.addEventListener("change", updateVision);
+      visionRight?.addEventListener("change", updateVision);
+      visionBoth?.addEventListener("change", updateVision);
+  
+      
+      // -----------------------------
+      // Menstrual Logic E4 → E5 & E8
+      // -----------------------------
+      function hideMenstrualFields() {
+          rowE4?.classList.add("d-none");
+          rowE5?.classList.add("d-none");
+          rowE8?.classList.add("d-none");
+      }
+  
+      function updateMenstrualVisibility() {
+          if (currentGender.toLowerCase() !== "female") {
+              hideMenstrualFields();
+              return;
+          }
+  
+          // Female → show E4
+          rowE4?.classList.remove("d-none");
+  
+          // Show E5 & E8 if E4 is checked
+          if (fieldE4?.checked) {
+              rowE5?.classList.remove("d-none");
+              rowE8?.classList.remove("d-none");
+          } else {
+              rowE5?.classList.add("d-none");
+              rowE8?.classList.add("d-none");
+          }
+      }
+  
+      updateMenstrualVisibility();
+      fieldE4?.addEventListener("change", updateMenstrualVisibility);
+  
   });
-
-  weightInput?.addEventListener('input', updateGrowthReference);
-  heightInput?.addEventListener('input', updateGrowthReference);
-
-});
-</script>
-
+  </script>
+  
   {% endblock %}

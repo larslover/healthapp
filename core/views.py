@@ -705,10 +705,16 @@ def get_school_students(request):
 
 @login_required
 def add_screening(request):
+    from core.utils.thresholds import vision_list, critical_vision_set
+
     # --- GET params ---
     selected_school_id = request.GET.get("school")
     student_name_query = request.GET.get("student_name", "")
-    selected_student_id = request.GET.get("selected_student")
+    selected_student_id = (
+    request.POST.get("selected_student")
+    or request.GET.get("selected_student")
+)
+
 
     try:
         selected_school_id = int(selected_school_id)
@@ -734,10 +740,11 @@ def add_screening(request):
             student = None
 
     # --- Forms ---
-    if request.method == "POST":
+    if request.method == "POST" and student:
         screening_form = ScreeningForm(request.POST)
         screening_check_form = ScreeningCheckForm(request.POST)
-        if screening_form.is_valid() and screening_check_form.is_valid() and student:
+
+        if screening_form.is_valid() and screening_check_form.is_valid():
             screening = screening_form.save(commit=False)
             screening.student = student
             screening.save()
@@ -746,13 +753,16 @@ def add_screening(request):
             checklist.screening = screening
             checklist.save()
 
-            return redirect(
-                f"{reverse('add_screening')}?school={selected_school_id or ''}"
-                f"&student_name={student_name_query}&selected_student={student.id}"
-            )
+            # reset forms after successful save
+            screening_form = ScreeningForm()
+            screening_check_form = ScreeningCheckForm()
+
     else:
-        screening_form = ScreeningForm(initial={"school": student.school_id if student else None})
+        screening_form = ScreeningForm(
+            initial={"school": student.school_id if student else None}
+        )
         screening_check_form = ScreeningCheckForm()
+
 
     # --- Previous screenings ---
     previous_screenings = list(Screening.objects.filter(student=student).order_by("-screen_date")) if student else []
@@ -776,9 +786,43 @@ def add_screening(request):
         bmi_labels = bmi_values = bmi_categories = mark_safe("[]")
         wfh_labels = wfh_values = wfh_categories = mark_safe("[]")
         chart_who_curves = mark_safe("{}")
+    # --- Prepare checklist dict for previous screenings ---
+    checklist_groups = {
+        "Preventive Care": ["vaccination", "deworming"],
+        "Nutritional / Medical": [
+            "B1_severe_anemia", "B2_vitA_deficiency", "B3_vitD_deficiency",
+            "B4_goitre", "B5_oedema"
+        ],
+        "Other Medical Conditions": [
+            "C1_convulsive_dis", "C2_otitis_media", "C3_dental_condition",
+            "C4_skin_condition", "C5_rheumatic_heart_disease",
+            "C6_others_TB_asthma"
+        ],
+        "Development / Learning Difficulties": [
+            "D1_difficulty_seeing", "D2_delay_in_walking", "D3_stiffness_floppiness",
+            "D5_reading_writing_calculatory_difficulty", "D6_speaking_difficulty",
+            "D7_hearing_problems", "D8_learning_difficulties", "D9_attention_difficulties"
+        ],
+        "Other Observations": [
+            "E3_depression_sleep", "E4_menarke", "E5_regularity_period_difficulties",
+            "E6_UTI_STI", "E7_discharge", "E8_menstrual_pain", "E9_remarks"
+        ]
+    }
+
+    for screening in previous_screenings:
+        checklist = getattr(screening, "checklist", None)
+        if checklist:
+            screening.checklist_dict = {
+                field.name: getattr(checklist, field.name)
+                for field in checklist._meta.get_fields()
+                if not field.auto_created  # skip reverse relations
+            }
+        else:
+            screening.checklist_dict = {}
 
     # --- Final render ---
     return render(request, "core/new_screening.html", {
+    "checklist_groups": checklist_groups,
     "schools": School.objects.all(),
     "students_page": students_page,
     "selected_school_id": selected_school_id,
@@ -796,6 +840,8 @@ def add_screening(request):
     "wfh_values": wfh_values,
     "wfh_categories": wfh_categories,
     "chart_who_curves": chart_who_curves,
+    "vision_list": vision_list,
+    "critical_vision_set": list(critical_vision_set),  # convert to list so JS works
 })
 
 

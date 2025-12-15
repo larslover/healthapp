@@ -1,14 +1,14 @@
 {# core/_screening_card.html #}
 {% load custom_filters %}
+
 <div class="card mb-3 shadow-sm">
   <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
     <span>{{ screening.screen_date|date:"Y-m-d" }}</span>
     <button type="button" class="btn btn-sm btn-light" 
         data-bs-toggle="collapse" 
         data-bs-target="#screeningBody{{ screening.id }}">
-  Hide
-</button>
-
+      Hide
+    </button>
   </div>
 
   <div id="screeningBody{{ screening.id }}" class="collapse show">
@@ -43,8 +43,7 @@
       {% if age_months >= 24 and age_months <= 60 %}
       <div class="row mb-2">
         <div class="col-md-4">
-          <strong>Weight-for-Height:</strong>
-          {{ screening.weight_for_height|default:"—" }}
+          <strong>Weight-for-Height:</strong> {{ screening.weight_for_height|default:"—" }}
         </div>
       </div>
       {% endif %}
@@ -65,6 +64,7 @@
       </div>
 
       <!-- Preventive Care -->
+      {% if screening.checklist_dict.vaccination or screening.checklist_dict.deworming %}
       <div class="row mt-3 mb-2">
         <div class="col-md-3">
           <strong>Vaccination:</strong> {{ screening.checklist_dict.vaccination|default:"—" }}
@@ -73,6 +73,7 @@
           <strong>Deworming:</strong> {{ screening.checklist_dict.deworming|default:"—" }}
         </div>
       </div>
+      {% endif %}
 
       <!-- Doctor's Remarks -->
       {% if screening.checklist_dict.E9_remarks %}
@@ -89,7 +90,7 @@
         <div class="mt-2">
           {% for group_name, fields in checklist_groups.items %}
             {% if group_name != "Preventive Care" and group_name != "Other Observations" %}
-              <div class="row">
+              <div class="row mb-2">
                 {% for field_name in fields %}
                   {% if screening.checklist_dict|dict_get:field_name %}
                     <div class="col-md-3">
