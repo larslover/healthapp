@@ -110,27 +110,27 @@ for row in rows:
     )
 
     # --- Screening ---
+    # --- Screening ---
     screen_date = parse_date_safe(row["screen_date"]) or date.today()
 
-    weight_val = safe_float(row["weight"])
-    # Convert raw height to float, but return None if invalid/missing
-    height_val = safe_float(row["height"], min_value=None)
+    # Convert raw weight to float; set to None if invalid or missing
+    try:
+        weight_val = float(row["weight"])
+        if weight_val <= 0:
+            weight_val = None
+    except (TypeError, ValueError):
+        weight_val = None
 
-    # Adjust to closest WHO height only if height is valid and student has gender
-    if height_val is not None and student.gender:
-        gender_lower = student.gender.lower().strip()
-        thresholds = weight_height_female_thresholds if gender_lower == "female" else weight_height_male_thresholds
+    # Convert raw height to float; set to None if invalid or missing
+    try:
+        height_val = float(row["height"])
+        if height_val <= 0:
+            height_val = None
+    except (TypeError, ValueError):
+        height_val = None
 
-        # Get all numeric heights from thresholds
-        all_heights = [
-            float(h)
-            for h in thresholds.keys()
-            if str(h).replace(".", "", 1).isdigit()
-        ]
+    # No WHO adjustment — use the height as-is
 
-        # Pick closest WHO height
-        closest_height = min(all_heights, key=lambda h: abs(h - height_val))
-        height_val = closest_height
 
     # Create Screening
     screening = Screening.objects.create(
