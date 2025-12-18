@@ -37,6 +37,10 @@
       const bmiValues = JSON.parse(`{{ bmi_values|default:"[]"|escapejs }}`);
       const bmiCats   = JSON.parse(`{{ bmi_categories|default:"[]"|escapejs }}`);
       const whoCurves = JSON.parse(`{{ chart_who_curves|default:"{}"|escapejs }}`);
+      const wfhLabels = JSON.parse(`{{ wfh_labels|default:"[]"|escapejs }}`);
+const wfhValues = JSON.parse(`{{ wfh_values|default:"[]"|escapejs }}`);
+const wfhCats   = JSON.parse(`{{ wfh_categories|default:"[]"|escapejs }}`);
+
       const colorMap = {
           "Severe Acute Malnutrition": "red",
           "Moderate Acute Malnutrition": "orange",
@@ -150,6 +154,52 @@
           document.getElementById("bmiChartWrapper").style.display="none";
       }
   
-  });
+  
+  /* ===================== WFH CHART ===================== */
+
+if (wfhLabels.length && wfhValues.length) {
+
+const studentWFH = {
+    x: wfhLabels,
+    y: wfhValues,
+    mode: "markers+lines",
+    name: "Student",
+    marker: {
+        size: 10,
+        color: wfhCats.map(c => colorMap[c] || "gray"),
+        line: { width: 1, color: "#222" }
+    }
+};
+
+const whoWFH = sdLabels
+    .filter(l => whoCurves[l]?.x && whoCurves[l]?.y)
+    .map((label, i) => ({
+        x: whoCurves[label].x,
+        y: whoCurves[label].y,
+        mode: "lines",
+        name: label,
+        line: {
+            width: label === "Median" ? 2.5 : 1.2,
+            color: sdColors[i]
+        },
+        hoverinfo: "none"
+    }));
+
+Plotly.newPlot(
+    "wfhChart",
+    [...whoWFH, studentWFH],
+    {
+        title: "Weight-for-Height (WHO Reference)",
+        xaxis: { title: "Height (cm)" },
+        yaxis: { title: "Weight (kg)" },
+        legend: { orientation: "h", y: -0.25 },
+        margin: { t: 80, b: 80 }
+    }
+);
+
+} else {
+document.getElementById("wfhChartWrapper").style.display = "none";
+}
+});
   </script>
     {% endif %}
