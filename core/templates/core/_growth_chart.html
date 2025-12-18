@@ -12,17 +12,18 @@
       {% endif %}
     </p>
 
-    <div id="bmiChartWrapper" class="mb-4" {% if not bmi_labels or bmi_labels|length == 0 %}style="display:none;"{% endif %}>
+    <div id="bmiChartWrapper" class="mb-4" {% if not bmi_labels %}style="display:none;"{% endif %}>
       <div id="bmiChart" style="width:100%;height:500px;"></div>
     </div>
 
-    <div id="wfhChartWrapper" {% if not wfh_labels or wfh_labels|length == 0 %}style="display:none;"{% endif %}>
+    <div id="wfhChartWrapper" {% if not wfh_labels %}style="display:none;"{% endif %}>
       <div id="wfhChart" style="width:100%;height:500px;"></div>
     </div>
 
-    {% if not chart_labels %}
-      <p class="text-muted">No growth data available for this student yet.</p>
-    {% endif %}
+    {% if not bmi_labels and not wfh_labels %}
+    <p class="text-muted">No growth data available for this student yet.</p>
+  {% endif %}
+  
   </div>
 </div>
 
@@ -30,99 +31,125 @@
 
 {% if chart_mode != "none" %}
 <script>
-document.addEventListener("DOMContentLoaded", () => {
-
-    const bmiLabels = JSON.parse(`{{ bmi_labels|default:"[]"|escapejs }}`);
-    const bmiValues = JSON.parse(`{{ bmi_values|default:"[]"|escapejs }}`);
-    const bmiCats   = JSON.parse(`{{ bmi_categories|default:"[]"|escapejs }}`);
-
-    const wfhLabels = JSON.parse(`{{ wfh_labels|default:"[]"|escapejs }}`);
-    const wfhValues = JSON.parse(`{{ wfh_values|default:"[]"|escapejs }}`);
-    const wfhCats   = JSON.parse(`{{ wfh_categories|default:"[]"|escapejs }}`);
-
-    const whoCurves = JSON.parse(`{{ chart_who_curves|default:"{}"|escapejs }}`);
-
-    const colorMap = {
-        "Severe Acute Malnutrition": "red",
-        "Moderate Acute Malnutrition": "orange",
-        "Normal": "green",
-        "Overweight": "blue",
-        "Obese": "purple",
-        "N/A": "gray"
-    };
-
-    const sdColors = [
-        "rgba(255,0,0,0.4)", "rgba(255,100,0,0.4)", "rgba(255,165,0,0.4)",
-        "rgba(0,150,0,0.4)", "rgba(0,100,255,0.4)", "rgba(100,0,255,0.4)",
-        "rgba(150,0,150,0.4)"
-    ];
-
-    const sdLabels = ["-3SD","-2SD","-1SD","Median","+1SD","+2SD","+3SD"];
-
-    function buildWhoTraces(mapToAge) {
-        return sdLabels
-            .filter(label => whoCurves[label]?.x && whoCurves[label]?.y)
-            .map((label, i) => ({
-                x: mapToAge
-                    ? whoCurves[label].x.map(m => `${Math.floor(m/12)}y ${m%12}m`)
-                    : whoCurves[label].x,
-                y: whoCurves[label].y,
-                mode: "lines",
-                name: label,
-                line: { width: label === "Median" ? 2.5 : 1.2, color: sdColors[i] },
-                hoverinfo: "none",
-                showlegend: true
-            }));
-    }
-
-    // --------------------------- BMI CHART ---------------------------
-    if (bmiLabels.length && bmiValues.length) {
-        const studentTrace = {
-            x: bmiLabels.map(m => `${Math.floor(m/12)}y ${m%12}m`),
-            y: bmiValues,
-            mode: "markers+lines",
-            name: "Student",
-            marker: {
-                size: 10,
-                color: bmiCats.map(c => colorMap[c] || "gray"),
-                line: { width: 1, color: "#222" }
-            }
-        };
-
-        Plotly.newPlot("bmiChart", [...buildWhoTraces(true), studentTrace], {
-            title: "BMI-for-Age (WHO)",
-            xaxis: { title: "" },
-            yaxis: { title: "BMI (kg/m²)" },
-            legend: { orientation: "h", y: -0.2 }
-        });
-    } else {
-        document.getElementById("bmiChartWrapper").style.display = "none";
-    }
-
-    // --------------------------- WFH CHART ---------------------------
-    if (wfhLabels.length && wfhValues.length) {
-        const studentTrace = {
-            x: wfhLabels,
-            y: wfhValues,
-            mode: "markers+lines",
-            name: "Student",
-            marker: {
-                size: 10,
-                color: wfhCats.map(c => colorMap[c] || "gray"),
-                line: { width: 1, color: "#222" }
-            }
-        };
-
-        Plotly.newPlot("wfhChart", [...buildWhoTraces(false), studentTrace], {
-            title: "Weight-for-Height (WHO)",
-            xaxis: { title: "Height (cm)" },
-            yaxis: { title: "Weight (kg)" },
-            legend: { orientation: "h", y: -0.2 }
-        });
-    } else {
-        document.getElementById("wfhChartWrapper").style.display = "none";
-    }
-
-});
-</script>
-{% endif %}
+  document.addEventListener("DOMContentLoaded", () => {
+  
+      const bmiLabels = JSON.parse(`{{ bmi_labels|default:"[]"|escapejs }}`);
+      const bmiValues = JSON.parse(`{{ bmi_values|default:"[]"|escapejs }}`);
+      const bmiCats   = JSON.parse(`{{ bmi_categories|default:"[]"|escapejs }}`);
+      const whoCurves = JSON.parse(`{{ chart_who_curves|default:"{}"|escapejs }}`);
+      const colorMap = {
+          "Severe Acute Malnutrition": "red",
+          "Moderate Acute Malnutrition": "orange",
+          "Normal": "green",
+          "Overweight": "blue",
+          "Obese": "purple",
+          "N/A": "gray"
+      };
+      const sdColors = ["#d73027","#fc8d59","#fee08b","#1a9850","#91bfdb","#4575b4","#762a83"];
+      const sdLabels = ["-3SD","-2SD","-1SD","Median","+1SD","+2SD","+3SD"];
+  
+      function buildWhoTracesBMI() {
+          return sdLabels
+              .filter(l => whoCurves[l]?.x && whoCurves[l]?.y)
+              .map((label,i) => ({
+                  x: whoCurves[label].x.map(m => m/12),
+                  y: whoCurves[label].y,
+                  mode: "lines",
+                  name: label,
+                  line: { width: label==="Median"?2.8:1.4, color: sdColors[i] },
+                  hoverinfo: "none"
+              }));
+      }
+  
+      function buildYearLines() {
+          return Array.from({length: 15}, (_, i) => ({
+              type: "line",
+              x0: 5 + i,
+              x1: 5 + i,
+              yref: "paper",
+              y0: 0, y1: 1,
+              line: { color: "#bdbdbd", width: 2.5 },
+              layer: "below"
+          }));
+      }
+  
+      function buildTwoMonthLines() {
+          let lines = [];
+          for (let y = 5; y < 19; y++) {
+              for (let m = 2; m < 12; m+=2) {
+                  lines.push({
+                      type: "line",
+                      x0: y + m/12,
+                      x1: y + m/12,
+                      yref: "paper",
+                      y0: 0, y1: 1,
+                      line: { color: "#eeeeee", width: 1 },
+                      layer: "below"
+                  });
+              }
+          }
+          return lines;
+      }
+  
+      if (bmiLabels.length && bmiValues.length) {
+  
+          const studentTrace = {
+              x: bmiLabels.map(m => m/12),
+              y: bmiValues,
+              mode: "markers+lines",
+              name: "Student",
+              marker: { size: 10, color: bmiCats.map(c => colorMap[c]||"gray"), line:{width:1,color:"#000"} }
+          };
+  
+          const monthTicksTrace = { x: [], y: [], type:"scatter", mode:"markers", xaxis:"x2", marker:{opacity:0} };
+  
+          // Background grid shapes for Y-axis
+          let yGridShapes = [];
+          for(let y=12; y<=36; y+=2){
+              yGridShapes.push({type:"line", x0:5, x1:19, y0:y, y1:y, line:{color:"#e6e6e6", width:1}, layer:"below"});
+          }
+  
+          Plotly.newPlot("bmiChart",
+              [...buildWhoTracesBMI(), studentTrace, monthTicksTrace],
+              {
+                  title: "BMI-for-Age (5–19 years)",
+                  xaxis: {
+                      title:"Age (years)",
+                      range:[5,19],
+                      tickvals: Array.from({length:15},(_,i)=>5+i),
+                      ticktext: Array.from({length:15},(_,i)=>`${5+i}`),
+                      ticks:"outside", ticklen:10, tickfont:{size:13}, showgrid:false, zeroline:false
+                  },
+                  xaxis2: {
+                      overlaying:"x",
+                      side:"bottom",
+                      position:-0.08,
+                      range:[5,19],
+                      tickvals:(()=>{let vals=[];for(let y=5;y<19;y++){vals.push(y+3/12,y+6/12,y+9/12);} return vals;})(),
+                      ticktext:(()=>{let texts=[];for(let y=5;y<19;y++){texts.push("3","6","9");} return texts;})(),
+                      showticklabels:true, ticks:"outside", ticklen:6, tickfont:{size:10,color:"#555"}, showgrid:false, zeroline:false
+                  },
+                  yaxis: {
+                      title:"BMI (kg/m²)",
+                      range:[10,38],
+                      dtick:2,
+                      showgrid:false,  // turn off axis grid
+                      zeroline:false,
+                      tickfont:{size:12}
+                  },
+                  shapes:[
+                      ...yGridShapes,
+                      ...buildTwoMonthLines(),
+                      ...buildYearLines()
+                  ],
+                  legend:{orientation:"h",y:-0.30},
+                  margin:{t:90,b:80}
+              }
+          );
+      } else {
+          document.getElementById("bmiChartWrapper").style.display="none";
+      }
+  
+  });
+  </script>
+    {% endif %}
