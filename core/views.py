@@ -1,73 +1,28 @@
 
 from core.utils.processor import bmi_category
-from django.db.models import Prefetch
 from django.urls import reverse
-from django.shortcuts import render, redirect
-from django.contrib.auth.decorators import login_required
-from django.urls import reverse
-from django.core.paginator import Paginator
-import json
 from django.core.serializers.json import DjangoJSONEncoder
-
-from .models import Student, Screening, School
-from .forms import ScreeningForm, ScreeningCheckForm
-# core/views.py (snippet)
-import json
+from .models import Screening
 from django.core.paginator import Paginator
-from django.shortcuts import render, get_object_or_404, redirect
+from django.shortcuts import render, get_object_or_404, redirect,render
 from django.contrib.auth.decorators import login_required
-from django.core.paginator import Paginator
-from .models import Student, Screening, ScreeningCheck, School
+from core.models import Student, Screening, ScreeningCheck, School
 from .forms import StudentForm, ScreeningForm, ScreeningCheckForm
-from django.shortcuts import render, get_object_or_404
 from django.utils.safestring import mark_safe
-from django.contrib.auth.decorators import login_required
-from datetime import date
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import get_object_or_404, redirect, render
-from .models import Student, Screening, ScreeningCheck, School
-from .forms import StudentForm, ScreeningForm, ScreeningCheckForm
-from datetime import date
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
-from core.models import Student, School, Screening, ScreeningCheck
-from core.forms import StudentForm, ScreeningForm, ScreeningCheckForm
-from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib.auth.decorators import login_required
-
-from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
-from datetime import datetime
-
-from .models import School, Student, Screening
-from .forms import ScreeningForm, ScreeningCheckForm
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
-from datetime import datetime
-from .models import School, Student, Screening
-from .forms import ScreeningForm, ScreeningCheckForm
+from datetime import datetime, date
+from django.http import JsonResponse
 from django.template.loader import render_to_string
-
 import logging
-from datetime import date
 from django.db.models import Prefetch
-from django.shortcuts import render, get_object_or_404, redirect
 from .models import School, Student, Screening, ScreeningCheck
 from .utils.processor import muac_category, weight_height_category, bmi_category, calculate_age_in_months
-
-from .forms import StudentForm
 from django.db.models.functions import ExtractYear
-from .models import Student, Screening, ScreeningCheck
-from .forms import StudentForm, ScreeningForm, ScreeningCheckForm
 from .models import Screening, School,LegacyStudent
-from django.http import JsonResponse
 from core.legacy_helpers import get_all_students, search_students
-from django.shortcuts import render, get_object_or_404, redirect
+
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from datetime import datetime, date
+
 from .models import Student, School, Screening, ScreeningCheck
 from .forms import ScreeningForm, ScreeningCheckForm
 from .utils.processor import calculate_age_in_months
@@ -75,11 +30,11 @@ from .utils.processor import calculate_age_in_months
 from django.http import JsonResponse
 from .models import Screening, Student
 from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib import messages
+
 from .models import Student, School, Screening, ScreeningCheck
 from .forms import ScreeningForm, ScreeningCheckForm
 from datetime import datetime
-from django.contrib import messages
+
 from django.utils.safestring import mark_safe
 import json
 from .models import School, Student, Screening, ScreeningCheck
@@ -114,6 +69,19 @@ from django.templatetags.static import static
 import os
 
 
+from django.shortcuts import get_object_or_404, redirect
+from django.db import transaction
+from core.models import Student
+
+@transaction.atomic
+def delete_student(request, pk):
+    student = get_object_or_404(Student, pk=pk)
+
+    if request.method == "POST":
+        student.delete()
+        return redirect("screened_students")  # change to your list view name
+
+    return redirect("screened_students")
 
 
 def service_worker(request):
@@ -655,8 +623,6 @@ def get_previous_screenings(request):
 
 
 
-from django.http import JsonResponse
-from .models import Screening
 @login_required
 def get_student_growth_chart_partial(request):
     student_id = request.GET.get("student_id")
@@ -891,8 +857,6 @@ def ajax_student_search(request):
 
     return JsonResponse({'results': results})
 
-from django.http import JsonResponse
-from .models import Student
 
 def dashboard_view(request):
     return render(request, "core/dashboard.html")
