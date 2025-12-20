@@ -113,24 +113,6 @@
     
   {% if screenings %}
   
-  <!-- Growth Chart -->
-  <div class="card mb-4 shadow-sm">
-    <div class="card-header bg-success text-white fw-bold">Growth Chart</div>
-    <div class="card-body">
-      <p class="mb-2">
-        <strong>Chart Type:</strong> 
-        {% if chart_mode == "bmi" %}
-          BMI-for-Age (WHO Reference)
-        {% elif chart_mode == "wfh" %}
-          Weight-for-Height (WHO Reference)
-        {% else %}
-          Growth Tracking
-        {% endif %}
-      </p>
-      <div id="growthChart" style="width:100%;height:500px;"></div>
-    </div>
-  </div>
-
     <!-- Individual Screenings -->
     {% for screening in screenings %}
     <div class="card mb-3 shadow-sm">
@@ -285,122 +267,11 @@
 
 </div>
 <!-- ✅ Plotly Chart -->
-<script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
-
-
-  
-{% if chart_mode != "none" %}
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-
-    const chartMode = "{{ chart_mode }}";
-
-    // These come directly from your view
-    let labels = chartMode === "bmi" ? {{ bmi_labels|safe }} : {{ wfh_labels|safe }};
-let values = chartMode === "bmi" ? {{ bmi_values|safe }} : {{ wfh_values|safe }};
-let categories = chartMode === "bmi" ? {{ bmi_categories|safe }} : {{ wfh_categories|safe }};
-
-    const whoCurves = {{ chart_who_curves|safe }};
-
-    // --- BMI: convert months → "Xy Ym" ---
-    if (chartMode === "bmi") {
-        labels = labels.map(m => {
-            const y = Math.floor(m / 12);
-            const mo = m % 12;
-            return `${y}y ${mo}m`;
-        });
-    }
-
-    // --- WFH: sort by height so lines don't cross ---
-    if (chartMode === "wfh") {
-        const pts = labels.map((h, i) => ({
-            x: h, 
-            y: values[i],
-            c: categories[i]
-        }));
-
-        pts.sort((a, b) => a.x - b.x);
-
-        labels = pts.map(p => p.x);
-        values = pts.map(p => p.y);
-        categories = pts.map(p => p.c);
-    }
-
-    // Colors for student points
-    const colorMap = {
-        "Severe Acute Malnutrition": "red",
-        "Moderate Acute Malnutrition": "orange",
-        "Normal": "green",
-        "Overweight": "blue",
-        "Obese": "purple",
-        "N/A": "gray"
-    };
-
-    const studentTrace = {
-        x: labels,
-        y: values,
-        mode: "markers+lines",
-        name: "Student",
-        marker: {
-            size: 10,
-            color: categories.map(c => colorMap[c] || "gray"),
-            line: { width: 1, color: "#222" }
-        },
-        line: { color: "#333", width: 1 }
-    };
-
-    // WHO curves
-    const sdOrder = ["-3SD", "-2SD", "-1SD", "Median", "+1SD", "+2SD", "+3SD"];
-    const sdColors = [
-        "rgba(255,0,0,0.4)", 
-        "rgba(255,100,0,0.4)",
-        "rgba(255,165,0,0.4)",
-        "rgba(0,150,0,0.4)",
-        "rgba(0,100,255,0.4)",
-        "rgba(100,0,255,0.4)",
-        "rgba(150,0,150,0.4)"
-    ];
-
-    const whoTraces = sdOrder
-        .filter(k => whoCurves[k])
-        .map((k, i) => ({
-            x: chartMode === "bmi"
-                ? whoCurves[k].x.map(m => {
-                    const y = Math.floor(m / 12);
-                    const mo = m % 12;
-                    return `${y}y ${mo}m`;
-                })
-                : whoCurves[k].x,
-            y: whoCurves[k].y,
-            mode: "lines",
-            name: k,
-            line: {
-                width: k === "Median" ? 2.5 : 1.2,
-                dash: "solid",
-                color: sdColors[i]
-            },
-            hoverinfo: "none"
-        }));
-
-    const layout = {
-        title: chartMode === "bmi" ? "BMI-for-Age (WHO)" : "Weight-for-Height (WHO)",
-        xaxis: {
-            title: chartMode === "bmi" ? "Age (years & months)" : "Height (cm)",
-            gridcolor: "rgba(200,200,200,0.2)"
-        },
-        yaxis: {
-            title: chartMode === "bmi" ? "BMI (kg/m²)" : "Weight (kg)",
-            gridcolor: "rgba(200,200,200,0.2)"
-        },
-        legend: { orientation: "h", y: -0.2 },
-        plot_bgcolor: "#f9f9f9",
-        paper_bgcolor: "#fff",
-        margin: { t: 60, b: 60, l: 60, r: 20 }
-    };
-
-    Plotly.newPlot("growthChart", [...whoTraces, studentTrace], layout);
-});
-</script>
+{% if screenings %}
+  {% include "core/_growth_chart.html" %}
 {% endif %}
+
+
+
 
 {% endblock %}
