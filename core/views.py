@@ -316,6 +316,14 @@ def build_chart_data_for_student(screenings, student):
 
 @login_required(login_url='login')
 def screening_summary(request):
+    from core.utils.processor import (
+    calculate_age_in_months,
+    calculate_bmi,
+    bmi_category,
+    muac_category,
+    weight_height_category,
+)
+
 
     # -----------------------------------
     # 1. GET FILTER PARAMETERS
@@ -395,16 +403,41 @@ def screening_summary(request):
         # Enrich screenings
         for s in screenings:
             s.checklist_dict = get_checklist_for_screening(s, checklist_groups)
-            s.muac_category = muac_category_for(s, student)
 
             if student.date_of_birth:
-                indicator, cat, plot_val, age_m = determine_growth_for_screening(s, student)
-            else:
-                indicator, cat, plot_val, age_m = None, None, None, 0
+                s.age_in_months = calculate_age_in_months(
+                    student.date_of_birth, s.screen_date
+                )
 
-            s.growth_indicator = indicator
-            s.growth_category = cat
-            s.age_in_months = age_m
+                # BMI
+                s.bmi = calculate_bmi(s.weight, s.height)
+                s.bmi_category = (
+                    bmi_category(student.gender, s.age_in_months, s.bmi)
+                    if s.bmi else "N/A"
+                )
+
+                # MUAC
+                s.muac_category = (
+                    muac_category(s.muac, s.age_in_months)
+                    if s.muac else "N/A"
+                )
+
+                # Weight-for-Height
+                s.wfh_category = (
+                    weight_height_category(
+                        s.weight,
+                        s.height,
+                        s.age_in_months,
+                        student.gender
+                    )
+                    if s.weight and s.height else "N/A"
+                )
+            else:
+                s.age_in_months = 0
+                s.bmi = None
+                s.bmi_category = "N/A"
+                s.muac_category = "N/A"
+                s.wfh_category = "N/A"
 
         # -----------------------------------
         # 7. Build Chart Data (safe)
