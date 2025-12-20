@@ -31,13 +31,16 @@
         {% endif %}
 
         {% if 6 <= age_months <= 60 and screening.muac %}
-        <div class="col-md-2">
-          <strong>MUAC:</strong> {{ screening.muac }}
-          {% if screening.muac_category and screening.muac_category|lower != "normal" %}
-            <span class="text-danger">({{ screening.muac_category }})</span>
-          {% endif %}
-        </div>
-        {% endif %}
+<div class="col-md-2">
+  <strong>MUAC:</strong> {{ screening.muac }} cm
+  {% if screening.muac_category != "normal" %}
+    <span class="text-danger">(SAM)</span>
+  {% else %}
+    <span class="text-success">(Normal)</span>
+  {% endif %}
+</div>
+{% endif %}
+
       </div>
       {% if age_months >= 24 and age_months <= 60 %}
 <div class="row mb-2">
