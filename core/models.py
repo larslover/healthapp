@@ -238,40 +238,30 @@ class Screening(models.Model):
             else "N/A"
         )
 
-        # -------------------------
+            # -------------------------
+      # -------------------------
         # Vision logic
         # -------------------------
-        # -------------------------
-        # Vision logic (FINAL & SAFE)
-        # -------------------------
-        try:
-            # Normalize legacy value (may be yes/no/1/0/N/A)
-            legacy_value = str(self.vision_problem).strip().lower() if self.vision_problem else None
+        manual_input = getattr(self, "vision_problem", None)
+        manual_input_clean = manual_input.strip() if isinstance(manual_input, str) else ""
 
-            # 1️⃣ If legacy/manual YES exists → never overwrite
-            if legacy_value in ("yes", "1", "true"):
-                return
+        # 1️⃣ Manual input typed → yes (only if non-empty)
+        if manual_input_clean:
+            self.vision_problem = "yes"
+            return
 
-            left_vision = self.vision_left
-            right_vision = self.vision_right
+        # 2️⃣ Both eyes dropdowns filled → auto-evaluate
+        if self.vision_left and self.vision_right:
+            self.vision_problem = evaluate_vision(self.vision_left, self.vision_right)
+            return
 
-            # 2️⃣ If both eyes tested → auto evaluate
-            if left_vision and right_vision:
-                self.vision_problem = evaluate_vision(left_vision, right_vision)
-                return
+        # 3️⃣ Checkbox clicked without manual input → no
+        if getattr(self, "unable_to_perform_vision", False):
+            self.vision_problem = "no"
+            return
 
-            # 3️⃣ Unable to perform test → default to NO
-            # (even if doctor leaves it blank)
-            if hasattr(self, "unable_to_perform_vision") and self.unable_to_perform_vision:
-                self.vision_problem = "no"
-                return
-
-            # 4️⃣ No data at all
-            self.vision_problem = "N/A"
-
-        except Exception:
-            self.vision_problem = "N/A"
-
+        # 4️⃣ Nothing selected anywhere → N/A
+        self.vision_problem = "N/A"
 
     def save(self, *args, **kwargs):
         self.calculate_metrics()
