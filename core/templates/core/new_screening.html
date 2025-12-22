@@ -223,13 +223,42 @@
   </div>
 </div>
 
+
+<!-- MUAC Test -->
+<div id="muacCard" class="card mb-4 shadow-sm">
+  <div class="card-header bg-info text-dark fw-bold">
+    MUAC (6–60 months)
+  </div>
+
+  <div class="card-body">
+    <div class="row g-3">
+
+      <div class="col-md-4">
+        {{ screening_form.muac.label_tag }}
+        {{ screening_form.muac }}
+      </div>
+
+      <div class="col-md-8">
+        <label class="fw-semibold">MUAC Evaluation</label>
+        <input
+          type="text"
+          id="muacResult"
+          class="form-control fw-bold"
+          readonly
+          style="background:#f8fafc;"
+        >
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
     
     <!-- Screening Checklist -->
     <hr class="my-4">
     <h5 class="fw-semibold mb-3">Screening Checklist</h5>
-    <div class="mb-3" id="muacWrapper">
-      {{ screening_form.muac.label_tag }} {{ screening_form.muac }}
-    </div>
+   
     <div class="row g-3">
       {% for field in screening_check_form %}
         {% if field.name == 'B5_oedema' %}
@@ -288,7 +317,13 @@
       const rowE5 = document.getElementById("E5Wrapper");
       const rowE8 = document.getElementById("E8Wrapper");
 
-      const muacWrapper = document.getElementById('muacWrapper');
+      
+
+
+
+
+
+      
   
       // --------------------
       // Data from student
@@ -351,6 +386,58 @@
       weightInput?.addEventListener('input', updateGrowthReference);
       heightInput?.addEventListener('input', updateGrowthReference);
   
+// -----------------------------
+// MUAC Logic (6–60 months)
+// -----------------------------
+const muacCard = document.getElementById("muacCard");
+const muacInput = document.getElementById("id_muac");
+const muacResult = document.getElementById("muacResult");
+
+function updateMUAC() {
+    if (!currentDob || !screenDateInput?.value) {
+        muacCard?.classList.add("d-none");
+        return;
+    }
+
+    const totalMonths = getTotalMonths(currentDob, screenDateInput.value);
+
+    // Hide MUAC if outside 6–60 months
+    if (totalMonths === null || totalMonths < 6 || totalMonths > 60) {
+        muacCard?.classList.add("d-none");
+        muacResult.value = "";
+        muacResult.className = "form-control fw-bold";
+        return;
+    }
+
+    // Show MUAC
+    muacCard?.classList.remove("d-none");
+
+    const muac = parseFloat(muacInput?.value);
+    if (!muac) {
+        muacResult.value = "";
+        muacResult.className = "form-control fw-bold";
+        return;
+    }
+
+    // WHO cutoffs
+    if (muac < 11.5) {
+        muacResult.value = "SEVERE ACUTE MALNUTRITION (SAM)";
+        muacResult.className = "form-control fw-bold text-danger";
+    } else {
+        muacResult.value = "NORMAL";
+        muacResult.className = "form-control fw-bold text-success";
+    }
+}
+
+// React to changes
+screenDateInput?.addEventListener("input", updateMUAC);
+muacInput?.addEventListener("input", updateMUAC);
+
+// Run on page load
+updateMUAC();
+
+
+
       // -----------------------------
       // Vision Evaluation
       // -----------------------------
@@ -381,14 +468,9 @@
       visionLeft?.addEventListener("change", updateVision);
       visionRight?.addEventListener("change", updateVision);
       visionBoth?.addEventListener("change", updateVision);
-      function updateMUACVisibility() {
-    const totalMonths = getTotalMonths(currentDob, screenDateInput?.value || new Date().toISOString().slice(0,10));
-    if (totalMonths > 60) {
-        muacWrapper?.classList.add('d-none');
-    } else {
-        muacWrapper?.classList.remove('d-none');
-    }
-}
+      
+   
+
 
 screenDateInput?.addEventListener('input', updateMUACVisibility);
 updateMUACVisibility();  // run on page load
