@@ -241,15 +241,37 @@ class Screening(models.Model):
         # -------------------------
         # Vision logic
         # -------------------------
+        # -------------------------
+        # Vision logic (FINAL & SAFE)
+        # -------------------------
         try:
-            left_vision = getattr(self, "vision_left", None)
-            right_vision = getattr(self, "vision_right", None)
-            if left_vision is not None and right_vision is not None:
+            # Normalize legacy value (may be yes/no/1/0/N/A)
+            legacy_value = str(self.vision_problem).strip().lower() if self.vision_problem else None
+
+            # 1️⃣ If legacy/manual YES exists → never overwrite
+            if legacy_value in ("yes", "1", "true"):
+                return
+
+            left_vision = self.vision_left
+            right_vision = self.vision_right
+
+            # 2️⃣ If both eyes tested → auto evaluate
+            if left_vision and right_vision:
                 self.vision_problem = evaluate_vision(left_vision, right_vision)
-            else:
-                self.vision_problem = "N/A"
+                return
+
+            # 3️⃣ Unable to perform test → default to NO
+            # (even if doctor leaves it blank)
+            if hasattr(self, "unable_to_perform_vision") and self.unable_to_perform_vision:
+                self.vision_problem = "no"
+                return
+
+            # 4️⃣ No data at all
+            self.vision_problem = "N/A"
+
         except Exception:
             self.vision_problem = "N/A"
+
 
     def save(self, *args, **kwargs):
         self.calculate_metrics()

@@ -60,29 +60,31 @@ vision_list = [
     "3/3.8", "3/3", "3/2.4", "3/1.9", "3/1.5", "3/1.2"
 ]
 VISION_CHOICES = [("", "-- Select Vision --")] + [(v, v) for v in vision_list]
+
 class ScreeningForm(forms.ModelForm):
-    
+    unable_to_perform_vision = forms.BooleanField(
+        required=False,
+        label="Unable to perform vision test",
+        widget=forms.CheckboxInput(attrs={"class": "form-check-input"})
+    )
 
     class Meta:
         model = Screening
         fields = [
-            'screen_date', 'class_section','age_screening',
+            'screen_date', 'class_section', 'age_screening',
             'weight', 'height', 'muac',
-            'vision_both', 'vision_left', 'vision_right',
-            
+            'vision_both', 'vision_left', 'vision_right', 'vision_problem',
         ]
         widgets = {
             'screen_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'class_section': forms.TextInput(attrs={'class': 'form-control'}),
-            
             'weight': forms.NumberInput(attrs={'step': '0.1', 'class': 'form-control'}),
             'height': forms.NumberInput(attrs={'step': '0.1', 'class': 'form-control'}),
             'muac': forms.NumberInput(attrs={'step': '0.1', 'class': 'form-control'}),
             'vision_both': forms.Select(choices=VISION_CHOICES, attrs={'class': 'form-select'}),
             'vision_left': forms.Select(choices=VISION_CHOICES, attrs={'class': 'form-select'}),
             'vision_right': forms.Select(choices=VISION_CHOICES, attrs={'class': 'form-select'}),
-            
-            'status': forms.TextInput(attrs={'class': 'form-control'}),
+            'vision_problem': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'age_screening': forms.TextInput(attrs={
                 'class': 'form-control',
                 'readonly': 'readonly',
@@ -90,6 +92,20 @@ class ScreeningForm(forms.ModelForm):
             }),
         }
 
+    
+    def clean(self):
+        cleaned_data = super().clean()
+
+        unable = cleaned_data.get("unable_to_perform_vision")
+        vision_problem = cleaned_data.get("vision_problem")
+
+        # ✅ Default behavior:
+        # If unable to perform and doctor leaves vision_problem untouched,
+        # interpret it as NO vision problem.
+        if unable and vision_problem is None:
+            cleaned_data["vision_problem"] = False
+
+        return cleaned_data
 # -------------------------------
 # Screening Check Form
 # -------------------------------

@@ -247,18 +247,51 @@
         {{ screening_form.vision_right }}
       </div>
 
+      <!-- Checkbox -->
+      <div class="col-md-12 mt-3 form-check">
+        {{ screening_form.unable_to_perform_vision }}
+        <label class="form-check-label" for="{{ screening_form.unable_to_perform_vision.id_for_label }}">
+          Unable to perform vision test
+        </label>
+      </div>
       <!-- Auto Evaluation -->
-      <div class="col-md-12 mt-3">
-        <label class="fw-semibold">Vision Problem</label>
-        <input type="text" id="visionResult"
-               class="form-control fw-bold"
-               readonly
-               style="background:#eef2ff;">
+<div class="col-md-12 mt-3">
+  <label class="fw-semibold">Vision Evaluation (Auto)</label>
+  <input type="text"
+         id="visionResult"
+         class="form-control fw-bold"
+         readonly
+         style="background:#eef2ff;">
+</div>
+
+
+      <!-- Manual input -->
+      <div class="col-md-12 mt-2" id="manualVisionDiv" style="display:none;">
+        {{ screening_form.vision_problem.label_tag }}
+        {{ screening_form.vision_problem }}
       </div>
 
     </div>
   </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const checkbox = document.getElementById('{{ screening_form.unable_to_perform_vision.id_for_label }}');
+    const manualDiv = document.getElementById('manualVisionDiv');
+
+    if (checkbox) {
+        checkbox.addEventListener('change', function() {
+            manualDiv.style.display = this.checked ? 'block' : 'none';
+            document.getElementById('{{ screening_form.vision_problem.id_for_label }}').readOnly = !this.checked;
+        });
+
+        // Initial state
+        manualDiv.style.display = checkbox.checked ? 'block' : 'none';
+        document.getElementById('{{ screening_form.vision_problem.id_for_label }}').readOnly = !checkbox.checked;
+    }
+});
+</script>
 
 
 <!-- MUAC Test -->
