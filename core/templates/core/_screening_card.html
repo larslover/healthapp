@@ -76,17 +76,23 @@
         </div>
       </div>
 
-      <!-- Preventive Care -->
-      {% if screening.checklist_dict.vaccination or screening.checklist_dict.deworming %}
-      <div class="row mt-3 mb-2">
-        <div class="col-md-3">
-          <strong>Vaccination:</strong> {{ screening.checklist_dict.vaccination|default:"—" }}
-        </div>
-        <div class="col-md-3">
-          <strong>Deworming:</strong> {{ screening.checklist_dict.deworming|default:"—" }}
-        </div>
-      </div>
-      {% endif %}
+<!-- Preventive Care -->
+{% if screening.checklist_dict.vaccination or screening.checklist_dict.deworming %}
+<div class="row mt-3 mb-2">
+  <div class="col-md-3">
+    <strong>Vaccination:</strong> 
+    <span class="{% if screening.checklist_dict.vaccination|lower == 'no' or screening.checklist_dict.vaccination|lower == 'unknown' %}text-danger{% endif %}">
+      {{ screening.checklist_dict.vaccination|default:"—" }}
+    </span>
+  </div>
+  <div class="col-md-3">
+    <strong>Deworming:</strong> 
+    <span class="{% if screening.checklist_dict.deworming|lower == 'no' or screening.checklist_dict.deworming|lower == 'unknown' %}text-danger{% endif %}">
+      {{ screening.checklist_dict.deworming|default:"—" }}
+    </span>
+  </div>
+</div>
+{% endif %}
 
       <!-- Doctor's Remarks -->
       {% if screening.checklist_dict.E9_remarks %}
