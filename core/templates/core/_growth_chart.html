@@ -36,7 +36,9 @@
       const bmiLabels = JSON.parse(`{{ bmi_labels|default:"[]"|escapejs }}`);
       const bmiValues = JSON.parse(`{{ bmi_values|default:"[]"|escapejs }}`);
       const bmiCats   = JSON.parse(`{{ bmi_categories|default:"[]"|escapejs }}`);
-      const whoCurves = JSON.parse(`{{ chart_who_curves|default:"{}"|escapejs }}`);
+      const whoBmiCurves = JSON.parse(`{{ chart_who_bmi_curves|default:"{}"|escapejs }}`);
+const whoWfhCurves = JSON.parse(`{{ chart_who_wfh_curves|default:"{}"|escapejs }}`);
+
       const wfhLabels = JSON.parse(`{{ wfh_labels|default:"[]"|escapejs }}`);
 const wfhValues = JSON.parse(`{{ wfh_values|default:"[]"|escapejs }}`);
 const wfhCats   = JSON.parse(`{{ wfh_categories|default:"[]"|escapejs }}`);
@@ -54,10 +56,10 @@ const wfhCats   = JSON.parse(`{{ wfh_categories|default:"[]"|escapejs }}`);
   
       function buildWhoTracesBMI() {
           return sdLabels
-              .filter(l => whoCurves[l]?.x && whoCurves[l]?.y)
-              .map((label,i) => ({
-                  x: whoCurves[label].x.map(m => m/12),
-                  y: whoCurves[label].y,
+          .filter(l => whoBmiCurves[l]?.x && whoBmiCurves[l]?.y)
+.map((label,i) => ({
+    x: whoBmiCurves[label].x.map(m => m / 12),
+    y: whoBmiCurves[label].y,
                   mode: "lines",
                   name: label,
                   line: { width: label==="Median"?2.8:1.4, color: sdColors[i] },
@@ -171,11 +173,13 @@ const studentWFH = {
     }
 };
 
+
 const whoWFH = sdLabels
-    .filter(l => whoCurves[l]?.x && whoCurves[l]?.y)
+    .filter(l => whoWfhCurves[l]?.x && whoWfhCurves[l]?.y)
     .map((label, i) => ({
-        x: whoCurves[label].x,
-        y: whoCurves[label].y,
+        x: whoWfhCurves[label].x,
+        y: whoWfhCurves[label].y,
+
         mode: "lines",
         name: label,
         line: {

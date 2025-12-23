@@ -268,12 +268,35 @@ def determine_growth_for_screening(screening, student):
 
     # Too young / insufficient data
     return "Too young / Insufficient data", "N/A", None, age_m
+def get_who_wfh_curves(gender):
+    data = (
+        weight_height_female_thresholds
+        if gender == "female"
+        else weight_height_male_thresholds
+    )
+
+    curves = {
+        "-3SD": {"x": [], "y": []},
+        "-2SD": {"x": [], "y": []},
+        "-1SD": {"x": [], "y": []},
+        "Median": {"x": [], "y": []},
+        "+1SD": {"x": [], "y": []},
+        "+2SD": {"x": [], "y": []},
+        "+3SD": {"x": [], "y": []},
+    }
+
+    for height, values in data.items():
+        for i, key in enumerate(curves.keys()):
+            curves[key]["x"].append(float(height))
+            curves[key]["y"].append(float(values[i]))
+
+    return curves
 
 
 def build_chart_data_for_student(screenings, student):
     if not screenings:
         empty = mark_safe("[]")
-        return empty, empty, empty, empty, empty, empty, empty
+        return empty, empty, empty, empty, empty, empty, empty, empty
 
     bmi_labels, bmi_values, bmi_categories = [], [], []
     wfh_labels, wfh_values, wfh_categories = [], [], []
@@ -287,15 +310,17 @@ def build_chart_data_for_student(screenings, student):
             bmi_labels.append(age_m)
             bmi_values.append(plot_value)
             bmi_categories.append(category)
+
         elif indicator == "Weight-for-Height":
-            wfh_labels.append(s.height)
-            wfh_values.append(plot_value)
+            wfh_labels.append(float(s.height))   # X = height (cm)
+            wfh_values.append(float(s.weight))   # Y = weight (kg)
             wfh_categories.append(category)
 
-    # WHO curves (for both charts)
+    # WHO reference curves
     gender = "male" if student.gender.lower().startswith("m") else "female"
-    who_curves = get_who_reference_curves("bmi", gender)  # BMI curves
-    # Optionally, WFH curves separately if needed
+
+    who_bmi_curves = get_who_reference_curves("bmi", gender)
+    who_wfh_curves = get_who_wfh_curves(gender)
 
     return (
         mark_safe(json.dumps(bmi_labels)),
@@ -304,7 +329,8 @@ def build_chart_data_for_student(screenings, student):
         mark_safe(json.dumps(wfh_labels)),
         mark_safe(json.dumps(wfh_values)),
         mark_safe(json.dumps(wfh_categories)),
-        mark_safe(json.dumps(who_curves)),
+        mark_safe(json.dumps(who_bmi_curves)),
+        mark_safe(json.dumps(who_wfh_curves)),
     )
 
 # -------------------------
@@ -361,7 +387,9 @@ def screening_summary(request):
     chart_mode = "none"
     bmi_labels = bmi_values = bmi_categories = mark_safe("[]")
     wfh_labels = wfh_values = wfh_categories = mark_safe("[]")
-    chart_who_curves = mark_safe("{}")
+    chart_who_bmi_curves = mark_safe("{}")
+    chart_who_wfh_curves = mark_safe("{}")
+
 
     # -----------------------------------
     # 5. CHECKLIST GROUPS (static)
@@ -450,7 +478,8 @@ def screening_summary(request):
                 wfh_labels,
                 wfh_values,
                 wfh_categories,
-                chart_who_curves
+                chart_who_bmi_curves,
+                chart_who_wfh_curves,
             ) = build_chart_data_for_student(screenings, student)
 
             # For now default to BMI chart
@@ -477,7 +506,9 @@ def screening_summary(request):
         "wfh_labels": wfh_labels,
         "wfh_values": wfh_values,
         "wfh_categories": wfh_categories,
-        "chart_who_curves": chart_who_curves,
+        "chart_who_bmi_curves": chart_who_bmi_curves,
+        "chart_who_wfh_curves": chart_who_wfh_curves,
+
     }
 
     return render(request, "core/screening_summary.html", context)
@@ -796,13 +827,13 @@ def add_screening(request):
             student.gender
         ) if s.weight and s.height else "N/A"
 
-        bmi_labels, bmi_values, bmi_categories, wfh_labels, wfh_values, wfh_categories, chart_who_curves = build_chart_data_for_student(
-            screenings_for_chart, student
-        )
+        bmi_labels, bmi_values, bmi_categories, wfh_labels, wfh_values, wfh_categories,  chart_who_bmi_curves,chart_who_wfh_curves = build_chart_data_for_student(screenings_for_chart, student)
     else:
         bmi_labels = bmi_values = bmi_categories = mark_safe("[]")
         wfh_labels = wfh_values = wfh_categories = mark_safe("[]")
-        chart_who_curves = mark_safe("{}")
+        chart_who_bmi_curves = mark_safe("{}")
+        chart_who_wfh_curves = mark_safe("{}")
+
     # --- Prepare checklist dict for previous screenings ---
     checklist_groups = {
         "Preventive Care": ["vaccination", "deworming"],
@@ -856,7 +887,9 @@ def add_screening(request):
     "wfh_labels": wfh_labels,
     "wfh_values": wfh_values,
     "wfh_categories": wfh_categories,
-    "chart_who_curves": chart_who_curves,
+    "chart_who_bmi_curves": chart_who_bmi_curves,
+    "chart_who_wfh_curves": chart_who_wfh_curves,
+
     "vision_list": vision_list,
     "critical_vision_set": list(critical_vision_set),  # convert to list so JS works
 })
