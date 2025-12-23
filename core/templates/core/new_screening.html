@@ -232,44 +232,42 @@
   <div class="card-body">
     <div class="row g-3">
 
-      <div class="col-md-4">
-        {{ screening_form.vision_both.label_tag }}
-        {{ screening_form.vision_both }}
-      </div>
-
-      <div class="col-md-4">
+      <!-- Left Eye -->
+      <div class="col-md-6">
         {{ screening_form.vision_left.label_tag }}
         {{ screening_form.vision_left }}
       </div>
 
-      <div class="col-md-4">
+      <!-- Right Eye -->
+      <div class="col-md-6">
         {{ screening_form.vision_right.label_tag }}
         {{ screening_form.vision_right }}
       </div>
-      <div class="col-md-12 mt-3">
-        <div class="form-check">
-          {{ screening_form.vision_manual_check }}
-          <label class="form-check-label fw-semibold" for="id_vision_manual_check">
-            Manual Check
-          </label>
-        </div>
-      </div>
-      
 
 
-      <!-- Auto Evaluation -->
+      <!-- Auto-calculated suggestion (read-only grey) -->
       <div class="col-md-12 mt-3">
-        <label class="fw-semibold">Vision Problem</label>
-        <input type="text" id="visionResult"
+        <label class="fw-semibold">Auto-calculated Suggestion</label>
+        <input type="text" id="visionAuto"
                class="form-control fw-bold"
                readonly
-               style="background:#eef2ff;">
+               style="background:#eef2ff;"
+               value="N/A">
+      </div>
+
+      <!-- Doctor Assessment Dropdown -->
+      <div class="col-md-12 mt-3">
+        <label class="fw-semibold">Doctor's Assessment</label>
+        <select id="visionDoctor" name="vision_problem" class="form-select fw-bold">
+          <option value="N/A" selected>N/A</option>
+          <option value="1">Yes</option>
+          <option value="0">No</option>
+        </select>
       </div>
 
     </div>
   </div>
 </div>
-
 
 <!-- MUAC Test -->
 <div id="muacCard" class="card mb-4 shadow-sm">
@@ -354,7 +352,7 @@
       const categoryField = document.getElementById('growthCategory');
   
       // Vision elements
-      const visionBoth = document.getElementById("id_vision_both");
+     
       const visionLeft = document.getElementById("id_vision_left");
       const visionRight = document.getElementById("id_vision_right");
       const visionResult = document.getElementById("visionResult");
@@ -487,39 +485,60 @@ muacInput?.addEventListener("input", updateMUAC);
 updateMUAC();
 
 
+// -----------------------------
+// Vision Evaluation (Auto + Doctor Dropdown)
+// -----------------------------
+const criticalVision = {{ critical_vision_set|safe }};
+const visionList = {{ vision_list|safe }};
 
-      // -----------------------------
-      // Vision Evaluation
-      // -----------------------------
-      const criticalVision = {{ critical_vision_set|safe }};
-      const visionList = {{ vision_list|safe }};
-  
-      function evaluateVisionJS(left, right) {
-          if (!left || !right) return "";
-          const leftIndex = visionList.indexOf(left);
-          const rightIndex = visionList.indexOf(right);
-          if (leftIndex === -1 || rightIndex === -1) return "";
-  
-          if (criticalVision.includes(left) || criticalVision.includes(right)) {
-              return "YES – Immediate Attention";
-          }
-          if (Math.abs(leftIndex - rightIndex) > 2) {
-              return "YES – Significant Difference";
-          }
-          return "NO – Normal";
-      }
-  
-      function updateVision() {
-          const left = visionLeft?.value || "";
-          const right = visionRight?.value || "";
-          visionResult.value = evaluateVisionJS(left, right) || "";
-      }
-  
-      visionLeft?.addEventListener("change", updateVision);
-      visionRight?.addEventListener("change", updateVision);
-      visionBoth?.addEventListener("change", updateVision);
-      
-   
+
+const visionAuto = document.getElementById("visionAuto");       // grey readonly
+const visionDoctor = document.getElementById("visionDoctor");   // editable dropdown
+
+function evaluateVision(left, right) {
+    if (!left && !right) return "N/A";
+
+    const leftIndex = visionList.indexOf(left);
+    const rightIndex = visionList.indexOf(right);
+    if (leftIndex === -1 || rightIndex === -1) return "N/A";
+
+    if (criticalVision.includes(left) || criticalVision.includes(right)) {
+        return "Yes";
+    }
+    if (Math.abs(leftIndex - rightIndex) > 2) {
+        return "Yes";
+    }
+    return "No";
+}
+function updateVision() {
+    const left = visionLeft?.value || "";
+    const right = visionRight?.value || "";
+
+    // Auto calculation for grey field
+    const autoValue = evaluateVision(left, right);
+    visionAuto.value = autoValue;
+
+    // Map autoValue to dropdown value
+    const autoDropdownValue = { "Yes": "1", "No": "0", "N/A": "N/A" }[autoValue] || "N/A";
+
+    // Prefill doctor dropdown only if not manually changed
+    if (!visionDoctor.dataset.userChanged) {
+        visionDoctor.value = autoDropdownValue;
+    }
+}
+
+// Detect if doctor manually changes the dropdown
+visionDoctor.addEventListener("change", () => {
+    visionDoctor.dataset.userChanged = "true";
+});
+
+// Add listeners for eye dropdowns
+[visionLeft, visionRight].forEach(el => {
+    el?.addEventListener("change", updateVision);
+});
+
+// Run on page load
+updateVision();
 
 
 screenDateInput?.addEventListener('input', updateMUACVisibility);
