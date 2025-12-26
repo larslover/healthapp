@@ -272,21 +272,13 @@
         {{ screening_form.vision_right }}
       </div>
 
-      <!-- Auto-calculated suggestion (read-only grey) -->
-      <div class="col-md-12 mt-3">
-        <label class="fw-semibold">Auto-calculated Suggestion</label>
-        <input type="text" id="visionAuto"
-               class="form-control fw-bold"
-               readonly
-               style="background:#eef2ff;"
-               value="N/A">
-      </div>
+      <!-- Auto-calculated Vision Test -->
+<div class="col-md-12 mt-3">
+  <label class="fw-semibold">Vision Problem (Auto-calculated)</label>
+  <input type="text" id="visionAuto" class="form-control fw-bold" readonly style="background:#eef2ff;">
+  <input type="hidden" id="id_vision_problem" name="vision_problem">
+</div>
 
-      <!-- Doctor Assessment Dropdown -->
-      <div class="col-md-12 mt-3">
-        {{ screening_form.vision_problem.label_tag }}
-        {{ screening_form.vision_problem }}
-    </div>
     
         
       </div>
@@ -353,6 +345,7 @@
       const visionAuto = document.getElementById("visionAuto");
 const visionLeft = document.getElementById("id_vision_left");
 const visionRight = document.getElementById("id_vision_right");
+const visionHidden = document.getElementById("id_vision_problem"); 
       
   
       // Menstrual fields
@@ -490,34 +483,36 @@ const visionList = {{ vision_list|safe }};
 
 
 
+
 function evaluateVision(left, right) {
-    if (!left && !right) return "N/A";
+        if (!left && !right) return "N/A";
 
-    const leftIndex = visionList.indexOf(left);
-    const rightIndex = visionList.indexOf(right);
-    if (leftIndex === -1 || rightIndex === -1) return "N/A";
+        const leftIndex = visionList.indexOf(left);
+        const rightIndex = visionList.indexOf(right);
+        if (leftIndex === -1 || rightIndex === -1) return "N/A";
 
-    if (criticalVision.includes(left) || criticalVision.includes(right)) {
-        return "Yes";
+        if (criticalVision.includes(left) || criticalVision.includes(right)) {
+            return "Yes";
+        }
+        if (Math.abs(leftIndex - rightIndex) > 2) {
+            return "Yes";
+        }
+        return "No";
     }
-    if (Math.abs(leftIndex - rightIndex) > 2) {
-        return "Yes";
+
+    function updateVision() {
+        const left = visionLeft?.value || "";
+        const right = visionRight?.value || "";
+
+        const autoValue = evaluateVision(left, right);
+        visionAuto.value = autoValue;
+        visionHidden.value = autoValue; // this is what gets saved in DB
     }
-    return "No";
-}
 
-function updateVision() {
-    const left = visionLeft?.value || "";
-    const right = visionRight?.value || "";
+    [visionLeft, visionRight].forEach(el => el?.addEventListener("change", updateVision));
 
-    visionAuto.value = evaluateVision(left, right);
-}
-
-[visionLeft, visionRight].forEach(el => {
-    el?.addEventListener("change", updateVision);
-});
-
-updateVision();
+    // Initial run
+    updateVision();
 
 screenDateInput?.addEventListener('input', updateMUACVisibility);
 updateMUACVisibility();  // run on page load
