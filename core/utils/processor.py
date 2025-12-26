@@ -76,19 +76,17 @@ def bmi_category(gender: str, age_months: int, bmi_value: float) -> str:
         return "N/A"
 
     minus3SD, minus2SD, minus1SD, median, plus1SD, plus2SD, plus3SD = values
-
     if bmi_value < minus3SD:
         return "severe underweight"
     elif bmi_value < minus2SD:
         return "moderate underweight"
-    elif bmi_value < minus1SD:
-        return "mild underweight"
     elif bmi_value < plus1SD:
         return "normal"
     elif bmi_value < plus2SD:
         return "overweight"
     else:
         return "obese"
+
 def muac_category(muac_value: float | None, age_months: int) -> str:
     """
     Classify MUAC (Mid-Upper Arm Circumference) for ages 6–60 months.
@@ -134,12 +132,12 @@ def weight_height_category(weight: float, height: float, age_in_months: int, gen
     # Classify
     if weight < sd3neg:
         return "Severe Acute Malnutrition"
-    elif weight < sd2neg:
+    elif  sd3neg <= weight < sd2neg:
         return "Moderate Acute Malnutrition"
-    elif sd2neg <= weight <= sd1:
+    elif sd2neg <= weight <= sd2:
         return "Normal"
-    elif sd1 < weight <= sd2:
+    elif  sd2 < weight <=sd3:
         return "Overweight"
-    elif weight > sd2:
+    elif weight > sd3:
         return "Obese"
     return "N/A"

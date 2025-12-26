@@ -238,19 +238,7 @@ class Screening(models.Model):
             else "N/A"
         )
 
-        # -------------------------
-        # Vision logic
-        # -------------------------
-        try:
-            left_vision = getattr(self, "vision_left", None)
-            right_vision = getattr(self, "vision_right", None)
-            if left_vision is not None and right_vision is not None:
-                self.vision_problem = evaluate_vision(left_vision, right_vision)
-            else:
-                self.vision_problem = "N/A"
-        except Exception:
-            self.vision_problem = "N/A"
-
+     
     def save(self, *args, **kwargs):
         self.calculate_metrics()
         super().save(*args, **kwargs)

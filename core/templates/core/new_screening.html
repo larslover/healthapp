@@ -212,63 +212,6 @@
       </div>
     </div>
     
-    <!-- Previous Screenings -->
-    <div id="screeningsSummaryCard" class="card mb-4 shadow-sm {% if not screenings %}d-none{% endif %}">
-      <div class="card-header bg-info text-white fw-bold">Previous Screenings</div>
-      <div class="card-body" id="screeningsSummaryContent">
-        {% if screenings %}
-          {% for screening in screenings %}
-            {% include "core/_screening_card.html" with screening=screening student=student %}
-          {% endfor %}
-        {% else %}
-          <p class="text-muted">No screenings available.</p>
-        {% endif %}
-      </div>
-    </div>
-
-<!-- Vision Test -->
-<div class="card mb-4 shadow-sm">
-  <div class="card-header bg-warning text-dark fw-bold">Vision Test</div>
-  <div class="card-body">
-    <div class="row g-3">
-
-      <!-- Left Eye -->
-      <div class="col-md-6">
-        {{ screening_form.vision_left.label_tag }}
-        {{ screening_form.vision_left }}
-      </div>
-
-      <!-- Right Eye -->
-      <div class="col-md-6">
-        {{ screening_form.vision_right.label_tag }}
-        {{ screening_form.vision_right }}
-      </div>
-
-
-      <!-- Auto-calculated suggestion (read-only grey) -->
-      <div class="col-md-12 mt-3">
-        <label class="fw-semibold">Auto-calculated Suggestion</label>
-        <input type="text" id="visionAuto"
-               class="form-control fw-bold"
-               readonly
-               style="background:#eef2ff;"
-               value="N/A">
-      </div>
-
-      <!-- Doctor Assessment Dropdown -->
-      <div class="col-md-12 mt-3">
-        <label class="fw-semibold">Doctor's Assessment</label>
-        <select id="visionDoctor" name="vision_problem" class="form-select fw-bold">
-          <option value="N/A" selected>N/A</option>
-          <option value="1">Yes</option>
-          <option value="0">No</option>
-        </select>
-      </div>
-
-    </div>
-  </div>
-</div>
-
 <!-- MUAC Test -->
 <div id="muacCard" class="card mb-4 shadow-sm">
   <div class="card-header bg-info text-dark fw-bold">
@@ -292,6 +235,60 @@
           readonly
           style="background:#f8fafc;"
         >
+      </div>
+
+    </div>
+  </div>
+</div>
+
+    <!-- Previous Screenings -->
+    <div id="screeningsSummaryCard" class="card mb-4 shadow-sm {% if not screenings %}d-none{% endif %}">
+      <div class="card-header bg-info text-white fw-bold">Previous Screenings</div>
+      <div class="card-body" id="screeningsSummaryContent">
+        {% if screenings %}
+          {% for screening in screenings %}
+            {% include "core/_screening_card.html" with screening=screening student=student %}
+          {% endfor %}
+        {% else %}
+          <p class="text-muted">No screenings available.</p>
+        {% endif %}
+      </div>
+    </div>
+<!-- Vision Test -->
+<div class="card mb-4 shadow-sm">
+  <div class="card-header bg-warning text-dark fw-bold">Vision Test</div>
+  <div class="card-body">
+    <div class="row g-3">
+
+      <!-- Left Eye -->
+      <div class="col-md-6">
+        {{ screening_form.vision_left.label_tag }}
+        {{ screening_form.vision_left }}
+      </div>
+
+      <!-- Right Eye -->
+      <div class="col-md-6">
+        {{ screening_form.vision_right.label_tag }}
+        {{ screening_form.vision_right }}
+      </div>
+
+      <!-- Auto-calculated suggestion (read-only grey) -->
+      <div class="col-md-12 mt-3">
+        <label class="fw-semibold">Auto-calculated Suggestion</label>
+        <input type="text" id="visionAuto"
+               class="form-control fw-bold"
+               readonly
+               style="background:#eef2ff;"
+               value="N/A">
+      </div>
+
+      <!-- Doctor Assessment Dropdown -->
+      <div class="col-md-12 mt-3">
+        {{ screening_form.vision_problem.label_tag }}
+        {{ screening_form.vision_problem }}
+    </div>
+    
+        
       </div>
 
     </div>
@@ -353,9 +350,10 @@
   
       // Vision elements
      
-      const visionLeft = document.getElementById("id_vision_left");
-      const visionRight = document.getElementById("id_vision_right");
-      const visionResult = document.getElementById("visionResult");
+      const visionAuto = document.getElementById("visionAuto");
+const visionLeft = document.getElementById("id_vision_left");
+const visionRight = document.getElementById("id_vision_right");
+      
   
       // Menstrual fields
       const fieldE4 = document.getElementById("id_E4_menarke");
@@ -484,16 +482,13 @@ muacInput?.addEventListener("input", updateMUAC);
 // Run on page load
 updateMUAC();
 
-
 // -----------------------------
-// Vision Evaluation (Auto + Doctor Dropdown)
+// Vision Evaluation (Auto ONLY)
 // -----------------------------
 const criticalVision = {{ critical_vision_set|safe }};
 const visionList = {{ vision_list|safe }};
 
 
-const visionAuto = document.getElementById("visionAuto");       // grey readonly
-const visionDoctor = document.getElementById("visionDoctor");   // editable dropdown
 
 function evaluateVision(left, right) {
     if (!left && !right) return "N/A";
@@ -510,36 +505,19 @@ function evaluateVision(left, right) {
     }
     return "No";
 }
+
 function updateVision() {
     const left = visionLeft?.value || "";
     const right = visionRight?.value || "";
 
-    // Auto calculation for grey field
-    const autoValue = evaluateVision(left, right);
-    visionAuto.value = autoValue;
-
-    // Map autoValue to dropdown value
-    const autoDropdownValue = { "Yes": "1", "No": "0", "N/A": "N/A" }[autoValue] || "N/A";
-
-    // Prefill doctor dropdown only if not manually changed
-    if (!visionDoctor.dataset.userChanged) {
-        visionDoctor.value = autoDropdownValue;
-    }
+    visionAuto.value = evaluateVision(left, right);
 }
 
-// Detect if doctor manually changes the dropdown
-visionDoctor.addEventListener("change", () => {
-    visionDoctor.dataset.userChanged = "true";
-});
-
-// Add listeners for eye dropdowns
 [visionLeft, visionRight].forEach(el => {
     el?.addEventListener("change", updateVision);
 });
 
-// Run on page load
 updateVision();
-
 
 screenDateInput?.addEventListener('input', updateMUACVisibility);
 updateMUACVisibility();  // run on page load

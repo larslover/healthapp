@@ -1,5 +1,6 @@
 from django import forms
 from .models import Student, Screening, School, ScreeningCheck
+from django import forms
 
 # -------------------------------
 # Student Form
@@ -52,35 +53,76 @@ class StudentForm(forms.ModelForm):
 # -------------------------------
 # Screening Form
 # -------------------------------
-from django import forms
-from .models import Screening
+
 
 vision_list = [
     "3/30", "3/24", "3/19", "3/15", "3/12", "3/9.5", "3/7.5", "3/6", "3/4.8",
     "3/3.8", "3/3", "3/2.4", "3/1.9", "3/1.5", "3/1.2"
 ]
 VISION_CHOICES = [("", "-- Select Vision --")] + [(v, v) for v in vision_list]
+
+
+VISION_PROBLEM_CHOICES = [
+    ('N/A', 'N/A'),
+    ('Yes', 'Yes'),
+    ('No', 'No'),
+]
+
+
 class ScreeningForm(forms.ModelForm):
-    
+
+    vision_left = forms.ChoiceField(
+        choices=VISION_CHOICES,
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+
+    vision_right = forms.ChoiceField(
+        choices=VISION_CHOICES,
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+
+    # ✅ Doctor’s decision (saved exactly as chosen)
+    vision_problem = forms.ChoiceField(
+        choices=VISION_PROBLEM_CHOICES,
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-select fw-bold'})
+    )
 
     class Meta:
         model = Screening
         fields = [
-            'screen_date', 'class_section','age_screening',
-            'weight', 'height', 'muac','vision_left', 'vision_right',
-            
+            'screen_date',
+            'class_section',
+            'age_screening',
+            'weight',
+            'height',
+            'muac',
+            'vision_left',
+            'vision_right',
+            'vision_problem',   # ✅ INCLUDED
         ]
         widgets = {
-            'screen_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
-            'class_section': forms.TextInput(attrs={'class': 'form-control'}),
-            
-            'weight': forms.NumberInput(attrs={'step': '0.1', 'class': 'form-control'}),
-            'height': forms.NumberInput(attrs={'step': '0.1', 'class': 'form-control'}),
-            'muac': forms.NumberInput(attrs={'step': '0.1', 'class': 'form-control'}),
-            'vision_left': forms.Select(choices=VISION_CHOICES, attrs={'class': 'form-select'}),
-            'vision_right': forms.Select(choices=VISION_CHOICES, attrs={'class': 'form-select'}),
-            
-            'status': forms.TextInput(attrs={'class': 'form-control'}),
+            'screen_date': forms.DateInput(attrs={
+                'type': 'date',
+                'class': 'form-control'
+            }),
+            'class_section': forms.TextInput(attrs={
+                'class': 'form-control'
+            }),
+            'weight': forms.NumberInput(attrs={
+                'step': '0.1',
+                'class': 'form-control'
+            }),
+            'height': forms.NumberInput(attrs={
+                'step': '0.1',
+                'class': 'form-control'
+            }),
+            'muac': forms.NumberInput(attrs={
+                'step': '0.1',
+                'class': 'form-control'
+            }),
             'age_screening': forms.TextInput(attrs={
                 'class': 'form-control',
                 'readonly': 'readonly',
@@ -88,6 +130,19 @@ class ScreeningForm(forms.ModelForm):
             }),
         }
 
+    def clean(self):
+        cleaned_data = super().clean()
+
+        # Normalize empty vision values
+        for field in ['vision_left', 'vision_right']:
+            if cleaned_data.get(field) == "":
+                cleaned_data[field] = None
+
+        # Ensure vision_problem always has a valid value
+        if not cleaned_data.get('vision_problem'):
+            cleaned_data['vision_problem'] = 'N/A'
+
+        return cleaned_data
 # -------------------------------
 # Screening Check Form
 # -------------------------------

@@ -68,12 +68,15 @@
      
         <div class="col-md-3">
           <strong>Vision Problem:</strong>
-          {% if screening.vision_problem == "yes" %}
+          {% if screening.vision_problem == "Yes" %}
             <span class="text-danger">Yes</span>
-          {% else %}
+          {% elif screening.vision_problem == "No" %}
             <span class="text-muted">No</span>
+          {% else %}
+            <span class="text-secondary">N/A</span>
           {% endif %}
         </div>
+        
       </div>
 
 <!-- Preventive Care -->
