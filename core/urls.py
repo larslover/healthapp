@@ -16,6 +16,8 @@ urlpatterns = [
     path('students/ajax-search/', views.ajax_student_search, name='ajax_student_search'),
     path('schools/add/', views.school_create, name='school_create'),
     path("student/<int:pk>/delete/", views.delete_student, name="delete_student"),
+    path("screening/<int:screening_id>/delete/", views.delete_screening,
+    name="delete_screening"),
 
 
     # Screenings

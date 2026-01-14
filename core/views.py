@@ -73,6 +73,21 @@ from django.shortcuts import get_object_or_404, redirect
 from django.db import transaction
 from core.models import Student
 
+from django.shortcuts import get_object_or_404, redirect
+from django.views.decorators.http import require_POST
+from core.models import Screening
+
+@require_POST
+def delete_screening(request, screening_id):
+    screening = get_object_or_404(Screening, id=screening_id)
+
+    student_id = screening.student.id  # keep for redirect
+    screening.delete()  # 🔥 deletes ScreeningCheck automatically
+
+    return redirect(f"/screened-students/?selected_student={student_id}")
+
+
+
 @transaction.atomic
 def delete_student(request, pk):
     student = get_object_or_404(Student, pk=pk)

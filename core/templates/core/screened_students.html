@@ -167,7 +167,26 @@
     <!-- All Screenings -->
     {% for sform in screening_forms %}
     <div class="card mb-3 shadow-sm">
-        <div class="card-header bg-primary text-white">
+      <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <span>
+            Screening on 
+            {% if sform.screening_form.instance.screen_date %}
+                {{ sform.screening_form.instance.screen_date|date:"d M Y" }}
+            {% else %}
+                No Date
+            {% endif %}
+        </span>
+    
+        <form method="post"
+              action="{% url 'delete_screening' sform.screening_form.instance.id %}"
+              onsubmit="return confirm('Delete this screening session completely?');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-outline-light">
+                Delete Screening
+            </button>
+        </form>
+    </div>
+    
             Screening on 
             {% if sform.screening_form.instance.screen_date %}
                 {{ sform.screening_form.instance.screen_date|date:"d M Y" }}
