@@ -168,6 +168,20 @@
   </div>
 
 
+    <!-- Previous Screenings -->
+    <div id="screeningsSummaryCard" class="card mb-4 shadow-sm {% if not screenings %}d-none{% endif %}">
+      <div class="card-header bg-info text-white fw-bold">Previous Screenings</div>
+      <div class="card-body" id="screeningsSummaryContent">
+        {% if screenings %}
+          {% for screening in screenings %}
+            {% include "core/_screening_card.html" with screening=screening student=student %}
+          {% endfor %}
+        {% else %}
+          <p class="text-muted">No screenings available.</p>
+        {% endif %}
+      </div>
+    </div>
+
 
   <!-- Screening Form -->
   {% if student %}
@@ -240,20 +254,6 @@
     </div>
   </div>
 </div>
-
-    <!-- Previous Screenings -->
-    <div id="screeningsSummaryCard" class="card mb-4 shadow-sm {% if not screenings %}d-none{% endif %}">
-      <div class="card-header bg-info text-white fw-bold">Previous Screenings</div>
-      <div class="card-body" id="screeningsSummaryContent">
-        {% if screenings %}
-          {% for screening in screenings %}
-            {% include "core/_screening_card.html" with screening=screening student=student %}
-          {% endfor %}
-        {% else %}
-          <p class="text-muted">No screenings available.</p>
-        {% endif %}
-      </div>
-    </div>
 <!-- Vision Test -->
 <div class="card mb-4 shadow-sm">
   <div class="card-header bg-warning text-dark fw-bold">Vision Test</div>
