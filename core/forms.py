@@ -68,6 +68,9 @@ VISION_PROBLEM_CHOICES = [
     ('No', 'No'),
 ]
 
+from django import forms
+from django.utils import timezone
+from .models import Screening
 
 class ScreeningForm(forms.ModelForm):
 
@@ -83,7 +86,6 @@ class ScreeningForm(forms.ModelForm):
         widget=forms.Select(attrs={'class': 'form-select'})
     )
 
-    # ✅ Doctor’s decision (saved exactly as chosen)
     vision_problem = forms.ChoiceField(
         choices=VISION_PROBLEM_CHOICES,
         required=False,
@@ -101,48 +103,31 @@ class ScreeningForm(forms.ModelForm):
             'muac',
             'vision_left',
             'vision_right',
-            'vision_problem',   # ✅ INCLUDED
+            'vision_problem',
         ]
         widgets = {
             'screen_date': forms.DateInput(attrs={
                 'type': 'date',
-                'class': 'form-control'
+                'class': 'form-control',
             }),
-            'class_section': forms.TextInput(attrs={
-                'class': 'form-control'
-            }),
-            'weight': forms.NumberInput(attrs={
-                'step': '0.1',
-                'class': 'form-control'
-            }),
-            'height': forms.NumberInput(attrs={
-                'step': '0.1',
-                'class': 'form-control'
-            }),
-            'muac': forms.NumberInput(attrs={
-                'step': '0.1',
-                'class': 'form-control'
-            }),
+            'class_section': forms.TextInput(attrs={'class': 'form-control'}),
+            'weight': forms.NumberInput(attrs={'step': '0.1', 'class': 'form-control'}),
+            'height': forms.NumberInput(attrs={'step': '0.1', 'class': 'form-control'}),
+            'muac': forms.NumberInput(attrs={'step': '0.1', 'class': 'form-control'}),
             'age_screening': forms.TextInput(attrs={
                 'class': 'form-control',
                 'readonly': 'readonly',
-                'style': 'background-color:#e9ecef;'
+                'style': 'background-color:#e9ecef;',
             }),
         }
 
-    def clean(self):
-        cleaned_data = super().clean()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
-        # Normalize empty vision values
-        for field in ['vision_left', 'vision_right']:
-            if cleaned_data.get(field) == "":
-                cleaned_data[field] = None
-
-        # Ensure vision_problem always has a valid value
-        if not cleaned_data.get('vision_problem'):
-            cleaned_data['vision_problem'] = 'N/A'
-
-        return cleaned_data
+        # ⛔ Block future dates instantly in date picker
+        self.fields['screen_date'].widget.attrs['max'] = (
+            timezone.localdate().isoformat()
+        )
 # -------------------------------
 # Screening Check Form
 # -------------------------------
