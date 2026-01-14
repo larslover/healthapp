@@ -2,20 +2,25 @@
 {% load custom_filters %}
 
 <div class="card mb-3 shadow-sm">
+
+  <!-- HEADER -->
   <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
     <span>{{ screening.screen_date|date:"Y-m-d" }}</span>
-    <button type="button" class="btn btn-sm btn-light" 
-        data-bs-toggle="collapse" 
-        data-bs-target="#screeningBody{{ screening.id }}">
+    <button type="button"
+            class="btn btn-sm btn-light"
+            data-bs-toggle="collapse"
+            data-bs-target="#screeningBody{{ screening.id }}">
       Hide
     </button>
   </div>
 
+  <!-- BODY -->
   <div id="screeningBody{{ screening.id }}" class="collapse show">
     <div class="card-body">
+
       {% with age_months=student.date_of_birth|months_at_screening:screening.screen_date %}
 
-      <!-- Basic measurements -->
+      <!-- BASIC MEASUREMENTS -->
       <div class="row mb-2">
         <div class="col-md-2"><strong>Weight:</strong> {{ screening.weight|default:"—" }} kg</div>
         <div class="col-md-2"><strong>Height:</strong> {{ screening.height|default:"—" }} cm</div>
@@ -24,54 +29,45 @@
         {% if age_months >= 60 %}
         <div class="col-md-2">
           <strong>BMI:</strong> {{ screening.bmi|default:"—" }}
-      
           {% if screening.bmi_category %}
-            {% if screening.bmi_category|lower == "normal" %}
-              <span class="text-muted">({{ screening.bmi_category }})</span>
-            {% else %}
-              <span class="text-danger">({{ screening.bmi_category }})</span>
-            {% endif %}
+            <span class="{% if screening.bmi_category|lower == 'normal' %}text-muted{% else %}text-danger{% endif %}">
+              ({{ screening.bmi_category }})
+            </span>
           {% endif %}
         </div>
-      {% endif %}
-      
+        {% endif %}
 
         {% if 6 <= age_months <= 60 and screening.muac %}
-<div class="col-md-2">
-  <strong>MUAC:</strong> {{ screening.muac }} cm
-  {% if screening.muac_category != "normal" %}
-    <span class="text-danger">(SAM)</span>
-  {% else %}
-    <span class="text-success">(Normal)</span>
-  {% endif %}
-</div>
-{% endif %}
-
+        <div class="col-md-2">
+          <strong>MUAC:</strong> {{ screening.muac }} cm
+          <span class="{% if screening.muac_category != 'normal' %}text-danger{% else %}text-success{% endif %}">
+            ({{ screening.muac_category|default:"—" }})
+          </span>
+        </div>
+        {% endif %}
       </div>
-      {% if age_months >= 24 and age_months <= 60 %}
-<div class="row mb-2">
-    <div class="col-md-4">
-        <strong>Weight-for-Height:</strong> 
-        {% if screening.weight and screening.height %}
+
+      <!-- WEIGHT FOR HEIGHT -->
+      {% if 24 <= age_months <= 60 %}
+      <div class="row mb-2">
+        <div class="col-md-4">
+          <strong>Weight-for-Height:</strong>
+          {% if screening.weight and screening.height %}
             {{ screening.weight }} kg / {{ screening.height }} cm
             (<span class="{% if screening.wfh_category != 'Normal' %}text-danger{% else %}text-success{% endif %}">
-                {{ screening.wfh_category }}
+              {{ screening.wfh_category }}
             </span>)
-        {% else %}
+          {% else %}
             —
-        {% endif %}
-    </div>
-</div>
-{% endif %}
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
 
-
-   
-
-      <!-- Vision -->
+      <!-- VISION -->
       <div class="row mb-2">
         <div class="col-md-3"><strong>Vision (Left):</strong> {{ screening.vision_left|default:"—" }}</div>
         <div class="col-md-3"><strong>Vision (Right):</strong> {{ screening.vision_right|default:"—" }}</div>
-     
         <div class="col-md-3">
           <strong>Vision Problem:</strong>
           {% if screening.vision_problem == "Yes" %}
@@ -82,28 +78,27 @@
             <span class="text-secondary">N/A</span>
           {% endif %}
         </div>
-        
       </div>
 
-<!-- Preventive Care -->
-{% if screening.checklist_dict.vaccination or screening.checklist_dict.deworming %}
-<div class="row mt-3 mb-2">
-  <div class="col-md-3">
-    <strong>Vaccination:</strong> 
-    <span class="{% if screening.checklist_dict.vaccination|lower == 'no' or screening.checklist_dict.vaccination|lower == 'unknown' %}text-danger{% endif %}">
-      {{ screening.checklist_dict.vaccination|default:"—" }}
-    </span>
-  </div>
-  <div class="col-md-3">
-    <strong>Deworming:</strong> 
-    <span class="{% if screening.checklist_dict.deworming|lower == 'no' or screening.checklist_dict.deworming|lower == 'unknown' %}text-danger{% endif %}">
-      {{ screening.checklist_dict.deworming|default:"—" }}
-    </span>
-  </div>
-</div>
-{% endif %}
+      <!-- PREVENTIVE CARE -->
+      {% if screening.checklist_dict.vaccination or screening.checklist_dict.deworming %}
+      <div class="row mt-3 mb-2">
+        <div class="col-md-3">
+          <strong>Vaccination:</strong>
+          <span class="{% if screening.checklist_dict.vaccination|lower in 'no unknown' %}text-danger{% endif %}">
+            {{ screening.checklist_dict.vaccination|default:"—" }}
+          </span>
+        </div>
+        <div class="col-md-3">
+          <strong>Deworming:</strong>
+          <span class="{% if screening.checklist_dict.deworming|lower in 'no unknown' %}text-danger{% endif %}">
+            {{ screening.checklist_dict.deworming|default:"—" }}
+          </span>
+        </div>
+      </div>
+      {% endif %}
 
-      <!-- Doctor's Remarks -->
+      <!-- DOCTOR REMARKS -->
       {% if screening.checklist_dict.E9_remarks %}
       <div class="mt-4">
         <h6 class="fw-bold text-danger">Doctor’s Remarks:</h6>
@@ -111,26 +106,30 @@
       </div>
       {% endif %}
 
-      <!-- Checklist -->
+      <!-- CHECKLIST -->
       {% if screening.checklist_dict %}
       <div class="mt-3">
         <h6 class="fw-bold">Checklist:</h6>
 
-        <div class="mt-2">
-          {% for group_name, fields in checklist_groups.items %}
-            {% if group_name != "Preventive Care" and group_name != "Other Observations" %}
-              <div class="row mb-2">
-                {% for field_name in fields %}
-                  {% if screening.checklist_dict|dict_get:field_name %}
-                    <div class="col-md-3">
-                      <strong>{{ field_name|capfirst }}:</strong> ✅
-                    </div>
-                  {% endif %}
-                {% endfor %}
-              </div>
-            {% endif %}
-          {% endfor %}
-        </div>
+        {% if screening.checklist_dict|any_true %}
+          <div class="mt-2">
+            {% for group_name, fields in checklist_groups.items %}
+              {% if group_name != "Preventive Care" and group_name != "Other Observations" %}
+                <div class="row mb-2">
+                  {% for field_name in fields %}
+                    {% if screening.checklist_dict|dict_get:field_name %}
+                      <div class="col-md-3">
+                        <strong>{{ field_name|capfirst }}:</strong> ✅
+                      </div>
+                    {% endif %}
+                  {% endfor %}
+                </div>
+              {% endif %}
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="text-muted fst-italic mb-0">N/A</p>
+        {% endif %}
       </div>
       {% endif %}
 

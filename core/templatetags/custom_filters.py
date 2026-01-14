@@ -32,6 +32,7 @@ def age_at_screening(dob, screen_date):
         years -= 1
         months += 12
     return f"{years}y {months}m"
+
 @register.filter
 def months_at_screening(dob, screen_date):
     """Return age in months at the time of screening."""
@@ -41,3 +42,12 @@ def months_at_screening(dob, screen_date):
     if screen_date.day < dob.day:
         months -= 1
     return months
+
+@register.filter
+def any_true(d):
+    """
+    Returns True if any value in dict is True
+    """
+    if not isinstance(d, dict):
+        return False
+    return any(v is True for v in d.values())
