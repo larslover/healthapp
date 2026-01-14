@@ -1,19 +1,47 @@
 {# core/_student_card.html #}
 <div class="card mb-4 shadow-sm">
-  <div class="card-header bg-primary text-white fw-bold">Student Information</div>
+  <div class="card-header bg-primary text-white fw-bold">
+    Student Information
+  </div>
+
   <div class="card-body">
     <div class="row mb-2">
-      <div class="col-md-4"><strong>Name:</strong> {{ student.name }}</div>
-      <div class="col-md-4"><strong>Gender:</strong> {{ student.gender|default:"—" }}</div>
-      <div class="col-md-4"><strong>Age:</strong> {{ student.age_in_years }} years</div>
+      <div class="col-md-4">
+        <strong>Name:</strong> {{ student.name }}
+      </div>
+      <div class="col-md-4">
+        <strong>Gender:</strong> {{ student.gender|default:"—" }}
+      </div>
+      <div class="col-md-4">
+        <strong>Age:</strong> {{ student.age_in_years }} years
+      </div>
     </div>
+
     <div class="row mb-2">
-      <div class="col-md-6"><strong>School:</strong> {{ student.school.name|default:"—" }}</div>
-      <div class="col-md-6"><strong>DOB:</strong> {{ student.date_of_birth|date:"Y-m-d" }}</div>
+      <div class="col-md-6">
+        <strong>School:</strong> {{ student.school.name|default:"—" }}
+      </div>
+      <div class="col-md-6">
+        <strong>DOB:</strong> {{ student.date_of_birth|date:"Y-m-d"|default:"—" }}
+      </div>
     </div>
+
+    <div class="row mb-2">
+      <div class="col-md-6">
+        <strong>Father / Guardian:</strong>
+        {{ student.father_or_guardian_name|default:"—" }}
+      </div>
+      <div class="col-md-6">
+        <strong>Mother:</strong>
+        {{ student.mother_name|default:"—" }}
+      </div>
+    </div>
+
     <div>
-      <strong>Known Earlier Disease:</strong> 
-      <span class="text-danger">{{ student.known_earlier_disease|default:"—" }}</span>
+      <strong>Known Earlier Disease:</strong>
+      <span class="text-danger">
+        {{ student.known_earlier_disease|default:"—" }}
+      </span>
     </div>
   </div>
 </div>
