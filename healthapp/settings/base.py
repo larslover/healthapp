@@ -6,6 +6,10 @@ from dotenv import load_dotenv
 # Load environment variables
 # ---------------------
 load_dotenv()  # reads .env file if present
+# Authentication redirects
+LOGIN_URL = "login"          # must match URL name
+LOGIN_REDIRECT_URL = "/"
+LOGOUT_REDIRECT_URL = "login"
 
 # ---------------------
 # Paths
