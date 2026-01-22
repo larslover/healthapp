@@ -34,7 +34,7 @@ def evaluate_vision(left_vision: str, right_vision: str) -> str:
         return "yes"
 
     # If difference between eyes > 2 steps → problematic
-    if abs(left_index - right_index) > 2:
+    if abs(left_index - right_index) > 1:
         return "yes"
 
     return "no"
