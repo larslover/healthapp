@@ -508,7 +508,7 @@ function evaluateVision(left, right) {
         if (criticalVision.includes(left) || criticalVision.includes(right)) {
             return "Yes";
         }
-        if (Math.abs(leftIndex - rightIndex) > 2) {
+        if (Math.abs(leftIndex - rightIndex) > 1) {
             return "Yes";
         }
         return "No";
