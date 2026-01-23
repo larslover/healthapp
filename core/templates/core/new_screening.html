@@ -529,8 +529,7 @@ function evaluateVision(left, right) {
     // Initial run
     updateVision();
 
-screenDateInput?.addEventListener('input', updateMUACVisibility);
-updateMUACVisibility();  // run on page load
+
 
 function updateOedemaVisibility() {
     const totalMonths = getTotalMonths(currentDob, screenDateInput?.value || new Date().toISOString().slice(0,10));
