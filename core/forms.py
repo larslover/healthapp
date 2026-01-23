@@ -57,7 +57,7 @@ class StudentForm(forms.ModelForm):
 
 vision_list = [
     "3/30", "3/24", "3/19", "3/15", "3/12", "3/9.5", "3/7.5", "3/6", "3/4.8",
-    "3/3.8", "3/3", "3/2.4", "3/1.9", "3/1.5", "3/1.2"
+    "3/3.8", "3/3", "3/2.4", "3/1.9", "3/1.5", "3/1.2", "Not able"
 ]
 VISION_CHOICES = [("", "-- Select Vision --")] + [(v, v) for v in vision_list]
 

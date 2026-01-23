@@ -500,20 +500,28 @@ const visionList = {{ vision_list|safe }};
 
 
 function evaluateVision(left, right) {
-        if (!left && !right) return "N/A";
 
-        const leftIndex = visionList.indexOf(left);
-        const rightIndex = visionList.indexOf(right);
-        if (leftIndex === -1 || rightIndex === -1) return "N/A";
+// NEW: "Not able" → automatic problem
+if (left === "Not able" || right === "Not able") {
+    return "Yes";
+}
 
-        if (criticalVision.includes(left) || criticalVision.includes(right)) {
-            return "Yes";
-        }
-        if (Math.abs(leftIndex - rightIndex) > 1) {
-            return "Yes";
-        }
-        return "No";
-    }
+if (!left && !right) return "N/A";
+
+const leftIndex = visionList.indexOf(left);
+const rightIndex = visionList.indexOf(right);
+if (leftIndex === -1 || rightIndex === -1) return "N/A";
+
+if (criticalVision.includes(left) || criticalVision.includes(right)) {
+    return "Yes";
+}
+
+if (Math.abs(leftIndex - rightIndex) > 1) {
+    return "Yes";
+}
+
+return "No";
+}
 
     function updateVision() {
         const left = visionLeft?.value || "";
