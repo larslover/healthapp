@@ -10,6 +10,9 @@ urlpatterns = [
     # Dashboard
     path('', views.dashboard_view, name='dashboard'),
 
+    # Statistics
+        path('statistics/', views.statistics, name='statistics'),  # <-- new
+
     # Students
     path('students/', views.screened_students, name='screened_students'),
     path('students/add/', views.student_create, name='student_create'),

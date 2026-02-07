@@ -757,6 +757,10 @@ def get_school_students(request):
 
     return JsonResponse({"students": data})
 
+from django.shortcuts import render
+
+def statistics(request):
+    return render(request, 'core/statistics.html')
 
 
 @login_required
