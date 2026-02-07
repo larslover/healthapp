@@ -12,7 +12,6 @@
 
   <!-- Filters -->
   <form method="get" class="row g-3 mb-4">
-
     <!-- Year -->
     <div class="col-md-2">
       <label for="year" class="form-label">Year</label>
@@ -49,12 +48,13 @@
     <div class="col-md-2 d-flex align-items-end">
       <button type="submit" class="btn btn-primary w-100">Apply</button>
     </div>
-    
   </form>
-<!-- KPI Cards -->
-<div class="row g-3 mb-4">
 
-    <!-- Total Screened -->
+  <!-- KPI Cards -->
+
+  <!-- Row 1: Total Screened -->
+  <div class="row g-3 mb-4">
+    {% if stats.totals.screenings > 0 %}
     <div class="col-md-3">
       <div class="card shadow-sm text-center h-100">
         <div class="card-body">
@@ -63,99 +63,83 @@
         </div>
       </div>
     </div>
-  
-    <!-- Total Students -->
+    {% endif %}
+  </div>
+
+  <!-- Row 2: Screening Results -->
+  <div class="row g-3 mb-4">
+    <!-- Vision Issues -->
+    {% if stats.vision|length > 0 %}
     <div class="col-md-3">
       <div class="card shadow-sm text-center h-100">
         <div class="card-body">
-          <h6 class="text-muted">Total Students</h6>
-          <h2 class="fw-bold">{{ stats.totals.students }}</h2>
+          <h6 class="text-muted">Vision Issues</h6>
+          <h2 class="fw-bold">{{ stats.vision|length }}</h2>
         </div>
       </div>
     </div>
-  
-    <!-- Total Schools -->
-    <div class="col-md-3">
-      <div class="card shadow-sm text-center h-100">
-        <div class="card-body">
-          <h6 class="text-muted">Schools Covered</h6>
-          <h2 class="fw-bold">{{ stats.totals.schools }}</h2>
-        </div>
-      </div>
-    </div>
-  
+    {% endif %}
+
     <!-- SAM (MUAC) -->
+    {% if stats.muac_total > 0 %}
     <div class="col-md-3">
       <div class="card shadow-sm text-center h-100">
         <div class="card-body">
           <h6 class="text-muted">SAM (MUAC)</h6>
-          <h2 class="fw-bold text-danger">
-            {% for item in stats.muac %}
-              {% if item.muac_sam != "N/A" %}
-                {{ item.count }}
-              {% endif %}
-            {% endfor %}
-          </h2>
+          <h2 class="fw-bold text-danger">{{ stats.muac_total }}</h2>
         </div>
       </div>
     </div>
-  
+    {% endif %}
+
+    <!-- ScreeningCheck KPIs -->
+    {% for item in checklist_stats %}
+      {% if item.value > 0 %}
+      <div class="col-md-3">
+        <div class="card shadow-sm text-center h-100">
+          <div class="card-body">
+            <h6 class="text-muted">{{ item.label }}</h6>
+            <h2 class="fw-bold {% if item.danger %}text-danger{% endif %}">{{ item.value }}</h2>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    {% endfor %}
   </div>
-  
-  <!-- Nutrition and Vision Details -->
+
+  <!-- Row 3: BMI & Weight-for-Height -->
   <div class="row g-3 mb-4">
-  
     <!-- BMI Distribution -->
-    <div class="col-md-6">
-      <div class="card shadow-sm">
+    {% if stats.bmi|length > 0 %}
+    <div class="col-md-3">
+      <div class="card shadow-sm text-center h-100">
         <div class="card-body">
-          <h5 class="fw-bold mb-3">BMI Distribution</h5>
-          {% for item in stats.bmi %}
-            <div>{{ item.bmi_category }}: {{ item.count }}</div>
-          {% empty %}
-            <div>No data available</div>
-          {% endfor %}
+          <h6 class="text-muted">BMI Distribution</h6>
+          <ul class="list-unstyled mb-0">
+            {% for b in stats.bmi %}
+              <li>{{ b.bmi_category }}: {{ b.count }}</li>
+            {% endfor %}
+          </ul>
         </div>
       </div>
     </div>
-  
-    <!-- Vision Problems -->
-    <div class="col-md-6">
-      <div class="card shadow-sm">
+    {% endif %}
+
+    <!-- Weight-for-Height -->
+    {% if stats.weight_height|length > 0 %}
+    <div class="col-md-3">
+      <div class="card shadow-sm text-center h-100">
         <div class="card-body">
-          <h5 class="fw-bold mb-3">Vision Issues</h5>
-          {% for item in stats.vision %}
-            <div>{{ item.vision_problem }}: {{ item.count }}</div>
-          {% empty %}
-            <div>No data available</div>
-          {% endfor %}
+          <h6 class="text-muted">Weight-for-Height</h6>
+          <ul class="list-unstyled mb-0">
+            {% for wh in stats.weight_height %}
+              <li>{{ wh.weight_height|default:"N/A" }}: {{ wh.count }}</li>
+            {% endfor %}
+          </ul>
         </div>
       </div>
     </div>
-  
-  </div>
-    <!-- Placeholder for charts -->
-  <div class="row g-3">
-    <div class="col-md-6">
-      <div class="card shadow-sm">
-        <div class="card-body">
-          <h5 class="fw-bold mb-3">BMI Distribution</h5>
-          <div class="bg-light d-flex align-items-center justify-content-center" style="height: 240px;">
-            Chart coming soon
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-6">
-      <div class="card shadow-sm">
-        <div class="card-body">
-          <h5 class="fw-bold mb-3">MUAC Categories</h5>
-          <div class="bg-light d-flex align-items-center justify-content-center" style="height: 240px;">
-            Chart coming soon
-          </div>
-        </div>
-      </div>
-    </div>
+    {% endif %}
   </div>
 
 </div>
@@ -174,13 +158,8 @@ document.addEventListener("DOMContentLoaded", function() {
         fetch(`/ajax/get-classes/?school=${schoolId}&year=${year}`)
             .then(response => response.json())
             .then(data => {
-                // Save current selection
                 const selected = classSelect.value;
-
-                // Clear options
                 classSelect.innerHTML = '<option value="">All Classes</option>';
-
-                // Populate new options
                 data.classes.forEach(cls => {
                     const option = document.createElement("option");
                     option.value = cls;

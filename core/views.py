@@ -48,34 +48,54 @@ from core.services.statistics import get_screening_statistics
 import logging
 
 logger = logging.getLogger(__name__)  # recommended way to log
+# core/views.py
+from core.services.statistics import get_screening_statistics
+from core.models import School
+from core.forms import CLASS_CHOICES
+from django.shortcuts import render
+from core.models import Screening
+
+# core/views.py
+from django.shortcuts import render
+from core.models import Screening, School
+from core.forms import CLASS_CHOICES
+from core.services.statistics import get_screening_statistics
+
 
 def statistics(request):
-    # Debug: print incoming GET parameters
-    print("REQUEST GET parameters:", request.GET)
-    logger.info(f"REQUEST GET parameters: {request.GET}")
-
+    # ---- Get selected year ----
     year = request.GET.get("year")
-    selected_school = request.GET.get("school", "")
-    selected_class = request.GET.get("class", "")
-
-    print(f"Filters - Year: {year}, School: {selected_school}, Class: {selected_class}")
-    logger.info(f"Filters - Year: {year}, School: {selected_school}, Class: {selected_class}")
-
     if not year:
         year = Screening.objects.values_list("screening_year", flat=True).distinct().order_by("-screening_year").first()
-        print("No year selected, defaulting to latest year:", year)
-        logger.info(f"No year selected, defaulting to latest year: {year}")
 
-    # Get stats
+    # ---- Get selected class ----
+    selected_class = request.GET.get("class", "")
+
+    # ---- Fetch statistics ----
     stats = get_screening_statistics(
         screening_year=year,
-        school_id=selected_school,
+        school_id=request.GET.get("school"),
         class_section=selected_class,
     )
-    print("Stats computed:", stats)
-    logger.info(f"Stats computed: {stats}")
 
-    years = Screening.objects.exclude(screening_year__isnull=True).values_list("screening_year", flat=True).distinct().order_by("-screening_year")
+    # ---- Get all years for filter dropdown ----
+    years = (
+        Screening.objects
+        .exclude(screening_year__isnull=True)
+        .values_list("screening_year", flat=True)
+        .distinct()
+        .order_by("-screening_year")
+    )
+
+    # ---- Dynamically build checklist stats for template ----
+    checklist_stats = [
+        {
+            "label": field.replace("_", " ").title(),  # e.g., severe_anemia -> Severe Anemia
+            "value": count,
+            "danger": "anemia" in field.lower() or "deficiency" in field.lower()  # mark critical fields as dangerous
+        }
+        for field, count in stats.get("checklist", {}).items()
+    ]
 
     return render(
         request,
@@ -87,7 +107,7 @@ def statistics(request):
             "schools": School.objects.all(),
             "class_choices": CLASS_CHOICES,
             "selected_class": selected_class,
-            "selected_school": selected_school,
+            "checklist_stats": checklist_stats,
         }
     )
 
