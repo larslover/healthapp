@@ -17,8 +17,10 @@ from django.db.models import Prefetch
 from .models import School, Student, Screening, ScreeningCheck
 from .utils.processor import muac_category, weight_height_category, bmi_category, calculate_age_in_months
 from django.db.models.functions import ExtractYear
-from .models import Screening, School,LegacyStudent
-from core.legacy_helpers import get_all_students, search_students
+from .models import Screening, School
+from django.shortcuts import render
+from core.services.statistics import get_screening_statistics
+
 
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -79,6 +81,74 @@ from core.models import Screening
 from django.shortcuts import redirect, get_object_or_404
 from django.urls import reverse
 from django.views.decorators.http import require_POST
+
+from core.models import Screening, School
+
+from core.forms import CLASS_CHOICES
+from core.models import Screening, School
+from core.models import Screening, School
+
+def statistics(request):
+    year = request.GET.get("year")
+
+    if not year:
+        # Default to the latest year
+        year = (
+            Screening.objects
+            .values_list("screening_year", flat=True)
+            .exclude(screening_year__isnull=True)
+            .distinct()
+            .order_by("-screening_year")
+            .first()
+        )
+
+    # Normalize filters
+    selected_class = request.GET.get("class", "").strip()
+    school_id = request.GET.get("school")
+
+    # Build statistics queryset
+    stats = get_screening_statistics(
+        screening_year=year,
+        school_id=school_id,
+        class_section=selected_class if selected_class else None,
+    )
+
+    # Years for dropdown
+    years = (
+        Screening.objects
+        .exclude(screening_year__isnull=True)
+        .values_list("screening_year", flat=True)
+        .distinct()
+        .order_by("-screening_year")
+    )
+
+    # Get actual classes from DB for the selected year and school
+    class_qs = Screening.objects.filter(screening_year=year)
+    if school_id:
+        class_qs = class_qs.filter(school_id=school_id)
+
+    # Normalize class names (strip spaces, capitalize properly)
+    db_classes = (
+        class_qs
+        .values_list("class_section", flat=True)
+        .exclude(class_section__isnull=True)
+        .exclude(class_section__exact="")
+    )
+
+    normalized_classes = sorted({cls.strip().title() for cls in db_classes})
+
+    return render(
+        request,
+        "core/statistics.html",
+        {
+            "stats": stats,
+            "year": year,
+            "years": years,
+            "schools": School.objects.all(),
+            "class_choices": [(cls, cls) for cls in normalized_classes],
+            "selected_class": selected_class,
+        }
+    )
 
 @require_POST
 def delete_screening(request, screening_id):
@@ -214,9 +284,6 @@ def login_view(request):
 
     return render(request, 'core/login.html')
 
-def legacy_students_view(request):
-    students = LegacyStudent.objects.all()[:50]  # read only
-    return render(request, 'core/legacy_students.html', {'students': students})
 
 @login_required(login_url='login')
 def student_create(request):
@@ -759,8 +826,6 @@ def get_school_students(request):
 
 from django.shortcuts import render
 
-def statistics(request):
-    return render(request, 'core/statistics.html')
 
 
 @login_required

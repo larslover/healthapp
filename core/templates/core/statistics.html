@@ -3,33 +3,120 @@
 {% block title %}Statistics{% endblock %}
 
 {% block content %}
-<h2 class="mb-4 fw-bold">Statistics</h2>
+<div class="container my-4">
 
-<p class="mb-4">This page will display charts and graphs for BMI, MUAC, vision, anemia, and more.</p>
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold mb-0">Screening Statistics</h2>
+  </div>
+<!-- Filters -->
+<form method="get" class="row g-3 mb-4">
 
-<div class="row g-3">
-    <div class="col-12 col-sm-6">
-        <div class="card shadow-sm text-center">
-            <div class="card-body">
-                <h5 class="card-title mb-3">BMI Distribution</h5>
-                <div class="bg-light d-flex align-items-center justify-content-center" style="height: 12rem;">
-                    [Graph Placeholder]
-                </div>
-            </div>
-        </div>
+    <!-- Year -->
+    <div class="col-md-2">
+        <label for="year" class="form-label">Year</label>
+        <select name="year" id="year" class="form-select">
+            {% for y in years %}
+                <option value="{{ y }}" {% if y|stringformat:"s" == year|stringformat:"s" %}selected{% endif %}>
+                    {{ y }}
+                </option>
+            {% endfor %}
+        </select>
     </div>
 
-    <div class="col-12 col-sm-6">
-        <div class="card shadow-sm text-center">
-            <div class="card-body">
-                <h5 class="card-title mb-3">Vision Screening</h5>
-                <div class="bg-light d-flex align-items-center justify-content-center" style="height: 12rem;">
-                    [Graph Placeholder]
-                </div>
-            </div>
-        </div>
+    <!-- School -->
+    <div class="col-md-4">
+        <label for="school" class="form-label">School</label>
+        <select name="school" id="school" class="form-select">
+            <option value="">All Schools</option>
+            {% for school in schools %}
+                <option value="{{ school.id }}">{{ school.name }}</option>
+            {% endfor %}
+        </select>
     </div>
 
-    <!-- Add more statistic cards as needed -->
+    <div class="col-md-3">
+        <label for="class" class="form-label">Class</label>
+        <select name="class" id="class" class="form-select">
+            <option value="">All Classes</option>
+            {% for value, label in class_choices %}
+                <option value="{{ value }}" {% if value == selected_class %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-2 d-flex align-items-end">
+        <button type="submit" class="btn btn-primary w-100">Apply</button>
+    </div>
+    
+</form>
+
+  <!-- KPI Cards -->
+  <div class="row g-3 mb-4">
+
+    <div class="col-md-3">
+      <div class="card shadow-sm text-center h-100">
+        <div class="card-body">
+          <h6 class="text-muted">Total Screened</h6>
+          <h2 class="fw-bold">{{ stats.total_screened }}</h2>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="card shadow-sm text-center h-100">
+        <div class="card-body">
+          <h6 class="text-muted">SAM (MUAC)</h6>
+          <h2 class="fw-bold text-danger">{{ stats.sam_count }}</h2>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="card shadow-sm text-center h-100">
+        <div class="card-body">
+          <h6 class="text-muted">Underweight</h6>
+          <h2 class="fw-bold text-warning">{{ stats.underweight_count }}</h2>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="card shadow-sm text-center h-100">
+        <div class="card-body">
+          <h6 class="text-muted">Vision Issues</h6>
+          <h2 class="fw-bold">{{ stats.vision_problem_count }}</h2>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Placeholder for charts -->
+  <div class="row g-3">
+    <div class="col-md-6">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h5 class="fw-bold mb-3">BMI Distribution</h5>
+          <div class="bg-light d-flex align-items-center justify-content-center"
+               style="height: 240px;">
+            Chart coming soon
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h5 class="fw-bold mb-3">MUAC Categories</h5>
+          <div class="bg-light d-flex align-items-center justify-content-center"
+               style="height: 240px;">
+            Chart coming soon
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>
 {% endblock %}

@@ -1,6 +1,12 @@
 from django import forms
 from .models import Student, Screening, School, ScreeningCheck
 from django import forms
+CLASS_CHOICES = [
+    ('Playgroup', 'Playgroup'),
+    ('Nursery', 'Nursery'),
+    ('LKG', 'LKG'),
+    ('UKG', 'UKG'),
+] + [(str(i), str(i)) for i in range(1, 13)]  # 1–12
 
 # -------------------------------
 # Student Form
@@ -73,6 +79,11 @@ from django.utils import timezone
 from .models import Screening
 
 class ScreeningForm(forms.ModelForm):
+    class_section = forms.ChoiceField(
+    choices=CLASS_CHOICES,
+    required=False,
+    widget=forms.Select(attrs={'class': 'form-select'})
+    )
 
     vision_left = forms.ChoiceField(
         choices=VISION_CHOICES,
