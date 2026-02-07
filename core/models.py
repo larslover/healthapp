@@ -1,13 +1,8 @@
 from django.db import models
 from core.utils.processor import bmi_category
-# ------------------------------
-# Legacy table (existing data)
-# ------------------------------
-from django.db import models
-
-from django.db import models
 from datetime import datetime,date
-
+from django.db import models
+from .utils.processor import calculate_age_in_months, calculate_bmi, bmi_category, muac_category
 # ------------------------------
 # New system tables
 # ------------------------------
@@ -64,8 +59,7 @@ class Student(models.Model):
     def __str__(self):
         return self.name
 
-from django.db import models
-from .utils.processor import calculate_age_in_months, calculate_bmi, bmi_category, muac_category
+
 class Screening(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='screenings')
     screen_date = models.DateField(null=True, blank=True)

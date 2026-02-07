@@ -9,108 +9,148 @@
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h2 class="fw-bold mb-0">Screening Statistics</h2>
   </div>
-<!-- Filters -->
-<form method="get" class="row g-3 mb-4">
+
+  <!-- Filters -->
+  <form method="get" class="row g-3 mb-4">
 
     <!-- Year -->
     <div class="col-md-2">
-        <label for="year" class="form-label">Year</label>
-        <select name="year" id="year" class="form-select">
-            {% for y in years %}
-                <option value="{{ y }}" {% if y|stringformat:"s" == year|stringformat:"s" %}selected{% endif %}>
-                    {{ y }}
-                </option>
-            {% endfor %}
-        </select>
+      <label for="year" class="form-label">Year</label>
+      <select name="year" id="year" class="form-select">
+        {% for y in years %}
+          <option value="{{ y }}" {% if y|stringformat:"s" == year|stringformat:"s" %}selected{% endif %}>{{ y }}</option>
+        {% endfor %}
+      </select>
     </div>
 
     <!-- School -->
     <div class="col-md-4">
-        <label for="school" class="form-label">School</label>
-        <select name="school" id="school" class="form-select">
-            <option value="">All Schools</option>
-            {% for school in schools %}
-                <option value="{{ school.id }}">{{ school.name }}</option>
-            {% endfor %}
-        </select>
+      <label for="school" class="form-label">School</label>
+      <select name="school" id="school" class="form-select">
+        <option value="">All Schools</option>
+        {% for school in schools %}
+          <option value="{{ school.id }}" {% if school.id|stringformat:"s" == selected_school|stringformat:"s" %}selected{% endif %}>{{ school.name }}</option>
+        {% endfor %}
+      </select>
     </div>
 
+    <!-- Class -->
     <div class="col-md-3">
-        <label for="class" class="form-label">Class</label>
-        <select name="class" id="class" class="form-select">
-            <option value="">All Classes</option>
-            {% for value, label in class_choices %}
-                <option value="{{ value }}" {% if value == selected_class %}selected{% endif %}>{{ label }}</option>
-            {% endfor %}
-        </select>
+      <label for="class" class="form-label">Class</label>
+      <select name="class" id="class" class="form-select">
+        <option value="">All Classes</option>
+        {% for value, label in class_choices %}
+          <option value="{{ value }}" {% if value == selected_class %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
     </div>
+
+    <!-- Apply button -->
     <div class="col-md-2 d-flex align-items-end">
-        <button type="submit" class="btn btn-primary w-100">Apply</button>
+      <button type="submit" class="btn btn-primary w-100">Apply</button>
     </div>
     
-</form>
+  </form>
+<!-- KPI Cards -->
+<div class="row g-3 mb-4">
 
-  <!-- KPI Cards -->
-  <div class="row g-3 mb-4">
-
+    <!-- Total Screened -->
     <div class="col-md-3">
       <div class="card shadow-sm text-center h-100">
         <div class="card-body">
           <h6 class="text-muted">Total Screened</h6>
-          <h2 class="fw-bold">{{ stats.total_screened }}</h2>
+          <h2 class="fw-bold">{{ stats.totals.screenings }}</h2>
         </div>
       </div>
     </div>
-
+  
+    <!-- Total Students -->
+    <div class="col-md-3">
+      <div class="card shadow-sm text-center h-100">
+        <div class="card-body">
+          <h6 class="text-muted">Total Students</h6>
+          <h2 class="fw-bold">{{ stats.totals.students }}</h2>
+        </div>
+      </div>
+    </div>
+  
+    <!-- Total Schools -->
+    <div class="col-md-3">
+      <div class="card shadow-sm text-center h-100">
+        <div class="card-body">
+          <h6 class="text-muted">Schools Covered</h6>
+          <h2 class="fw-bold">{{ stats.totals.schools }}</h2>
+        </div>
+      </div>
+    </div>
+  
+    <!-- SAM (MUAC) -->
     <div class="col-md-3">
       <div class="card shadow-sm text-center h-100">
         <div class="card-body">
           <h6 class="text-muted">SAM (MUAC)</h6>
-          <h2 class="fw-bold text-danger">{{ stats.sam_count }}</h2>
+          <h2 class="fw-bold text-danger">
+            {% for item in stats.muac %}
+              {% if item.muac_sam != "N/A" %}
+                {{ item.count }}
+              {% endif %}
+            {% endfor %}
+          </h2>
         </div>
       </div>
     </div>
-
-    <div class="col-md-3">
-      <div class="card shadow-sm text-center h-100">
-        <div class="card-body">
-          <h6 class="text-muted">Underweight</h6>
-          <h2 class="fw-bold text-warning">{{ stats.underweight_count }}</h2>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-md-3">
-      <div class="card shadow-sm text-center h-100">
-        <div class="card-body">
-          <h6 class="text-muted">Vision Issues</h6>
-          <h2 class="fw-bold">{{ stats.vision_problem_count }}</h2>
-        </div>
-      </div>
-    </div>
-
+  
   </div>
-
-  <!-- Placeholder for charts -->
+  
+  <!-- Nutrition and Vision Details -->
+  <div class="row g-3 mb-4">
+  
+    <!-- BMI Distribution -->
+    <div class="col-md-6">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h5 class="fw-bold mb-3">BMI Distribution</h5>
+          {% for item in stats.bmi %}
+            <div>{{ item.bmi_category }}: {{ item.count }}</div>
+          {% empty %}
+            <div>No data available</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  
+    <!-- Vision Problems -->
+    <div class="col-md-6">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h5 class="fw-bold mb-3">Vision Issues</h5>
+          {% for item in stats.vision %}
+            <div>{{ item.vision_problem }}: {{ item.count }}</div>
+          {% empty %}
+            <div>No data available</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  
+  </div>
+    <!-- Placeholder for charts -->
   <div class="row g-3">
     <div class="col-md-6">
       <div class="card shadow-sm">
         <div class="card-body">
           <h5 class="fw-bold mb-3">BMI Distribution</h5>
-          <div class="bg-light d-flex align-items-center justify-content-center"
-               style="height: 240px;">
+          <div class="bg-light d-flex align-items-center justify-content-center" style="height: 240px;">
             Chart coming soon
           </div>
         </div>
       </div>
     </div>
-
     <div class="col-md-6">
       <div class="card shadow-sm">
         <div class="card-body">
           <h5 class="fw-bold mb-3">MUAC Categories</h5>
-          <div class="bg-light d-flex align-items-center justify-content-center"
-               style="height: 240px;">
+          <div class="bg-light d-flex align-items-center justify-content-center" style="height: 240px;">
             Chart coming soon
           </div>
         </div>
@@ -119,4 +159,41 @@
   </div>
 
 </div>
+
+<!-- AJAX to dynamically update class dropdown based on school/year -->
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const schoolSelect = document.getElementById("school");
+    const classSelect = document.getElementById("class");
+    const yearSelect = document.getElementById("year");
+
+    function updateClasses() {
+        const schoolId = schoolSelect.value;
+        const year = yearSelect.value;
+
+        fetch(`/ajax/get-classes/?school=${schoolId}&year=${year}`)
+            .then(response => response.json())
+            .then(data => {
+                // Save current selection
+                const selected = classSelect.value;
+
+                // Clear options
+                classSelect.innerHTML = '<option value="">All Classes</option>';
+
+                // Populate new options
+                data.classes.forEach(cls => {
+                    const option = document.createElement("option");
+                    option.value = cls;
+                    option.textContent = cls;
+                    if (cls === selected) option.selected = true;
+                    classSelect.appendChild(option);
+                });
+            });
+    }
+
+    schoolSelect.addEventListener("change", updateClasses);
+    yearSelect.addEventListener("change", updateClasses);
+});
+</script>
+
 {% endblock %}

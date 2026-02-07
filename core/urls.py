@@ -12,6 +12,7 @@ urlpatterns = [
 
     # Statistics
         path('statistics/', views.statistics, name='statistics'),  # <-- new
+         path("ajax/get-classes/", views.get_classes_for_school, name="get_classes_for_school"),
 
     # Students
     path('students/', views.screened_students, name='screened_students'),

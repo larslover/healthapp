@@ -1,141 +1,81 @@
-
-from core.utils.processor import bmi_category
-from django.urls import reverse
-from django.core.serializers.json import DjangoJSONEncoder
-from .models import Screening
-from django.core.paginator import Paginator
-from django.shortcuts import render, get_object_or_404, redirect,render
-from django.contrib.auth.decorators import login_required
-from core.models import Student, Screening, ScreeningCheck, School
-from .forms import StudentForm, ScreeningForm, ScreeningCheckForm
-from django.utils.safestring import mark_safe
+# Standard library
 from datetime import datetime, date
-from django.http import JsonResponse
-from django.template.loader import render_to_string
-import logging
-from django.db.models import Prefetch
-from .models import School, Student, Screening, ScreeningCheck
-from .utils.processor import muac_category, weight_height_category, bmi_category, calculate_age_in_months
-from django.db.models.functions import ExtractYear
-from .models import Screening, School
-from django.shortcuts import render
-from core.services.statistics import get_screening_statistics
-
-
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
-
-from .models import Student, School, Screening, ScreeningCheck
-from .forms import ScreeningForm, ScreeningCheckForm
-from .utils.processor import calculate_age_in_months
-# views.py
-from django.http import JsonResponse
-from .models import Screening, Student
-from django.shortcuts import render, get_object_or_404, redirect
-
-from .models import Student, School, Screening, ScreeningCheck
-from .forms import ScreeningForm, ScreeningCheckForm
-from datetime import datetime
-
-from django.utils.safestring import mark_safe
 import json
-from .models import School, Student, Screening, ScreeningCheck
-from .utils.processor import muac_category  # assuming you already have this function
-from datetime import date
-from core.utils.processor import calculate_age_in_months
-from datetime import datetime
-from django.db.models import Max
-from django.shortcuts import render, redirect
-from django.contrib.auth import authenticate, login
-from django.contrib.auth.decorators import login_required
-from core.utils.processor import weight_height_category
+import os
+import time
+from pathlib import Path
+import logging
 
+# Third-party
+import pandas as pd
+from django.utils.safestring import mark_safe
+from django.shortcuts import render, redirect, get_object_or_404
+from django.http import JsonResponse, HttpResponse
+from django.urls import reverse
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
+from django.core.paginator import Paginator
+from django.db import transaction
+from django.db.models import Count, Max, Prefetch
+from django.db.models.functions import ExtractYear
+from django.core.serializers.json import DjangoJSONEncoder
+from django.template.loader import render_to_string
+from django.templatetags.static import static
+from django.contrib.auth import authenticate, login
+
+# Local apps
+from core.models import Student, School, Screening, ScreeningCheck
+from core.forms import StudentForm, ScreeningForm, ScreeningCheckForm, CLASS_CHOICES,SchoolForm
+from core.services.statistics import get_screening_statistics
+from core.utils.processor import (
+    calculate_age_in_months,
+    bmi_category,
+    muac_category,
+    weight_height_category,
+    calculate_bmi
+)
 from core.utils.weight_height_male_thresholds import weight_height_male_thresholds
 from core.utils.weight_height_female_thresholds import weight_height_female_thresholds
 from core.utils.bmi_thresholds_male import bmi_thresholds_male
 from core.utils.bmi_thresholds_female import bmi_thresholds_female
-import pandas as pd
-from django.utils.safestring import mark_safe
-import json
-import time
-from pathlib import Path
-from django.http import JsonResponse
-from datetime import date
-from core.utils.processor import calculate_bmi, bmi_category, weight_height_category, calculate_age_in_months
-from django.shortcuts import render, redirect
-from .models import School
-from .forms import SchoolForm  # You’ll create this form next
 
-from django.http import HttpResponse
-from django.templatetags.static import static
-import os
-
-
-from django.shortcuts import get_object_or_404, redirect
-from django.db import transaction
-from core.models import Student
-
-from django.shortcuts import get_object_or_404, redirect
-from django.views.decorators.http import require_POST
-from core.models import Screening
-from django.shortcuts import redirect, get_object_or_404
-from django.urls import reverse
-from django.views.decorators.http import require_POST
-
-from core.models import Screening, School
-
+# core/views.py
+from django.shortcuts import render
+from core.models import School, Screening
 from core.forms import CLASS_CHOICES
-from core.models import Screening, School
-from core.models import Screening, School
+from core.services.statistics import get_screening_statistics
+import logging
+
+logger = logging.getLogger(__name__)  # recommended way to log
 
 def statistics(request):
+    # Debug: print incoming GET parameters
+    print("REQUEST GET parameters:", request.GET)
+    logger.info(f"REQUEST GET parameters: {request.GET}")
+
     year = request.GET.get("year")
+    selected_school = request.GET.get("school", "")
+    selected_class = request.GET.get("class", "")
+
+    print(f"Filters - Year: {year}, School: {selected_school}, Class: {selected_class}")
+    logger.info(f"Filters - Year: {year}, School: {selected_school}, Class: {selected_class}")
 
     if not year:
-        # Default to the latest year
-        year = (
-            Screening.objects
-            .values_list("screening_year", flat=True)
-            .exclude(screening_year__isnull=True)
-            .distinct()
-            .order_by("-screening_year")
-            .first()
-        )
+        year = Screening.objects.values_list("screening_year", flat=True).distinct().order_by("-screening_year").first()
+        print("No year selected, defaulting to latest year:", year)
+        logger.info(f"No year selected, defaulting to latest year: {year}")
 
-    # Normalize filters
-    selected_class = request.GET.get("class", "").strip()
-    school_id = request.GET.get("school")
-
-    # Build statistics queryset
+    # Get stats
     stats = get_screening_statistics(
         screening_year=year,
-        school_id=school_id,
-        class_section=selected_class if selected_class else None,
+        school_id=selected_school,
+        class_section=selected_class,
     )
+    print("Stats computed:", stats)
+    logger.info(f"Stats computed: {stats}")
 
-    # Years for dropdown
-    years = (
-        Screening.objects
-        .exclude(screening_year__isnull=True)
-        .values_list("screening_year", flat=True)
-        .distinct()
-        .order_by("-screening_year")
-    )
-
-    # Get actual classes from DB for the selected year and school
-    class_qs = Screening.objects.filter(screening_year=year)
-    if school_id:
-        class_qs = class_qs.filter(school_id=school_id)
-
-    # Normalize class names (strip spaces, capitalize properly)
-    db_classes = (
-        class_qs
-        .values_list("class_section", flat=True)
-        .exclude(class_section__isnull=True)
-        .exclude(class_section__exact="")
-    )
-
-    normalized_classes = sorted({cls.strip().title() for cls in db_classes})
+    years = Screening.objects.exclude(screening_year__isnull=True).values_list("screening_year", flat=True).distinct().order_by("-screening_year")
 
     return render(
         request,
@@ -145,10 +85,32 @@ def statistics(request):
             "year": year,
             "years": years,
             "schools": School.objects.all(),
-            "class_choices": [(cls, cls) for cls in normalized_classes],
+            "class_choices": CLASS_CHOICES,
             "selected_class": selected_class,
+            "selected_school": selected_school,
         }
     )
+
+def get_classes_for_school(request):
+    year = request.GET.get("year")
+    school_id = request.GET.get("school")
+
+    if not year:
+        return JsonResponse({"classes": []})
+
+    qs = Screening.objects.filter(screening_year=year)
+    if school_id:
+        qs = qs.filter(school_id=school_id)
+
+    # Get distinct classes, normalize names
+    db_classes = (
+        qs.values_list("class_section", flat=True)
+        .exclude(class_section__isnull=True)
+        .exclude(class_section__exact="")
+    )
+    normalized_classes = sorted({cls.strip().title() for cls in db_classes})
+
+    return JsonResponse({"classes": normalized_classes})
 
 @require_POST
 def delete_screening(request, screening_id):
@@ -600,11 +562,6 @@ def screening_summary(request):
 logger = logging.getLogger(__name__)
 
 
-from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib.auth.decorators import login_required
-from django.core.paginator import Paginator
-from .models import Student, Screening, ScreeningCheck, School
-from .forms import StudentForm, ScreeningForm, ScreeningCheckForm
 @login_required(login_url='login')
 def screened_students(request):
     selected_school_id = request.GET.get("school")
