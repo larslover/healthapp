@@ -9,7 +9,11 @@ DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
 # ---------------------
 # Secret Key
 # ---------------------
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "fallback-secret-key")  # fallback if .env missing
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "fallback-secret-key")  # fallback if .env missingSECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
+
+if not SECRET_KEY:
+    raise RuntimeError("DJANGO_SECRET_KEY is not set")
+
 
 # ---------------------
 # Database (MySQL on PythonAnywhere)
