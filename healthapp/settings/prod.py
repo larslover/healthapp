@@ -53,6 +53,11 @@ ALLOWED_HOSTS = [
     "larslover.pythonanywhere.com",
 ]
 
+CSRF_TRUSTED_ORIGINS = [
+    "https://gahealthapp.com",
+    "https://www.gahealthapp.com",
+    "https://larslover.pythonanywhere.com",
+]
 
 
 # ---------------------
