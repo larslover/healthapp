@@ -47,7 +47,12 @@ SECURE_HSTS_PRELOAD = True
 # ---------------------
 # Allowed Hosts
 # ---------------------
-ALLOWED_HOSTS = [h.strip() for h in os.getenv("ALLOWED_HOSTS", "").split(",") if h.strip()]
+ALLOWED_HOSTS = [
+    "gahealthapp.com",
+    "www.gahealthapp.com",
+    "larslover.pythonanywhere.com",
+]
+
 
 
 # ---------------------
