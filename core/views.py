@@ -94,12 +94,12 @@ def statistics(request):
         .order_by("-screening_year")
     )
 
-    # ---- Checklist KPI cards ----
+        # ---- Checklist KPI cards ----
     checklist_stats = [
         {
             "label": field.replace("_", " ").title(),
             "value": count,
-            "danger": any(k in field.lower() for k in ["anemia", "deficiency"]),
+            "danger": True,
         }
         for field, count in stats.get("checklist", {}).items()
         if count > 0
