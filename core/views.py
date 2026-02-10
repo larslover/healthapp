@@ -61,24 +61,31 @@ from core.models import Screening, School
 from core.forms import CLASS_CHOICES
 from core.services.statistics import get_screening_statistics
 
-
 def statistics(request):
-    # ---- Get selected year ----
-    year = request.GET.get("year")
-    if not year:
-        year = Screening.objects.values_list("screening_year", flat=True).distinct().order_by("-screening_year").first()
-
-    # ---- Get selected class ----
+    # ---- Selected filters ----
+    selected_year = request.GET.get("year")
+    selected_school = request.GET.get("school", "")
     selected_class = request.GET.get("class", "")
+
+    # ---- Default year (latest) ----
+    if not selected_year:
+        selected_year = (
+            Screening.objects
+            .exclude(screening_year__isnull=True)
+            .values_list("screening_year", flat=True)
+            .distinct()
+            .order_by("-screening_year")
+            .first()
+        )
 
     # ---- Fetch statistics ----
     stats = get_screening_statistics(
-        screening_year=year,
-        school_id=request.GET.get("school"),
-        class_section=selected_class,
+        screening_year=selected_year,
+        school_id=selected_school or None,
+        class_section=selected_class or None,
     )
 
-    # ---- Get all years for filter dropdown ----
+    # ---- Year dropdown ----
     years = (
         Screening.objects
         .exclude(screening_year__isnull=True)
@@ -87,14 +94,15 @@ def statistics(request):
         .order_by("-screening_year")
     )
 
-    # ---- Dynamically build checklist stats for template ----
+    # ---- Checklist KPI cards ----
     checklist_stats = [
         {
-            "label": field.replace("_", " ").title(),  # e.g., severe_anemia -> Severe Anemia
+            "label": field.replace("_", " ").title(),
             "value": count,
-            "danger": "anemia" in field.lower() or "deficiency" in field.lower()  # mark critical fields as dangerous
+            "danger": any(k in field.lower() for k in ["anemia", "deficiency"]),
         }
         for field, count in stats.get("checklist", {}).items()
+        if count > 0
     ]
 
     return render(
@@ -102,10 +110,11 @@ def statistics(request):
         "core/statistics.html",
         {
             "stats": stats,
-            "year": year,
+            "year": selected_year,
             "years": years,
             "schools": School.objects.all(),
             "class_choices": CLASS_CHOICES,
+            "selected_school": selected_school,  # ✅ FIX
             "selected_class": selected_class,
             "checklist_stats": checklist_stats,
         }

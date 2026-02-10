@@ -143,36 +143,48 @@
   </div>
 
 </div>
-
 <!-- AJAX to dynamically update class dropdown based on school/year -->
 <script>
-document.addEventListener("DOMContentLoaded", function() {
-    const schoolSelect = document.getElementById("school");
-    const classSelect = document.getElementById("class");
-    const yearSelect = document.getElementById("year");
-
-    function updateClasses() {
-        const schoolId = schoolSelect.value;
-        const year = yearSelect.value;
-
-        fetch(`/ajax/get-classes/?school=${schoolId}&year=${year}`)
-            .then(response => response.json())
-            .then(data => {
-                const selected = classSelect.value;
-                classSelect.innerHTML = '<option value="">All Classes</option>';
-                data.classes.forEach(cls => {
-                    const option = document.createElement("option");
-                    option.value = cls;
-                    option.textContent = cls;
-                    if (cls === selected) option.selected = true;
-                    classSelect.appendChild(option);
+    document.addEventListener("DOMContentLoaded", function() {
+        const schoolSelect = document.getElementById("school");
+        const classSelect = document.getElementById("class");
+        const yearSelect = document.getElementById("year");
+    
+        // 👇 capture server-selected values ON LOAD
+        const initialSchool = schoolSelect.value;
+        const initialClass = classSelect.value;
+    
+        function updateClasses(restoreInitial = false) {
+            const schoolId = schoolSelect.value;
+            const year = yearSelect.value;
+    
+            fetch(`/ajax/get-classes/?school=${schoolId}&year=${year}`)
+                .then(response => response.json())
+                .then(data => {
+                    const selected = restoreInitial ? initialClass : classSelect.value;
+    
+                    classSelect.innerHTML = '<option value="">All Classes</option>';
+    
+                    data.classes.forEach(cls => {
+                        const option = document.createElement("option");
+                        option.value = cls;
+                        option.textContent = cls;
+                        if (cls === selected) option.selected = true;
+                        classSelect.appendChild(option);
+                    });
                 });
-            });
-    }
-
-    schoolSelect.addEventListener("change", updateClasses);
-    yearSelect.addEventListener("change", updateClasses);
-});
-</script>
-
+        }
+    
+        // 🔒 Restore correct state after Apply (page reload)
+        if (initialSchool) {
+            schoolSelect.value = initialSchool;
+            updateClasses(true);
+        }
+    
+        // 🎯 Only update when user actually changes filters
+        schoolSelect.addEventListener("change", () => updateClasses(false));
+        yearSelect.addEventListener("change", () => updateClasses(false));
+    });
+    </script>
+    
 {% endblock %}
