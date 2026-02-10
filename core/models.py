@@ -155,14 +155,28 @@ class Screening(models.Model):
             if weight is not None and height is not None and self.age_in_month is not None
             else "N/A"
         )
+    def clean(self):
+        if self.student_id and not self.school_id:
+            from core.models import Student
+            self.school_id = (
+                Student.objects
+                .filter(id=self.student_id)
+                .values_list("school_id", flat=True)
+                .first()
+            )
+
 
      
     def save(self, *args, **kwargs):
-        # Auto-calculate screening year from screen_date
+        # Auto-calculate screening year
         if self.screen_date:
             self.screening_year = self.screen_date.year
         else:
             self.screening_year = None
+
+        # 🔑 Auto-fill school from student if missing
+        if self.school_id is None and self.student_id:
+            self.school = self.student.school
 
         self.calculate_metrics()
         super().save(*args, **kwargs)
