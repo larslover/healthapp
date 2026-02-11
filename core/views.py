@@ -23,6 +23,8 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.template.loader import render_to_string
 from django.templatetags.static import static
 from django.contrib.auth import authenticate, login
+from django.db.models import Q
+
 
 # Local apps
 from core.models import Student, School, Screening, ScreeningCheck
@@ -65,46 +67,68 @@ from .models import Screening
 
 from django.http import JsonResponse
 from .models import Screening
+from django.http import JsonResponse
+from django.db.models import Q
+# core/views.py
+from django.http import JsonResponse
+from core.models import Screening, ScreeningCheck
 
 def stat_students_ajax(request):
-    # ----- Get filters from request -----
-    type_filter = request.GET.get("type") or ""  # default to empty string
+    """
+    Return students filtered by selected KPI, school, year, class.
+    """
+    type_filter = request.GET.get("type") or ""  # KPI field name
     school = request.GET.get("school")
     year = request.GET.get("year")
-    selected_class = request.GET.get("class")  # matches JS query param
+    selected_class = request.GET.get("student_class") or request.GET.get("class")
 
-    # ----- Base queryset -----
-    screenings = Screening.objects.select_related("student", "school")
+    print("AJAX filter values:", type_filter, school, year, selected_class)
+
+    # Base queryset
+    screenings = Screening.objects.select_related("student", "school", "checklist")
 
     if year:
         screenings = screenings.filter(screening_year=year)
-
     if school:
         screenings = screenings.filter(school_id=school)
-
     if selected_class:
-        screenings = screenings.filter(class_section=selected_class)  # class is on Screening
+        screenings = screenings.filter(class_section=selected_class)
 
-    # ----- Filter by KPI type -----
-    if type_filter == "vision":
-        screenings = screenings.filter(vision_problem_objective=True)
-    elif type_filter == "muac":
-        screenings = screenings.filter(muac_status="SAM")
-    elif type_filter == "hearing_problem":
-        screenings = screenings.filter(hearing_problem=True)
-    # Add more KPI types as needed
+    # 🔹 Debug: before KPI filter
+    print("Screenings before KPI filter:", screenings.count())
 
-    # ----- Build student list -----
+    # Filter by KPI
+    if type_filter:
+        # These are fields on ScreeningCheck
+        checklist_fields = [f.name for f in ScreeningCheck._meta.get_fields()
+                            if f.get_internal_type() == "BooleanField"]
+
+        if type_filter in checklist_fields:
+            screenings = screenings.filter(
+                checklist__isnull=False,
+                **{f"checklist__{type_filter}": True}
+            )
+        # Special cases for Screening fields
+        elif type_filter == "vision":
+            screenings = screenings.filter(vision_problem=True)
+        elif type_filter == "muac":
+            screenings = screenings.filter(muac_status="SAM")
+        else:
+            print("Unknown KPI field:", type_filter)
+
+    # 🔹 Debug: after KPI filter
+    print("Screenings after KPI filter:", screenings.count())
+
+    # Build student list
     students = []
     for s in screenings:
         students.append({
             "id": s.student.id,
             "name": s.student.name,
+            "class": s.class_section,
             "school": s.school.name if s.school else "",
-            "class": s.class_section,  # get class from Screening
         })
 
-    # ----- Return JSON safely -----
     return JsonResponse({
         "title": type_filter.replace("_", " ").title() if type_filter else "All Students",
         "students": students
@@ -146,6 +170,7 @@ def statistics(request):
         # ---- Checklist KPI cards ----
     checklist_stats = [
         {
+            "key": field,  # ✅ important for data-type
             "label": field.replace("_", " ").title(),
             "value": count,
             "danger": True,
