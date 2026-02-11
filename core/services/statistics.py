@@ -75,7 +75,8 @@ def get_screening_statistics(
     )
 
     # ---- VISION ----
-    vision_counts = qs.values("vision_problem").annotate(count=Count("id"))
+    vision_counts = qs.filter(vision_problem__iexact="Yes").annotate(count=Count("id"))
+
 
     # ---- AGE SEGMENTS ----
     age_groups = qs.values("age_screening").annotate(count=Count("id"))
@@ -101,9 +102,9 @@ def get_screening_statistics(
         },
         "bmi": list(bmi_counts),
         "muac": list(muac_counts),
-        "muac_total": sum(
-            item["count"] for item in muac_counts if item["muac_sam"] != "N/A"
-        ),
+        "muac_total": qs.filter(muac_sam__iexact="severe acute malnutrition"
+        ).count(),
+
         "weight_height": list(weight_height_counts),
         "vision": list(vision_counts),
         "age_groups": list(age_groups),

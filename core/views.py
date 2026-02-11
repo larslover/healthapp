@@ -110,9 +110,9 @@ def stat_students_ajax(request):
             )
         # Special cases for Screening fields
         elif type_filter == "vision":
-            screenings = screenings.filter(vision_problem=True)
+            screenings = screenings.filter(vision_problem__iexact="Yes")
         elif type_filter == "muac":
-            screenings = screenings.filter(muac_status="SAM")
+            screenings = screenings.filter(muac_sam__iexact="severe acute malnutrition")
         else:
             print("Unknown KPI field:", type_filter)
 
