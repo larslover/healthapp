@@ -60,6 +60,55 @@ from django.shortcuts import render
 from core.models import Screening, School
 from core.forms import CLASS_CHOICES
 from core.services.statistics import get_screening_statistics
+from django.http import JsonResponse
+from .models import Screening
+
+from django.http import JsonResponse
+from .models import Screening
+
+def stat_students_ajax(request):
+    # ----- Get filters from request -----
+    type_filter = request.GET.get("type") or ""  # default to empty string
+    school = request.GET.get("school")
+    year = request.GET.get("year")
+    selected_class = request.GET.get("class")  # matches JS query param
+
+    # ----- Base queryset -----
+    screenings = Screening.objects.select_related("student", "school")
+
+    if year:
+        screenings = screenings.filter(screening_year=year)
+
+    if school:
+        screenings = screenings.filter(school_id=school)
+
+    if selected_class:
+        screenings = screenings.filter(class_section=selected_class)  # class is on Screening
+
+    # ----- Filter by KPI type -----
+    if type_filter == "vision":
+        screenings = screenings.filter(vision_problem_objective=True)
+    elif type_filter == "muac":
+        screenings = screenings.filter(muac_status="SAM")
+    elif type_filter == "hearing_problem":
+        screenings = screenings.filter(hearing_problem=True)
+    # Add more KPI types as needed
+
+    # ----- Build student list -----
+    students = []
+    for s in screenings:
+        students.append({
+            "id": s.student.id,
+            "name": s.student.name,
+            "school": s.school.name if s.school else "",
+            "class": s.class_section,  # get class from Screening
+        })
+
+    # ----- Return JSON safely -----
+    return JsonResponse({
+        "title": type_filter.replace("_", " ").title() if type_filter else "All Students",
+        "students": students
+    })
 
 def statistics(request):
     # ---- Selected filters ----

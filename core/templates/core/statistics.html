@@ -5,16 +5,16 @@
 {% block content %}
 <div class="container my-4">
 
-  <!-- Header -->
+  <!-- ================= HEADER ================= -->
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h2 class="fw-bold mb-0">Screening Statistics</h2>
   </div>
 
-  <!-- Filters -->
+  <!-- ================= FILTERS ================= -->
   <form method="get" class="row g-3 mb-4">
-    <!-- Year -->
+
     <div class="col-md-2">
-      <label for="year" class="form-label">Year</label>
+      <label class="form-label">Year</label>
       <select name="year" id="year" class="form-select">
         {% for y in years %}
           <option value="{{ y }}" {% if y|stringformat:"s" == year|stringformat:"s" %}selected{% endif %}>{{ y }}</option>
@@ -22,170 +22,249 @@
       </select>
     </div>
 
-    <!-- School -->
     <div class="col-md-4">
-      <label for="school" class="form-label">School</label>
+      <label class="form-label">School</label>
       <select name="school" id="school" class="form-select">
         <option value="">All Schools</option>
         {% for school in schools %}
-          <option value="{{ school.id }}" {% if school.id|stringformat:"s" == selected_school|stringformat:"s" %}selected{% endif %}>{{ school.name }}</option>
+          <option value="{{ school.id }}" {% if school.id|stringformat:"s" == selected_school|stringformat:"s" %}selected{% endif %}>
+            {{ school.name }}
+          </option>
         {% endfor %}
       </select>
     </div>
 
-    <!-- Class -->
     <div class="col-md-3">
-      <label for="class" class="form-label">Class</label>
+      <label class="form-label">Class</label>
       <select name="class" id="class" class="form-select">
         <option value="">All Classes</option>
         {% for value, label in class_choices %}
-          <option value="{{ value }}" {% if value == selected_class %}selected{% endif %}>{{ label }}</option>
+          <option value="{{ value }}" {% if value == selected_class %}selected{% endif %}>
+            {{ label }}
+          </option>
         {% endfor %}
       </select>
     </div>
 
-    <!-- Apply button -->
     <div class="col-md-2 d-flex align-items-end">
       <button type="submit" class="btn btn-primary w-100">Apply</button>
     </div>
+
   </form>
 
-  <!-- KPI Cards -->
+  <!-- ================= ROW 1 ================= -->
 
-  <!-- Row 1: Total Screened -->
   <div class="row g-3 mb-4">
-    {% if stats.totals.screenings > 0 %}
+
+    <!-- NOT CLICKABLE -->
     <div class="col-md-3">
       <div class="card shadow-sm text-center h-100">
         <div class="card-body">
           <h6 class="text-muted">Total Screened</h6>
-          <h2 class="fw-bold">{{ stats.totals.screenings }}</h2>
+          <h2 class="fw-bold">{{ stats.totals.screenings|default:0 }}</h2>
         </div>
       </div>
     </div>
-    {% endif %}
+
   </div>
 
-  <!-- Row 2: Screening Results -->
-  <div class="row g-3 mb-4">
-    <!-- Vision Issues -->
-    {% if stats.vision|length > 0 %}
-    <div class="col-md-3">
-      <div class="card shadow-sm text-center h-100">
-        <div class="card-body">
-          <h6 class="text-muted">Vision problem objective</h6>
-          <h2 class="fw-bold text-danger">{{ stats.vision|length }}</h2>
+  <!-- ================= ROW 2 ================= -->
 
+  <div class="row g-3 mb-4">
+
+    <!-- Vision -->
+    <div class="col-md-3">
+      <div class="card shadow-sm text-center h-100 kpi-card"
+           data-type="vision">
+        <div class="card-body">
+          <h6 class="text-muted">Vision Problems</h6>
+          <h2 class="fw-bold text-danger">{{ stats.vision|length|default:0 }}</h2>
         </div>
       </div>
     </div>
-    {% endif %}
 
-    <!-- SAM (MUAC) -->
-    {% if stats.muac_total > 0 %}
+    <!-- SAM -->
     <div class="col-md-3">
-      <div class="card shadow-sm text-center h-100">
+      <div class="card shadow-sm text-center h-100 kpi-card"
+           data-type="muac">
         <div class="card-body">
           <h6 class="text-muted">SAM (MUAC)</h6>
-          <h2 class="fw-bold text-danger">{{ stats.muac_total }}</h2>
+          <h2 class="fw-bold text-danger">{{ stats.muac_total|default:0 }}</h2>
         </div>
       </div>
     </div>
-    {% endif %}
 
-    <!-- ScreeningCheck KPIs -->
+    <!-- Checklist KPIs -->
     {% for item in checklist_stats %}
-      {% if item.value > 0 %}
-      <div class="col-md-3">
-        <div class="card shadow-sm text-center h-100">
-          <div class="card-body">
-            <h6 class="text-muted">{{ item.label }}</h6>
-            <h2 class="fw-bold {% if item.danger %}text-danger{% endif %}">{{ item.value }}</h2>
-          </div>
+    <div class="col-md-3">
+      <div class="card shadow-sm text-center h-100 kpi-card"
+           data-type="{{ item.key }}">
+        <div class="card-body">
+          <h6 class="text-muted">{{ item.label }}</h6>
+          <h2 class="fw-bold {% if item.danger %}text-danger{% endif %}">
+            {{ item.value|default:0 }}
+          </h2>
         </div>
       </div>
-      {% endif %}
+    </div>
     {% endfor %}
+
   </div>
 
-  <!-- Row 3: BMI & Weight-for-Height -->
+  <!-- ================= ROW 3 (NOT CLICKABLE) ================= -->
+
   <div class="row g-3 mb-4">
-    <!-- BMI Distribution -->
-    {% if stats.bmi|length > 0 %}
+
+    <!-- BMI -->
     <div class="col-md-3">
       <div class="card shadow-sm text-center h-100">
         <div class="card-body">
           <h6 class="text-muted">BMI Distribution</h6>
-          <ul class="list-unstyled mb-0">
-            {% for b in stats.bmi %}
-              <li>{{ b.bmi_category }}: {{ b.count }}</li>
-            {% endfor %}
-          </ul>
+          {% if stats.bmi %}
+            <ul class="list-unstyled mb-0">
+              {% for b in stats.bmi %}
+                <li>{{ b.bmi_category }}: {{ b.count }}</li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="text-muted mb-0">No BMI data available</p>
+          {% endif %}
         </div>
       </div>
     </div>
-    {% endif %}
 
     <!-- Weight-for-Height -->
-    {% if stats.weight_height|length > 0 %}
     <div class="col-md-3">
       <div class="card shadow-sm text-center h-100">
         <div class="card-body">
           <h6 class="text-muted">Weight-for-Height</h6>
-          <ul class="list-unstyled mb-0">
-            {% for wh in stats.weight_height %}
-              <li>{{ wh.weight_height|default:"N/A" }}: {{ wh.count }}</li>
-            {% endfor %}
-          </ul>
+          {% if stats.weight_height %}
+            <ul class="list-unstyled mb-0">
+              {% for wh in stats.weight_height %}
+                <li>{{ wh.weight_height|default:"N/A" }}: {{ wh.count }}</li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="text-muted mb-0">No data available</p>
+          {% endif %}
         </div>
       </div>
     </div>
-    {% endif %}
+
   </div>
 
+  <!-- Student Result Table -->
+<div class="card shadow-sm mt-4 d-none" id="results-card">
+    <div class="card-body">
+      <h5 class="mb-3" id="results-title">Results</h5>
+  
+      <div class="table-responsive">
+        <table class="table table-striped table-hover">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Class</th>
+              <th>School</th>
+              <th>Summary</th>
+            </tr>
+          </thead>
+          <tbody id="results-body">
+          </tbody>
+        </table>
+      </div>
+    </div>
 </div>
-<!-- AJAX to dynamically update class dropdown based on school/year -->
+
+
+
+</div>
+
+<!-- ================= STYLE ================= -->
+
+<style>
+.kpi-card {
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+.kpi-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+}
+.kpi-card.active {
+    border: 2px solid #0d6efd;
+}
+</style>
+
+<!-- ================= JAVASCRIPT ================= -->
 <script>
     document.addEventListener("DOMContentLoaded", function() {
-        const schoolSelect = document.getElementById("school");
-        const classSelect = document.getElementById("class");
-        const yearSelect = document.getElementById("year");
     
-        // 👇 capture server-selected values ON LOAD
-        const initialSchool = schoolSelect.value;
-        const initialClass = classSelect.value;
+      const resultsCard = document.getElementById("results-card");
+      const resultsBody = document.getElementById("results-body");
+      const resultsTitle = document.getElementById("results-title");
     
-        function updateClasses(restoreInitial = false) {
-            const schoolId = schoolSelect.value;
-            const year = yearSelect.value;
+      document.querySelectorAll(".kpi-card").forEach(card => {
     
-            fetch(`/ajax/get-classes/?school=${schoolId}&year=${year}`)
-                .then(response => response.json())
-                .then(data => {
-                    const selected = restoreInitial ? initialClass : classSelect.value;
+        card.addEventListener("click", function() {
     
-                    classSelect.innerHTML = '<option value="">All Classes</option>';
+          // Highlight active card
+          document.querySelectorAll(".kpi-card").forEach(c => c.classList.remove("active"));
+          this.classList.add("active");
     
-                    data.classes.forEach(cls => {
-                        const option = document.createElement("option");
-                        option.value = cls;
-                        option.textContent = cls;
-                        if (cls === selected) option.selected = true;
-                        classSelect.appendChild(option);
-                    });
+          const type = this.dataset.type;
+          const school = document.getElementById("school").value;
+          const year = document.getElementById("year").value;
+          const studentClass = document.getElementById("class").value;
+    
+          fetch(`/ajax/stat-students/?type=${type}&school=${school}&year=${year}&student_class=${studentClass}`)
+            .then(response => response.json())
+            .then(data => {
+    
+              resultsBody.innerHTML = "";
+    
+              if (!data.students || data.students.length === 0) {
+                resultsBody.innerHTML = `
+                  <tr>
+                    <td colspan="5" class="text-center text-muted">
+                      No students found
+                    </td>
+                  </tr>
+                `;
+              } else {
+    
+                data.students.forEach(student => {
+                  resultsBody.innerHTML += `
+                    <tr>
+                      <td>${student.name}</td>
+                  
+                      <td>${student.school}</td>
+                      <td>${student.class}</td>
+                      <td>
+                      <a 
+  href="/screening-summary/?selected_student=${student.id}" 
+  class="btn btn-sm btn-outline-primary">
+  View
+</a>
+
+                      </td>
+                    </tr>
+                  `;
                 });
-        }
     
-        // 🔒 Restore correct state after Apply (page reload)
-        if (initialSchool) {
-            schoolSelect.value = initialSchool;
-            updateClasses(true);
-        }
+              }
     
-        // 🎯 Only update when user actually changes filters
-        schoolSelect.addEventListener("change", () => updateClasses(false));
-        yearSelect.addEventListener("change", () => updateClasses(false));
+              resultsTitle.textContent = data.title;
+              resultsCard.classList.remove("d-none");
+              resultsCard.scrollIntoView({ behavior: "smooth" });
+    
+            })
+            .catch(error => console.error("Error:", error));
+    
+        });
+    
+      });
+    
     });
     </script>
-    
+        
 {% endblock %}
