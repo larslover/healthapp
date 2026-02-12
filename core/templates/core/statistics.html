@@ -55,16 +55,15 @@
   <!-- ================= ROW 1: Total Screened, Vision, SAM ================= -->
 <div class="row g-3 mb-4">
 
-    <!-- Total Screened -->
     <div class="col-md-3">
-      <div class="card border-primary border-2 shadow-sm text-center h-100">
-        <div class="card-body">
-          <h6 class="text-muted">Total Screened</h6>
-          <h2 class="fw-bold">{{ stats.totals.screenings|default:0 }}</h2>
+        <div class="card border-primary border-2 shadow-sm text-center h-100 kpi-card" data-type="total">
+          <div class="card-body">
+            <h6 class="text-muted">Total Screened</h6>
+            <h2 class="fw-bold">{{ stats.totals.screenings|default:0 }}</h2>
+          </div>
         </div>
       </div>
-    </div>
-  
+      
     <!-- Vision Problems -->
     <div class="col-md-3">
       <div class="card border-info border-2 shadow-sm text-center h-100 kpi-card" data-type="vision">

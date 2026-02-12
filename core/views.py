@@ -79,6 +79,7 @@ def stat_students_ajax(request):
     """
     Return students filtered by selected KPI, school, year, class.
     Supports:
+    - Total Screened
     - Checklist Boolean KPIs
     - Vision Problems
     - SAM (MUAC)
@@ -102,7 +103,6 @@ def stat_students_ajax(request):
 
     # Filter by KPI
     if type_filter:
-        # Checklist Boolean fields
         checklist_fields = [
             f.name for f in ScreeningCheck._meta.get_fields()
             if f.get_internal_type() == "BooleanField"
@@ -113,20 +113,19 @@ def stat_students_ajax(request):
                 checklist__isnull=False,
                 **{f"checklist__{type_filter}": True}
             )
-        # Vision problems
         elif type_filter == "vision":
             screenings = screenings.filter(vision_problem__iexact="Yes")
-        # SAM (MUAC)
         elif type_filter == "muac":
             screenings = screenings.filter(muac_sam__iexact="severe acute malnutrition")
-        # BMI categories
         elif type_filter.startswith("bmi_"):
             bmi_category = type_filter.replace("bmi_", "").replace("-", " ").title()
             screenings = screenings.filter(bmi_category__iexact=bmi_category)
-        # Weight-for-Height categories
         elif type_filter.startswith("wh_"):
             wh_category = type_filter.replace("wh_", "").replace("-", " ").title()
             screenings = screenings.filter(weight_height__iexact=wh_category)
+        elif type_filter == "total":
+            # Total Screened = no extra filter needed, already applied year/school/class
+            pass
         else:
             print("Unknown KPI field:", type_filter)
 
@@ -146,6 +145,8 @@ def stat_students_ajax(request):
         title = f"BMI: {type_filter.replace('bmi_', '').replace('-', ' ').title()}"
     elif type_filter.startswith("wh_"):
         title = f"Weight-for-Height: {type_filter.replace('wh_', '').replace('-', ' ').title()}"
+    elif type_filter == "total":
+        title = "Total Screened"
     else:
         title = type_filter.replace("_", " ").title() if type_filter else "All Students"
 
