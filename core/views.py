@@ -75,6 +75,9 @@ from core.models import Screening, ScreeningCheck
 
 from django.http import JsonResponse
 
+from django.core.paginator import Paginator
+from django.http import JsonResponse
+
 def stat_students_ajax(request):
     """
     Return students filtered by selected KPI, school, year, class.
@@ -85,11 +88,13 @@ def stat_students_ajax(request):
     - SAM (MUAC)
     - BMI categories
     - Weight-for-Height categories
+    Pagination: 20 students per page
     """
     type_filter = request.GET.get("type") or ""  # KPI field name
     school = request.GET.get("school")
     year = request.GET.get("year")
     selected_class = request.GET.get("student_class") or request.GET.get("class")
+    page_number = int(request.GET.get("page", 1))  # default page 1
 
     # Base queryset
     screenings = Screening.objects.select_related("student", "school", "checklist")
@@ -101,36 +106,34 @@ def stat_students_ajax(request):
     if selected_class:
         screenings = screenings.filter(class_section=selected_class)
 
-    # Filter by KPI
-    if type_filter:
-        checklist_fields = [
-            f.name for f in ScreeningCheck._meta.get_fields()
-            if f.get_internal_type() == "BooleanField"
-        ]
+    # Filter by KPI (same as before)
+    checklist_fields = [
+        f.name for f in ScreeningCheck._meta.get_fields()
+        if f.get_internal_type() == "BooleanField"
+    ]
 
-        if type_filter in checklist_fields:
-            screenings = screenings.filter(
-                checklist__isnull=False,
-                **{f"checklist__{type_filter}": True}
-            )
-        elif type_filter == "vision":
-            screenings = screenings.filter(vision_problem__iexact="Yes")
-        elif type_filter == "muac":
-            screenings = screenings.filter(muac_sam__iexact="severe acute malnutrition")
-        elif type_filter.startswith("bmi_"):
-            bmi_category = type_filter.replace("bmi_", "").replace("-", " ").title()
-            screenings = screenings.filter(bmi_category__iexact=bmi_category)
-        elif type_filter.startswith("wh_"):
-            wh_category = type_filter.replace("wh_", "").replace("-", " ").title()
-            screenings = screenings.filter(weight_height__iexact=wh_category)
-        elif type_filter == "total":
-            # Total Screened = no extra filter needed, already applied year/school/class
-            pass
-        else:
-            print("Unknown KPI field:", type_filter)
+    if type_filter in checklist_fields:
+        screenings = screenings.filter(
+            checklist__isnull=False,
+            **{f"checklist__{type_filter}": True}
+        )
+    elif type_filter == "vision":
+        screenings = screenings.filter(vision_problem__iexact="Yes")
+    elif type_filter == "muac":
+        screenings = screenings.filter(muac_sam__iexact="severe acute malnutrition")
+    elif type_filter.startswith("bmi_"):
+        bmi_category = type_filter.replace("bmi_", "").replace("-", " ").title()
+        screenings = screenings.filter(bmi_category__iexact=bmi_category)
+    elif type_filter.startswith("wh_"):
+        wh_category = type_filter.replace("wh_", "").replace("-", " ").title()
+        screenings = screenings.filter(weight_height__iexact=wh_category)
+    elif type_filter == "total":
+        pass  # total screened = all students matching filters
+    else:
+        print("Unknown KPI field:", type_filter)
 
     # Build student list
-    students = [
+    students_list = [
         {
             "id": s.student.id,
             "name": s.student.name,
@@ -139,6 +142,10 @@ def stat_students_ajax(request):
         }
         for s in screenings
     ]
+
+    # Paginate
+    paginator = Paginator(students_list, 20)  # 20 students per page
+    page_obj = paginator.get_page(page_number)
 
     # Generate readable title
     if type_filter.startswith("bmi_"):
@@ -152,7 +159,11 @@ def stat_students_ajax(request):
 
     return JsonResponse({
         "title": title,
-        "students": students
+        "students": list(page_obj.object_list),
+        "page": page_obj.number,
+        "num_pages": paginator.num_pages,
+        "has_previous": page_obj.has_previous(),
+        "has_next": page_obj.has_next(),
     })
 
 def statistics(request):

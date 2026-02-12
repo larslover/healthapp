@@ -208,6 +208,7 @@
 
 
 </div>
+<div id="pagination" class="mt-2 text-center"></div>
 
 <!-- ================= STYLE ================= -->
 
@@ -227,75 +228,90 @@
 
 <!-- ================= JAVASCRIPT ================= -->
 <script>
-    document.addEventListener("DOMContentLoaded", function() {
-    
-      const resultsCard = document.getElementById("results-card");
-      const resultsBody = document.getElementById("results-body");
-      const resultsTitle = document.getElementById("results-title");
-    
-      document.querySelectorAll(".kpi-card").forEach(card => {
-    
-        card.addEventListener("click", function() {
-    
-          // Highlight active card
-          document.querySelectorAll(".kpi-card").forEach(c => c.classList.remove("active"));
-          this.classList.add("active");
-    
-          const type = this.dataset.type;
-          console.log("KPI clicked:", type);  // 🔹 debug line
-          const school = document.getElementById("school").value;
-          const year = document.getElementById("year").value;
-          const studentClass = document.getElementById("class").value;
-    
-          fetch(`/ajax/stat-students/?type=${type}&school=${school}&year=${year}&student_class=${studentClass}`)
-            .then(response => response.json())
-            .then(data => {
-    
-              resultsBody.innerHTML = "";
-    
-              if (!data.students || data.students.length === 0) {
-                resultsBody.innerHTML = `
-                  <tr>
-                    <td colspan="5" class="text-center text-muted">
-                      No students found
-                    </td>
-                  </tr>
-                `;
-              } else {
-    
-                data.students.forEach(student => {
-                  resultsBody.innerHTML += `
-                    <tr>
-                      <td>${student.name}</td>
-                  
-                      <td>${student.school}</td>
-                      <td>${student.class}</td>
-                      <td>
-                      <a 
-  href="/screening-summary/?selected_student=${student.id}" 
-  class="btn btn-sm btn-outline-primary">
-  View
-</a>
+   let currentPage = 1;
+let currentType = null;
 
-                      </td>
-                    </tr>
-                  `;
-                });
-    
-              }
-    
-              resultsTitle.textContent = data.title;
-              resultsCard.classList.remove("d-none");
-              resultsCard.scrollIntoView({ behavior: "smooth" });
-    
-            })
-            .catch(error => console.error("Error:", error));
-    
-        });
-    
-      });
-    
+document.addEventListener("DOMContentLoaded", function() {
+  const resultsCard = document.getElementById("results-card");
+  const resultsBody = document.getElementById("results-body");
+  const resultsTitle = document.getElementById("results-title");
+  const paginationContainer = document.getElementById("pagination");
+
+  function loadStudents(type, page = 1) {
+    const school = document.getElementById("school").value;
+    const year = document.getElementById("year").value;
+    const studentClass = document.getElementById("class").value;
+
+    fetch(`/ajax/stat-students/?type=${type}&school=${school}&year=${year}&student_class=${studentClass}&page=${page}`)
+      .then(response => response.json())
+      .then(data => {
+        resultsBody.innerHTML = "";
+        if (!data.students || data.students.length === 0) {
+          resultsBody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">No students found</td></tr>`;
+        } else {
+          data.students.forEach(student => {
+            resultsBody.innerHTML += `
+              <tr>
+                <td>${student.name}</td>
+                <td>${student.school}</td>
+                <td>${student.class}</td>
+                <td>
+                  <a href="/screening-summary/?selected_student=${student.id}" class="btn btn-sm btn-outline-primary">View</a>
+                </td>
+              </tr>
+            `;
+          });
+        }
+
+        resultsTitle.textContent = data.title;
+        resultsCard.classList.remove("d-none");
+        resultsCard.scrollIntoView({ behavior: "smooth" });
+
+        // Pagination UI
+        let paginationHtml = '';
+
+        if (data.has_previous) {
+          paginationHtml += `<button class="btn btn-sm btn-outline-secondary me-1" id="prevPage">Previous</button>`;
+        }
+
+        paginationHtml += `<span class="mx-2">Page ${data.page} of ${data.num_pages}</span>`;
+
+        if (data.has_next) {
+          paginationHtml += `<button class="btn btn-sm btn-outline-secondary ms-1" id="nextPage">Next</button>`;
+        }
+
+        paginationHtml += `
+          <input type="number" min="1" max="${data.num_pages}" id="gotoPage" value="${data.page}" class="form-control d-inline-block ms-2" style="width: 70px;">
+          <button class="btn btn-sm btn-primary ms-1" id="gotoBtn">Go</button>
+        `;
+
+        paginationContainer.innerHTML = paginationHtml;
+
+        // Button actions
+        if (data.has_previous) document.getElementById("prevPage").onclick = () => loadStudents(type, data.page - 1);
+        if (data.has_next) document.getElementById("nextPage").onclick = () => loadStudents(type, data.page + 1);
+        document.getElementById("gotoBtn").onclick = () => {
+          const gotoPage = parseInt(document.getElementById("gotoPage").value);
+          if (gotoPage >= 1 && gotoPage <= data.num_pages) {
+            loadStudents(type, gotoPage);
+          }
+        };
+      })
+      .catch(error => console.error("Error:", error));
+  }
+
+  // KPI card click
+  document.querySelectorAll(".kpi-card").forEach(card => {
+    card.addEventListener("click", function() {
+      document.querySelectorAll(".kpi-card").forEach(c => c.classList.remove("active"));
+      this.classList.add("active");
+      currentType = this.dataset.type;
+      currentPage = 1;
+      loadStudents(currentType, currentPage);
     });
+  });
+});
+
     </script>
         
 {% endblock %}
