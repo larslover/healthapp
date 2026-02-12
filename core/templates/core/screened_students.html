@@ -81,6 +81,53 @@
           {% endfor %}
         </tbody>
       </table>
+
+<!-- Pagination -->
+<div class="d-flex justify-content-between align-items-center p-3 border-top">
+  <div>
+    Page {{ students_page.number }} of {{ students_page.paginator.num_pages }}
+  </div>
+
+  <nav>
+    <ul class="pagination mb-0">
+
+      <!-- Previous -->
+      {% if students_page.has_previous %}
+      <li class="page-item">
+        <a class="page-link"
+           href="?page={{ students_page.previous_page_number }}
+           {% if name_query %}&name={{ name_query }}{% endif %}
+           {% if selected_school_id %}&school={{ selected_school_id }}{% endif %}">
+          Previous
+        </a>
+      </li>
+      {% else %}
+      <li class="page-item disabled">
+        <span class="page-link">Previous</span>
+      </li>
+      {% endif %}
+
+      <!-- Next -->
+      {% if students_page.has_next %}
+      <li class="page-item">
+        <a class="page-link"
+           href="?page={{ students_page.next_page_number }}
+           {% if name_query %}&name={{ name_query }}{% endif %}
+           {% if selected_school_id %}&school={{ selected_school_id }}{% endif %}">
+          Next
+        </a>
+      </li>
+      {% else %}
+      <li class="page-item disabled">
+        <span class="page-link">Next</span>
+      </li>
+      {% endif %}
+
+    </ul>
+  </nav>
+</div>
+
+
     </div>
   </div>
 </div>
