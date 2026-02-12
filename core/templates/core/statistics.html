@@ -113,23 +113,29 @@
 
   <!-- ================= ROW 3 (NOT CLICKABLE) ================= -->
 
-  <div class="row g-3 mb-4">
-
-    <!-- BMI -->
-    <div class="col-md-3">
-      <div class="card shadow-sm text-center h-100">
-        <div class="card-body">
-          <h6 class="text-muted">BMI Distribution</h6>
-          {% if stats.bmi %}
-            <ul class="list-unstyled mb-0">
-              {% for b in stats.bmi %}
-                <li>{{ b.bmi_category }}: {{ b.count }}</li>
-              {% endfor %}
-            </ul>
-          {% else %}
-            <p class="text-muted mb-0">No BMI data available</p>
-          {% endif %}
+  <!-- ================= ROW 3: BMI as individual cards ================= -->
+<div class="row g-3 mb-4">
+    {% if stats.bmi %}
+      {% for b in stats.bmi %}
+        <div class="col-md-3">
+          <div class="card shadow-sm text-center h-100 kpi-card" data-type="bmi_{{ b.bmi_category|slugify }}">
+            <div class="card-body">
+              <h6 class="text-muted">{{ b.bmi_category }}</h6>
+              <h2 class="fw-bold {% if b.danger %}text-danger{% endif %}">{{ b.count|default:0 }}</h2>
+            </div>
+          </div>
         </div>
+      {% endfor %}
+    {% else %}
+      <div class="col-12">
+        <div class="card shadow-sm text-center h-100">
+          <div class="card-body">
+            <p class="text-muted mb-0">No BMI data available</p>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+  </div>
       </div>
     </div>
 
