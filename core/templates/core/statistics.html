@@ -139,22 +139,30 @@
       </div>
     </div>
 
-    <!-- Weight-for-Height -->
-    <div class="col-md-3">
-      <div class="card shadow-sm text-center h-100">
-        <div class="card-body">
-          <h6 class="text-muted">Weight-for-Height</h6>
-          {% if stats.weight_height %}
-            <ul class="list-unstyled mb-0">
-              {% for wh in stats.weight_height %}
-                <li>{{ wh.weight_height|default:"N/A" }}: {{ wh.count }}</li>
-              {% endfor %}
-            </ul>
-          {% else %}
-            <p class="text-muted mb-0">No data available</p>
-          {% endif %}
+   <!-- ================= ROW 4: Weight-for-Height as individual cards ================= -->
+<div class="row g-3 mb-4">
+    {% if stats.weight_height %}
+      {% for wh in stats.weight_height %}
+        <div class="col-md-3">
+          <div class="card shadow-sm text-center h-100 kpi-card" data-type="wh_{{ wh.weight_height|slugify }}">
+            <div class="card-body">
+              <h6 class="text-muted">{{ wh.weight_height|default:"N/A" }}</h6>
+              <h2 class="fw-bold {% if wh.danger %}text-danger{% endif %}">{{ wh.count|default:0 }}</h2>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="col-12">
+        <div class="card shadow-sm text-center h-100">
+          <div class="card-body">
+            <p class="text-muted mb-0">No Weight-for-Height data available</p>
+          </div>
         </div>
       </div>
+    {% endif %}
+  </div>
+     </div>
     </div>
 
   </div>
