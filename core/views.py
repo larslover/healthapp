@@ -73,16 +73,22 @@ from django.db.models import Q
 from django.http import JsonResponse
 from core.models import Screening, ScreeningCheck
 
+from django.http import JsonResponse
+
 def stat_students_ajax(request):
     """
     Return students filtered by selected KPI, school, year, class.
+    Supports:
+    - Checklist Boolean KPIs
+    - Vision Problems
+    - SAM (MUAC)
+    - BMI categories
+    - Weight-for-Height categories
     """
     type_filter = request.GET.get("type") or ""  # KPI field name
     school = request.GET.get("school")
     year = request.GET.get("year")
     selected_class = request.GET.get("student_class") or request.GET.get("class")
-
-    print("AJAX filter values:", type_filter, school, year, selected_class)
 
     # Base queryset
     screenings = Screening.objects.select_related("student", "school", "checklist")
@@ -94,43 +100,57 @@ def stat_students_ajax(request):
     if selected_class:
         screenings = screenings.filter(class_section=selected_class)
 
-    # 🔹 Debug: before KPI filter
-    print("Screenings before KPI filter:", screenings.count())
-
     # Filter by KPI
     if type_filter:
-        # These are fields on ScreeningCheck
-        checklist_fields = [f.name for f in ScreeningCheck._meta.get_fields()
-                            if f.get_internal_type() == "BooleanField"]
+        # Checklist Boolean fields
+        checklist_fields = [
+            f.name for f in ScreeningCheck._meta.get_fields()
+            if f.get_internal_type() == "BooleanField"
+        ]
 
         if type_filter in checklist_fields:
             screenings = screenings.filter(
                 checklist__isnull=False,
                 **{f"checklist__{type_filter}": True}
             )
-        # Special cases for Screening fields
+        # Vision problems
         elif type_filter == "vision":
             screenings = screenings.filter(vision_problem__iexact="Yes")
+        # SAM (MUAC)
         elif type_filter == "muac":
             screenings = screenings.filter(muac_sam__iexact="severe acute malnutrition")
+        # BMI categories
+        elif type_filter.startswith("bmi_"):
+            bmi_category = type_filter.replace("bmi_", "").replace("-", " ").title()
+            screenings = screenings.filter(bmi_category__iexact=bmi_category)
+        # Weight-for-Height categories
+        elif type_filter.startswith("wh_"):
+            wh_category = type_filter.replace("wh_", "").replace("-", " ").title()
+            screenings = screenings.filter(weight_height__iexact=wh_category)
         else:
             print("Unknown KPI field:", type_filter)
 
-    # 🔹 Debug: after KPI filter
-    print("Screenings after KPI filter:", screenings.count())
-
     # Build student list
-    students = []
-    for s in screenings:
-        students.append({
+    students = [
+        {
             "id": s.student.id,
             "name": s.student.name,
             "class": s.class_section,
             "school": s.school.name if s.school else "",
-        })
+        }
+        for s in screenings
+    ]
+
+    # Generate readable title
+    if type_filter.startswith("bmi_"):
+        title = f"BMI: {type_filter.replace('bmi_', '').replace('-', ' ').title()}"
+    elif type_filter.startswith("wh_"):
+        title = f"Weight-for-Height: {type_filter.replace('wh_', '').replace('-', ' ').title()}"
+    else:
+        title = type_filter.replace("_", " ").title() if type_filter else "All Students"
 
     return JsonResponse({
-        "title": type_filter.replace("_", " ").title() if type_filter else "All Students",
+        "title": title,
         "students": students
     })
 
