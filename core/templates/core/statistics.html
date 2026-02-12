@@ -52,121 +52,137 @@
 
   </form>
 
-  <!-- ================= ROW 1 ================= -->
+  <!-- ================= ROW 1: Total Screened, Vision, SAM ================= -->
+<div class="row g-3 mb-4">
 
-  <div class="row g-3 mb-4">
-
-    <!-- NOT CLICKABLE -->
+    <!-- Total Screened -->
     <div class="col-md-3">
-      <div class="card shadow-sm text-center h-100">
+      <div class="card border-primary border-2 shadow-sm text-center h-100">
         <div class="card-body">
           <h6 class="text-muted">Total Screened</h6>
           <h2 class="fw-bold">{{ stats.totals.screenings|default:0 }}</h2>
         </div>
       </div>
     </div>
-
-  </div>
-
-  <!-- ================= ROW 2 ================= -->
-
-  <div class="row g-3 mb-4">
-
-    <!-- Vision -->
+  
+    <!-- Vision Problems -->
     <div class="col-md-3">
-      <div class="card shadow-sm text-center h-100 kpi-card"
-           data-type="vision">
+      <div class="card border-info border-2 shadow-sm text-center h-100 kpi-card" data-type="vision">
         <div class="card-body">
           <h6 class="text-muted">Vision Problems</h6>
           <h2 class="fw-bold text-danger">{{ stats.vision|length|default:0 }}</h2>
         </div>
       </div>
     </div>
-
-    <!-- SAM -->
+  
+    <!-- SAM (MUAC) -->
     <div class="col-md-3">
-      <div class="card shadow-sm text-center h-100 kpi-card"
-           data-type="muac">
+      <div class="card border-warning border-2 shadow-sm text-center h-100 kpi-card" data-type="muac">
         <div class="card-body">
           <h6 class="text-muted">SAM (MUAC)</h6>
           <h2 class="fw-bold text-danger">{{ stats.muac_total|default:0 }}</h2>
         </div>
       </div>
     </div>
-
-    <!-- Checklist KPIs -->
-    {% for item in checklist_stats %}
-    <div class="col-md-3">
-      <div class="card shadow-sm text-center h-100 kpi-card"
-           data-type="{{ item.key }}">
-        <div class="card-body">
-          <h6 class="text-muted">{{ item.label }}</h6>
-          <h2 class="fw-bold {% if item.danger %}text-danger{% endif %}">
-            {{ item.value|default:0 }}
-          </h2>
-        </div>
-      </div>
-    </div>
-    {% endfor %}
-
+  
   </div>
+  
+  <!-- ================= ROW 2: Screening Checks (Checklist KPIs) ================= -->
+<div class="card border-primary border-2 bg-light mb-4">
 
-  <!-- ================= ROW 3 (NOT CLICKABLE) ================= -->
-
-  <!-- ================= ROW 3: BMI as individual cards ================= -->
-<div class="row g-3 mb-4">
-    {% if stats.bmi %}
-      {% for b in stats.bmi %}
-        <div class="col-md-3">
-          <div class="card shadow-sm text-center h-100 kpi-card" data-type="bmi_{{ b.bmi_category|slugify }}">
-            <div class="card-body">
-              <h6 class="text-muted">{{ b.bmi_category }}</h6>
-              <h2 class="fw-bold {% if b.danger %}text-danger{% endif %}">{{ b.count|default:0 }}</h2>
+    <!-- Header: clickable -->
+    <div class="card-header" data-bs-toggle="collapse" data-bs-target="#screeningChecks" style="cursor:pointer;">
+      <h5 class="mb-0">Screening Checks</h5>
+    </div>
+  
+    <!-- Collapsible content -->
+    <div id="screeningChecks" class="collapse show">
+      <div class="card-body">
+        <div class="row g-3">
+          {% for item in checklist_stats %}
+          <div class="col-md-3">
+            <div class="card shadow-sm text-center h-100 kpi-card" data-type="{{ item.key }}">
+              <div class="card-body">
+                <h6 class="text-muted">{{ item.label }}</h6>
+                <h2 class="fw-bold {% if item.danger %}text-danger{% endif %}">{{ item.value|default:0 }}</h2>
+              </div>
             </div>
           </div>
+          {% endfor %}
         </div>
-      {% endfor %}
-    {% else %}
-      <div class="col-12">
-        <div class="card shadow-sm text-center h-100">
-          <div class="card-body">
-            <p class="text-muted mb-0">No BMI data available</p>
-          </div>
-        </div>
-      </div>
-    {% endif %}
-  </div>
       </div>
     </div>
-
-   <!-- ================= ROW 4: Weight-for-Height as individual cards ================= -->
-<div class="row g-3 mb-4">
-    {% if stats.weight_height %}
-      {% for wh in stats.weight_height %}
-        <div class="col-md-3">
-          <div class="card shadow-sm text-center h-100 kpi-card" data-type="wh_{{ wh.weight_height|slugify }}">
-            <div class="card-body">
-              <h6 class="text-muted">{{ wh.weight_height|default:"N/A" }}</h6>
-              <h2 class="fw-bold {% if wh.danger %}text-danger{% endif %}">{{ wh.count|default:0 }}</h2>
+  
+  </div>
+  
+  <!-- ================= ROW 3: BMI Distribution ================= -->
+  <div class="card border-success border-2 bg-light mb-4">
+  
+    <!-- Header: clickable -->
+    <div class="card-header" data-bs-toggle="collapse" data-bs-target="#bmiCards" style="cursor:pointer;">
+      <h5 class="mb-0">BMI Distribution</h5>
+    </div>
+  
+    <!-- Collapsible content -->
+    <div id="bmiCards" class="collapse show">
+      <div class="card-body">
+        <div class="row g-3">
+          {% if stats.bmi %}
+            {% for b in stats.bmi %}
+              <div class="col-md-3">
+                <div class="card shadow-sm text-center h-100 kpi-card" data-type="bmi_{{ b.bmi_category|slugify }}">
+                  <div class="card-body">
+                    <h6 class="text-muted">{{ b.bmi_category }}</h6>
+                    <h2 class="fw-bold {% if b.danger %}text-danger{% endif %}">{{ b.count|default:0 }}</h2>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="col-12">
+              <p class="text-muted mb-0">No BMI data available</p>
             </div>
-          </div>
-        </div>
-      {% endfor %}
-    {% else %}
-      <div class="col-12">
-        <div class="card shadow-sm text-center h-100">
-          <div class="card-body">
-            <p class="text-muted mb-0">No Weight-for-Height data available</p>
-          </div>
+          {% endif %}
         </div>
       </div>
-    {% endif %}
-  </div>
-     </div>
     </div>
-
+  
   </div>
-
+  
+  <!-- ================= ROW 4: Weight-for-Height ================= -->
+  <div class="card border-warning border-2 bg-light mb-4">
+  
+    <!-- Header: clickable -->
+    <div class="card-header" data-bs-toggle="collapse" data-bs-target="#whCards" style="cursor:pointer;">
+      <h5 class="mb-0">Weight-for-Height</h5>
+    </div>
+  
+    <!-- Collapsible content -->
+    <div id="whCards" class="collapse show">
+      <div class="card-body">
+        <div class="row g-3">
+          {% if stats.weight_height %}
+            {% for wh in stats.weight_height %}
+              <div class="col-md-3">
+                <div class="card shadow-sm text-center h-100 kpi-card" data-type="wh_{{ wh.weight_height|slugify }}">
+                  <div class="card-body">
+                    <h6 class="text-muted">{{ wh.weight_height|default:"N/A" }}</h6>
+                    <h2 class="fw-bold {% if wh.danger %}text-danger{% endif %}">{{ wh.count|default:0 }}</h2>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="col-12">
+              <p class="text-muted mb-0">No Weight-for-Height data available</p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  
+  </div>
+  
   <!-- Student Result Table -->
 <div class="card shadow-sm mt-4 d-none" id="results-card">
     <div class="card-body">
