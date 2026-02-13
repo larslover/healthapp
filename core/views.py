@@ -925,7 +925,7 @@ def add_screening(request):
     from core.utils.thresholds import vision_list, critical_vision_set
 
     # --- GET params ---
-    selected_school_id = request.GET.get("school")
+ 
     student_name_query = request.GET.get("student_name", "")
     selected_student_id = (
     request.POST.get("selected_student")
@@ -933,15 +933,9 @@ def add_screening(request):
 )
 
 
-    try:
-        selected_school_id = int(selected_school_id)
-    except (TypeError, ValueError):
-        selected_school_id = None
-
     # --- Students queryset ---
     students = Student.objects.all()
-    if selected_school_id:
-        students = students.filter(school_id=selected_school_id)
+    
     if student_name_query:
         students = students.filter(name__icontains=student_name_query)
     paginator = Paginator(students.order_by("name"), 20)
@@ -1048,29 +1042,27 @@ def add_screening(request):
 
     # --- Final render ---
     return render(request, "core/new_screening.html", {
-    "checklist_groups": checklist_groups,
-    "schools": School.objects.all(),
-    "students_page": students_page,
-    "selected_school_id": selected_school_id,
-    "student_name_query": student_name_query,
-    "selected_student_id": selected_student_id,
-    "student": student,
-    "screening_form": screening_form,
-    "screening_check_form": screening_check_form,
-    "previous_screenings": previous_screenings,
-    "screenings": screenings_for_chart,
-    "bmi_labels": bmi_labels,
-    "bmi_values": bmi_values,
-    "bmi_categories": bmi_categories,
-    "wfh_labels": wfh_labels,
-    "wfh_values": wfh_values,
-    "wfh_categories": wfh_categories,
-    "chart_who_bmi_curves": chart_who_bmi_curves,
-    "chart_who_wfh_curves": chart_who_wfh_curves,
+        "checklist_groups": checklist_groups,
+        "students_page": students_page,
+        "student_name_query": student_name_query,
+        "selected_student_id": selected_student_id,
+        "student": student,
+        "screening_form": screening_form,
+        "screening_check_form": screening_check_form,
+        "previous_screenings": previous_screenings,
+        "screenings": screenings_for_chart,
+        "bmi_labels": bmi_labels,
+        "bmi_values": bmi_values,
+        "bmi_categories": bmi_categories,
+        "wfh_labels": wfh_labels,
+        "wfh_values": wfh_values,
+        "wfh_categories": wfh_categories,
+        "chart_who_bmi_curves": chart_who_bmi_curves,
+        "chart_who_wfh_curves": chart_who_wfh_curves,
+        "vision_list": vision_list,
+        "critical_vision_set": list(critical_vision_set),
+    })
 
-    "vision_list": vision_list,
-    "critical_vision_set": list(critical_vision_set),  # convert to list so JS works
-})
 
 
 

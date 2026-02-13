@@ -67,7 +67,6 @@ class Screening(models.Model):
     school = models.ForeignKey(School, on_delete=models.SET_NULL, null=True, blank=True)
     screening_year = models.IntegerField(db_index=True, null=True, blank=True)
 
-
     # Measurements
     weight = models.FloatField(null=True, blank=True)
     height = models.FloatField(null=True, blank=True)
@@ -85,14 +84,11 @@ class Screening(models.Model):
     vision_both = models.CharField(max_length=50, null=True, blank=True)
     vision_left = models.CharField(max_length=10, blank=True, null=True)
     vision_right = models.CharField(max_length=10, blank=True, null=True)
-
     vision_problem = models.TextField(null=True, blank=True)
 
     # Meta data
     age_in_month = models.IntegerField(null=True, blank=True)
     covid = models.CharField(max_length=50, null=True, blank=True)
-    
-    
     age_screening = models.CharField(max_length=50, null=True, blank=True)
 
     class Meta:
@@ -100,79 +96,50 @@ class Screening(models.Model):
 
     def __str__(self):
         return f"{self.student.name} - {self.screen_date} ({self.class_section})"
-    
 
     def calculate_metrics(self):
-        from core.utils.processor import (
-        
-        weight_height_category,
-        evaluate_vision
-    )
-        """Calculate all WHO metrics safely."""
+        from core.utils.processor import weight_height_category, evaluate_vision
+        """Calculate WHO metrics safely."""
         if not self.student:
             self.age_in_month = None
             self.bmi = None
             self.bmi_category = "N/A"
             self.muac_sam = "N/A"
-            
             self.weight_height = "N/A"
             self.vision_problem = "N/A"
             return
 
         dob = getattr(self.student, "date_of_birth", None)
         if dob and self.screen_date:
+            from core.utils.processor import calculate_age_in_months, calculate_bmi, bmi_category, muac_category
             self.age_in_month = calculate_age_in_months(dob, self.screen_date)
         else:
             self.age_in_month = None
 
-        # Convert to float safely
         weight = float(self.weight) if self.weight else None
         height = float(self.height) if self.height else None
 
         self.bmi = calculate_bmi(weight, height)
-
         self.bmi_category = (
             bmi_category(getattr(self.student, "gender", ""), self.age_in_month, self.bmi)
             if self.bmi is not None and self.age_in_month is not None
             else "N/A"
         )
-
         self.muac_sam = (
             muac_category(self.muac, self.age_in_month)
             if self.muac is not None and self.age_in_month is not None
             else "N/A"
         )
-
         gender = getattr(self.student, "gender", "")
-
-       
-       
-
-        
-
         self.weight_height = (
             weight_height_category(weight, height, self.age_in_month, gender)
             if weight is not None and height is not None and self.age_in_month is not None
             else "N/A"
         )
-    def clean(self):
-        if self.student_id and not self.school_id:
-            from core.models import Student
-            self.school_id = (
-                Student.objects
-                .filter(id=self.student_id)
-                .values_list("school_id", flat=True)
-                .first()
-            )
 
-
-     
     def save(self, *args, **kwargs):
         # Auto-calculate screening year
-        if self.screen_date:
-            self.screening_year = self.screen_date.year
-        else:
-            self.screening_year = None
+        self.screening_year = self.screen_date.year if self.screen_date else None
 
         # 🔑 Auto-fill school from student if missing
         if self.school_id is None and self.student_id:
