@@ -355,19 +355,34 @@ def login_view(request):
 
     return render(request, 'core/login.html')
 
+from django.shortcuts import redirect, render
+from django.urls import reverse
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+
+from django.urls import reverse
 
 @login_required(login_url='login')
 def student_create(request):
     if request.method == "POST":
         form = StudentForm(request.POST)
         if form.is_valid():
-            form.save()
-            return redirect('screened_students')  # redirect back to the student list
+            student = form.save()
+
+            action = request.POST.get("action")
+
+            if action == "screen":
+                # redirect to your EXISTING add_screening view
+                return redirect(f"{reverse('add_screening')}?student_id={student.id}")
+
+            elif action == "add_another":
+                return redirect('student_create')
+
+            return redirect('screened_students')
     else:
         form = StudentForm()
 
     return render(request, 'core/student_create.html', {'form': form})
-
 # -------------------------
 # Module-level helper funcs
 # -------------------------
@@ -904,6 +919,8 @@ def add_screening(request):
     selected_student_id = (
     request.POST.get("selected_student")
     or request.GET.get("selected_student")
+    or request.GET.get("student_id")   # <-- NEW (from student_create)
+
 )
 
 
