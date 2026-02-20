@@ -1,7 +1,7 @@
 from django.db import models
 from core.utils.processor import bmi_category
 from datetime import datetime,date
-from django.db import models
+
 from .utils.processor import calculate_age_in_months, calculate_bmi, bmi_category, muac_category
 # ------------------------------
 # New system tables
@@ -148,8 +148,6 @@ class Screening(models.Model):
         self.calculate_metrics()
         super().save(*args, **kwargs)
 
-from django.db import models
-from core.models import Screening
 
 class ScreeningCheck(models.Model):
     screening = models.OneToOneField(Screening, on_delete=models.CASCADE, related_name="checklist")

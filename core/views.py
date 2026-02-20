@@ -8,6 +8,9 @@ import logging
 
 # Third-party
 import pandas as pd
+
+# DJANGO
+
 from django.utils.safestring import mark_safe
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, HttpResponse
@@ -41,42 +44,17 @@ from core.utils.weight_height_male_thresholds import weight_height_male_threshol
 from core.utils.weight_height_female_thresholds import weight_height_female_thresholds
 from core.utils.bmi_thresholds_male import bmi_thresholds_male
 from core.utils.bmi_thresholds_female import bmi_thresholds_female
-
-# core/views.py
-from django.shortcuts import render
-from core.models import School, Screening
-from core.forms import CLASS_CHOICES
 from core.services.statistics import get_screening_statistics
-import logging
-
 logger = logging.getLogger(__name__)  # recommended way to log
-# core/views.py
-from core.services.statistics import get_screening_statistics
-from core.models import School
-from core.forms import CLASS_CHOICES
-from django.shortcuts import render
-from core.models import Screening
-
-# core/views.py
-from django.shortcuts import render
 from core.models import Screening, School
 from core.forms import CLASS_CHOICES
 from core.services.statistics import get_screening_statistics
-from django.http import JsonResponse
-from .models import Screening
-
-from django.http import JsonResponse
-from .models import Screening
-from django.http import JsonResponse
-from django.db.models import Q
-# core/views.py
-from django.http import JsonResponse
 from core.models import Screening, ScreeningCheck
 
-from django.http import JsonResponse
 
-from django.core.paginator import Paginator
-from django.http import JsonResponse
+
+
+
 
 def stat_students_ajax(request):
     """
