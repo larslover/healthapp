@@ -52,10 +52,6 @@ from core.services.statistics import get_screening_statistics
 from core.models import Screening, ScreeningCheck
 
 
-
-
-
-
 def stat_students_ajax(request):
     """
     Return students filtered by selected KPI, school, year, class.
