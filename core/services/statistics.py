@@ -2,10 +2,9 @@
 from django.db.models import Count, Case, When, IntegerField, Value
 from core.models import Screening, ScreeningCheck
 
-
 def get_screening_statistics(
     *,
-    screening_year,
+    academic_year,
     school_id=None,
     class_section=None,
 ):
@@ -15,7 +14,7 @@ def get_screening_statistics(
     """
 
     # ---- BASE QUERYSET ----
-    qs = Screening.objects.filter(screening_year=screening_year)
+    qs = Screening.objects.filter(academic_year=academic_year)
 
     if school_id:
         qs = qs.filter(student__school_id=school_id)

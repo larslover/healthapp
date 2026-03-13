@@ -66,15 +66,15 @@ def stat_students_ajax(request):
     """
     type_filter = request.GET.get("type") or ""  # KPI field name
     school = request.GET.get("school")
-    year = request.GET.get("year")
+    academic_year = request.GET.get("academic_year")
     selected_class = request.GET.get("student_class") or request.GET.get("class")
     page_number = int(request.GET.get("page", 1))  # default page 1
 
     # Base queryset
     screenings = Screening.objects.select_related("student__school", "checklist")
 
-    if year:
-        screenings = screenings.filter(screening_year=year)
+    if academic_year:
+        screenings = screenings.filter(academic_year=academic_year)
     if school:
         screenings = screenings.filter(school_id=school)
     if selected_class:
@@ -141,41 +141,41 @@ def stat_students_ajax(request):
 
 def statistics(request):
     # ---- Selected filters ----
-    selected_year = request.GET.get("year")
+    selected_academic_year = request.GET.get("academic_year")
     selected_school = request.GET.get("school", "")
     selected_class = request.GET.get("class", "")
 
-    # ---- Default year (latest) ----
-    if not selected_year:
-        selected_year = (
+    # ---- Default academic year (latest) ----
+    if not selected_academic_year:
+        selected_academic_year = (
             Screening.objects
-            .exclude(screening_year__isnull=True)
-            .values_list("screening_year", flat=True)
+            .exclude(academic_year__isnull=True)
+            .values_list("academic_year", flat=True)
             .distinct()
-            .order_by("-screening_year")
+            .order_by("-academic_year")
             .first()
         )
 
     # ---- Fetch statistics ----
     stats = get_screening_statistics(
-        screening_year=selected_year,
+        academic_year=selected_academic_year,
         school_id=selected_school or None,
         class_section=selected_class or None,
     )
 
-    # ---- Year dropdown ----
-    years = (
+    # ---- Academic year dropdown ----
+    academic_years = (
         Screening.objects
-        .exclude(screening_year__isnull=True)
-        .values_list("screening_year", flat=True)
+        .exclude(academic_year__isnull=True)
+        .values_list("academic_year", flat=True)
         .distinct()
-        .order_by("-screening_year")
+        .order_by("-academic_year")
     )
 
-        # ---- Checklist KPI cards ----
+    # ---- Checklist KPI cards ----
     checklist_stats = [
         {
-            "key": field,  # ✅ important for data-type
+            "key": field,
             "label": field.replace("_", " ").title(),
             "value": count,
             "danger": True,
@@ -189,16 +189,15 @@ def statistics(request):
         "core/statistics.html",
         {
             "stats": stats,
-            "year": selected_year,
-            "years": years,
+            "academic_year": selected_academic_year,
+            "academic_years": academic_years,
             "schools": School.objects.all(),
             "class_choices": CLASS_CHOICES,
-            "selected_school": selected_school,  # ✅ FIX
+            "selected_school": selected_school,
             "selected_class": selected_class,
             "checklist_stats": checklist_stats,
         }
     )
-
 def get_classes_for_school(request):
     year = request.GET.get("year")
     school_id = request.GET.get("school")
