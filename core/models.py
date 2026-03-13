@@ -6,6 +6,25 @@ from .utils.processor import calculate_age_in_months, calculate_bmi, bmi_categor
 # ------------------------------
 # New system tables
 # ------------------------------
+
+from datetime import date
+
+def academic_year_choices():
+    today = date.today()
+
+    if today.month >= 4:
+        start_year = today.year
+    else:
+        start_year = today.year - 1
+
+    current = f"{start_year}-{start_year+1}"
+    next_year = f"{start_year+1}-{start_year+2}"
+
+    return [
+        (current, current),
+        (next_year, next_year),
+    ]
+
 class School(models.Model):
     name = models.CharField(max_length=255, unique=True)
 
@@ -66,6 +85,12 @@ class Screening(models.Model):
     class_section = models.CharField(max_length=50, null=True, blank=True)
     school = models.ForeignKey(School, on_delete=models.SET_NULL, null=True, blank=True)
     screening_year = models.IntegerField(db_index=True, null=True, blank=True)
+
+    academic_year = models.CharField(
+    max_length=9,
+    choices=academic_year_choices,
+    db_index=True
+)
 
     # Measurements
     weight = models.FloatField(null=True, blank=True)

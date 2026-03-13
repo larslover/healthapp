@@ -13,20 +13,22 @@ def get_screening_statistics(
     Centralized statistics engine for dashboard & reports.
     Combines Screening and ScreeningCheck data.
     """
+
+    # ---- BASE QUERYSET ----
     qs = Screening.objects.filter(screening_year=screening_year)
 
     if school_id:
-        qs = qs.filter(school_id=school_id)
+        qs = qs.filter(student__school_id=school_id)
 
     if class_section:
         qs = qs.filter(class_section=class_section)
 
-    qs = qs.select_related("checklist")
+    qs = qs.select_related("student", "student__school")
 
     # ---- HEADLINE NUMBERS ----
     total_screenings = qs.count()
     total_students = qs.values("student_id").distinct().count()
-    total_schools = qs.values("school_id").distinct().count()
+    total_schools = qs.values("student__school_id").distinct().count()
 
     # ---- BMI (LOGICAL ORDER, NO N/A) ----
     bmi_order = Case(
@@ -42,16 +44,20 @@ def get_screening_statistics(
 
     bmi_counts = (
         qs.exclude(bmi_category="N/A")
-          .values("bmi_category")
-          .annotate(
-              count=Count("id"),
-              sort_order=bmi_order,
-          )
-          .order_by("sort_order")
+        .values("bmi_category")
+        .annotate(
+            count=Count("id"),
+            sort_order=bmi_order,
+        )
+        .order_by("sort_order")
     )
 
     # ---- MUAC ----
     muac_counts = qs.values("muac_sam").annotate(count=Count("id"))
+
+    muac_total = qs.filter(
+        muac_sam__iexact="severe acute malnutrition"
+    ).count()
 
     # ---- WEIGHT FOR HEIGHT (LOGICAL ORDER, NO N/A) ----
     weight_height_order = Case(
@@ -66,17 +72,16 @@ def get_screening_statistics(
 
     weight_height_counts = (
         qs.exclude(weight_height="N/A")
-          .values("weight_height")
-          .annotate(
-              count=Count("id"),
-              sort_order=weight_height_order,
-          )
-          .order_by("sort_order")
+        .values("weight_height")
+        .annotate(
+            count=Count("id"),
+            sort_order=weight_height_order,
+        )
+        .order_by("sort_order")
     )
 
     # ---- VISION ----
-    vision_counts = qs.filter(vision_problem__iexact="Yes").annotate(count=Count("id"))
-
+    vision_total = qs.filter(vision_problem__iexact="Yes").count()
 
     # ---- AGE SEGMENTS ----
     age_groups = qs.values("age_screening").annotate(count=Count("id"))
@@ -85,7 +90,8 @@ def get_screening_statistics(
     checklist_qs = ScreeningCheck.objects.filter(screening__in=qs)
 
     checklist_fields = [
-        f.name for f in ScreeningCheck._meta.get_fields()
+        f.name
+        for f in ScreeningCheck._meta.get_fields()
         if f.get_internal_type() == "BooleanField"
     ]
 
@@ -94,6 +100,7 @@ def get_screening_statistics(
         for field in checklist_fields
     }
 
+    # ---- FINAL STRUCTURE ----
     return {
         "totals": {
             "screenings": total_screenings,
@@ -102,11 +109,9 @@ def get_screening_statistics(
         },
         "bmi": list(bmi_counts),
         "muac": list(muac_counts),
-        "muac_total": qs.filter(muac_sam__iexact="severe acute malnutrition"
-        ).count(),
-
+        "muac_total": muac_total,
         "weight_height": list(weight_height_counts),
-        "vision": list(vision_counts),
+        "vision": vision_total,
         "age_groups": list(age_groups),
         "checklist": checklist_stats,
     }

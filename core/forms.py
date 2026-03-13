@@ -1,6 +1,7 @@
 from django import forms
 from .models import Student, Screening, School, ScreeningCheck
 from django import forms
+from .models import academic_year_choices
 CLASS_CHOICES = [
     ('Playgroup', 'Playgroup'),
     ('Nursery', 'Nursery'),
@@ -79,6 +80,13 @@ from django.utils import timezone
 from .models import Screening
 
 class ScreeningForm(forms.ModelForm):
+
+    academic_year = forms.ChoiceField(
+        choices=academic_year_choices,   # your dynamic function
+        required=True,
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+
     class_section = forms.ChoiceField(
     choices=CLASS_CHOICES,
     required=False,
@@ -106,6 +114,7 @@ class ScreeningForm(forms.ModelForm):
     class Meta:
         model = Screening
         fields = [
+             'academic_year',
             'screen_date',
             'class_section',
             'age_screening',
