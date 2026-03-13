@@ -71,7 +71,7 @@ def stat_students_ajax(request):
     page_number = int(request.GET.get("page", 1))  # default page 1
 
     # Base queryset
-    screenings = Screening.objects.select_related("student", "school", "checklist")
+    screenings = Screening.objects.select_related("student__school", "checklist")
 
     if year:
         screenings = screenings.filter(screening_year=year)
@@ -106,16 +106,15 @@ def stat_students_ajax(request):
     else:
         print("Unknown KPI field:", type_filter)
 
-    # Build student list
     students_list = [
         {
             "id": s.student.id,
             "name": s.student.name,
             "class": s.class_section,
-            "school": s.school.name if s.school else "",
+            "school": s.student.school.name if s.student.school else "",
         }
         for s in screenings
-    ]
+]
 
     # Paginate
     paginator = Paginator(students_list, 20)  # 20 students per page
