@@ -14,15 +14,14 @@
   <form method="get" class="row g-3 mb-4">
 
     <div class="col-md-2">
-      <label class="form-label">Year</label>
-      <select name="year" id="year" class="form-select">
-        {% for y in years %}
-          <option value="{{ y }}" {% if y|stringformat:"s" == year|stringformat:"s" %}selected{% endif %}>
+      <label class="form-label">Academic Year</label>
+      <select name="academic_year" id="academic_year" class="form-select">
+        {% for y in academic_years %}
+          <option value="{{ y }}" {% if y|stringformat:"s" == academic_year|stringformat:"s" %}selected{% endif %}>
             {{ y }}
           </option>
         {% endfor %}
-      </select>
-    </div>
+      </select>    </div>
 
     <div class="col-md-4">
       <label class="form-label">School</label>
@@ -241,10 +240,10 @@ document.addEventListener("DOMContentLoaded", function() {
 
   function loadStudents(type, page = 1) {
     const school = document.getElementById("school").value;
-    const year = document.getElementById("year").value;
+    const academicYear = document.getElementById("academic_year").value;
     const studentClass = document.getElementById("class").value;
 
-    fetch(`/ajax/stat-students/?type=${type}&school=${school}&year=${year}&student_class=${studentClass}&page=${page}`)
+    fetch(`/ajax/stat-students/?type=${type}&school=${school}&academic_year=${academicYear}&student_class=${studentClass}&page=${page}`)
       .then(response => response.json())
       .then(data => {
         resultsBody.innerHTML = "";
