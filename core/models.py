@@ -84,7 +84,7 @@ class Screening(models.Model):
     screen_date = models.DateField(null=True, blank=True)
     class_section = models.CharField(max_length=50, null=True, blank=True)
    
-    screening_year = models.IntegerField(db_index=True, null=True, blank=True)
+   
 
     academic_year = models.CharField(
     max_length=9,
@@ -166,7 +166,7 @@ class Screening(models.Model):
 
     def save(self, *args, **kwargs):
     # Auto-calculate screening year
-        self.screening_year = self.screen_date.year if self.screen_date else None
+       
 
         self.calculate_metrics()
         super().save(*args, **kwargs)
