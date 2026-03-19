@@ -79,7 +79,7 @@ def bmi_category(gender: str, age_months: int, bmi_value: float) -> str:
     if bmi_value < minus3SD:
         return "severe underweight"
     elif bmi_value < minus2SD:
-        return "moderate underweight"
+        return "underweight"
     elif bmi_value <= plus2SD:
         return "normal"
     elif bmi_value <= plus3SD:

@@ -32,7 +32,7 @@ def get_screening_statistics(
     # ---- BMI (LOGICAL ORDER, NO N/A) ----
     bmi_order = Case(
         When(bmi_category="severe underweight", then=Value(1)),
-        When(bmi_category="moderate underweight", then=Value(2)),
+        When(bmi_category="underweight", then=Value(2)),
         When(bmi_category="mild underweight", then=Value(3)),
         When(bmi_category="normal", then=Value(4)),
         When(bmi_category="overweight", then=Value(5)),
