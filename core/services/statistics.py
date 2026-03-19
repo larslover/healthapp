@@ -97,7 +97,16 @@ def get_screening_statistics(
     ).count() + checklist_qs.filter(
         vaccination=""
     ).count()
+    # ---- DEWORMING ----
+    deworming_yes = checklist_qs.filter(deworming__iexact="yes").count()
 
+    deworming_no = checklist_qs.filter(deworming__iexact="no").count()
+
+    deworming_unknown = checklist_qs.filter(
+        deworming__isnull=True
+    ).count() + checklist_qs.filter(
+        deworming=""
+    ).count()
     checklist_fields = [
         f.name
         for f in ScreeningCheck._meta.get_fields()
@@ -130,11 +139,11 @@ def get_screening_statistics(
         "no": vaccination_no,
         "unknown": vaccination_unknown,
     },
+    "deworming": {
+    "yes": deworming_yes,
+    "no": deworming_no,
+    "unknown": deworming_unknown,
+},
 
-    # ✅ TEMP: map immunization to vaccination
-    "immunization": {
-        "yes": vaccination_yes,
-        "no": vaccination_no,
-        "unknown": vaccination_unknown,
-    },
+   
 }
