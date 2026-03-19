@@ -87,6 +87,16 @@ def get_screening_statistics(
 
     # ---- SCREENING CHECKS ----
     checklist_qs = ScreeningCheck.objects.filter(screening__in=qs)
+    # ---- VACCINATION ----
+    vaccination_yes = checklist_qs.filter(vaccination__iexact="yes").count()
+
+    vaccination_no = checklist_qs.filter(vaccination__iexact="no").count()
+
+    vaccination_unknown = checklist_qs.filter(
+        vaccination__isnull=True
+    ).count() + checklist_qs.filter(
+        vaccination=""
+    ).count()
 
     checklist_fields = [
         f.name
@@ -101,16 +111,30 @@ def get_screening_statistics(
 
     # ---- FINAL STRUCTURE ----
     return {
-        "totals": {
-            "screenings": total_screenings,
-            "students": total_students,
-            "schools": total_schools,
-        },
-        "bmi": list(bmi_counts),
-        "muac": list(muac_counts),
-        "muac_total": muac_total,
-        "weight_height": list(weight_height_counts),
-        "vision": vision_total,
-        "age_groups": list(age_groups),
-        "checklist": checklist_stats,
-    }
+    "totals": {
+        "screenings": total_screenings,
+        "students": total_students,
+        "schools": total_schools,
+    },
+    "bmi": list(bmi_counts),
+    "muac": list(muac_counts),
+    "muac_total": muac_total,
+    "weight_height": list(weight_height_counts),
+    "vision": vision_total,
+    "age_groups": list(age_groups),
+    "checklist": checklist_stats,
+
+    # ✅ ADD THIS
+    "vaccination": {
+        "yes": vaccination_yes,
+        "no": vaccination_no,
+        "unknown": vaccination_unknown,
+    },
+
+    # ✅ TEMP: map immunization to vaccination
+    "immunization": {
+        "yes": vaccination_yes,
+        "no": vaccination_no,
+        "unknown": vaccination_unknown,
+    },
+}

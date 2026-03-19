@@ -50,62 +50,95 @@ from core.models import Screening, School
 from core.forms import CLASS_CHOICES
 from core.services.statistics import get_screening_statistics
 from core.models import Screening, ScreeningCheck
+from django.core.paginator import Paginator
+from django.http import JsonResponse
+from django.http import JsonResponse
+from django.core.paginator import Paginator
+from core.models import Screening, ScreeningCheck
 
 
 def stat_students_ajax(request):
-    """
-    Return students filtered by selected KPI, school, year, class.
-    Supports:
-    - Total Screened
-    - Checklist Boolean KPIs
-    - Vision Problems
-    - SAM (MUAC)
-    - BMI categories
-    - Weight-for-Height categories
-    Pagination: 20 students per page
-    """
-    type_filter = request.GET.get("type") or ""  # KPI field name
+    type_filter = (request.GET.get("type") or "").strip()
     school = request.GET.get("school")
     academic_year = request.GET.get("academic_year")
     selected_class = request.GET.get("student_class") or request.GET.get("class")
-    page_number = int(request.GET.get("page", 1))  # default page 1
+    page_number = int(request.GET.get("page", 1))
 
-    # Base queryset
-    screenings = Screening.objects.select_related("student__school", "checklist")
+    # ---- BASE QUERYSET ----
+    screenings = Screening.objects.select_related(
+        "student__school", "checklist"
+    )
 
+    # ---- BASIC FILTERS ----
     if academic_year:
         screenings = screenings.filter(academic_year=academic_year)
+
     if school:
-        screenings = screenings.filter(school_id=school)
+        screenings = screenings.filter(student__school_id=school)
+
     if selected_class:
         screenings = screenings.filter(class_section=selected_class)
 
-    # Filter by KPI (same as before)
+    # ---- CHECKLIST BOOLEAN FIELDS ----
     checklist_fields = [
         f.name for f in ScreeningCheck._meta.get_fields()
         if f.get_internal_type() == "BooleanField"
     ]
 
+    # ---- KPI FILTERING ----
     if type_filter in checklist_fields:
         screenings = screenings.filter(
             checklist__isnull=False,
             **{f"checklist__{type_filter}": True}
         )
+
     elif type_filter == "vision":
         screenings = screenings.filter(vision_problem__iexact="Yes")
-    elif type_filter == "muac":
-        screenings = screenings.filter(muac_sam__iexact="severe acute malnutrition")
-    elif type_filter.startswith("bmi_"):
-        bmi_category = type_filter.replace("bmi_", "").replace("-", " ").title()
-        screenings = screenings.filter(bmi_category__iexact=bmi_category)
-    elif type_filter.startswith("wh_"):
-        wh_category = type_filter.replace("wh_", "").replace("-", " ").title()
-        screenings = screenings.filter(weight_height__iexact=wh_category)
-    elif type_filter == "total":
-        pass  # total screened = all students matching filters
-    else:
-        print("Unknown KPI field:", type_filter)
 
+    elif type_filter == "muac":
+        screenings = screenings.filter(
+            muac_sam__iexact="severe acute malnutrition"
+        )
+
+    elif type_filter.startswith("bmi_"):
+        bmi_category = (
+            type_filter.replace("bmi_", "")
+            .replace("-", " ")
+            .title()
+        )
+        screenings = screenings.filter(bmi_category__iexact=bmi_category)
+
+    elif type_filter.startswith("wh_"):
+        wh_category = (
+            type_filter.replace("wh_", "")
+            .replace("-", " ")
+            .title()
+        )
+        screenings = screenings.filter(weight_height__iexact=wh_category)
+
+    # ---- VACCINATION / IMMUNIZATION ----
+    elif type_filter.startswith("vaccination_") or type_filter.startswith("immunization_"):
+        val = type_filter.split("_")[-1].lower()
+
+        if val == "yes":
+            screenings = screenings.filter(
+                checklist__vaccination__iexact="yes"
+            )
+        elif val == "no":
+            screenings = screenings.filter(
+                checklist__vaccination__iexact="no"
+            )
+        elif val == "unknown":
+            screenings = screenings.filter(
+                checklist__vaccination__isnull=True
+            ) | screenings.filter(
+                checklist__vaccination=""
+            )
+
+    elif type_filter == "total":
+        pass
+
+    # ---- STUDENT DATA ----
     students_list = [
         {
             "id": s.student.id,
@@ -114,22 +147,38 @@ def stat_students_ajax(request):
             "school": s.student.school.name if s.student.school else "",
         }
         for s in screenings
-]
+    ]
 
-    # Paginate
-    paginator = Paginator(students_list, 20)  # 20 students per page
+    # ---- PAGINATION ----
+    paginator = Paginator(students_list, 20)
     page_obj = paginator.get_page(page_number)
 
-    # Generate readable title
+    # ---- TITLE ----
     if type_filter.startswith("bmi_"):
         title = f"BMI: {type_filter.replace('bmi_', '').replace('-', ' ').title()}"
+
     elif type_filter.startswith("wh_"):
         title = f"Weight-for-Height: {type_filter.replace('wh_', '').replace('-', ' ').title()}"
+
+    elif type_filter.startswith("vaccination_"):
+        title = f"Vaccination: {type_filter.split('_')[-1].title()}"
+
+    elif type_filter.startswith("immunization_"):
+        title = f"Immunization: {type_filter.split('_')[-1].title()}"
+
+    elif type_filter == "vision":
+        title = "Vision Problems"
+
+    elif type_filter == "muac":
+        title = "Severe Acute Malnutrition"
+
     elif type_filter == "total":
         title = "Total Screened"
+
     else:
         title = type_filter.replace("_", " ").title() if type_filter else "All Students"
 
+    # ---- RESPONSE ----
     return JsonResponse({
         "title": title,
         "students": list(page_obj.object_list),
@@ -138,7 +187,6 @@ def stat_students_ajax(request):
         "has_previous": page_obj.has_previous(),
         "has_next": page_obj.has_next(),
     })
-
 def statistics(request):
     # ---- Selected filters ----
     selected_academic_year = request.GET.get("academic_year")

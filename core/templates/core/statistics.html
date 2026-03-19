@@ -115,6 +115,89 @@
   
   </div>
   
+<!-- ================= ROW X: Vaccination & Immunization ================= -->
+<div class="card border-info border-2 bg-light mb-4">
+
+  <!-- Header -->
+  <div class="card-header" data-bs-toggle="collapse" data-bs-target="#vaccinationCards" style="cursor:pointer;">
+    <h5 class="mb-0">Vaccination & Immunization</h5>
+  </div>
+
+  <!-- Content -->
+  <div id="vaccinationCards" class="collapse show">
+    <div class="card-body">
+      <div class="row g-3">
+
+        <!-- Vaccination -->
+        <div class="col-12">
+          <h6 class="fw-bold">Vaccination</h6>
+        </div>
+
+        <div class="col-md-2">
+          <div class="card text-center kpi-card" data-type="vaccination_yes">
+            <div class="card-body">
+              <h6 class="text-muted">Yes</h6>
+              <h3>{{ stats.vaccination.yes|default:0 }}</h3>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-2">
+          <div class="card text-center kpi-card" data-type="vaccination_no">
+            <div class="card-body">
+              <h6 class="text-muted">No</h6>
+              <h3 class="text-danger">{{ stats.vaccination.no|default:0 }}</h3>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-2">
+          <div class="card text-center kpi-card" data-type="vaccination_unknown">
+            <div class="card-body">
+              <h6 class="text-muted">Unknown</h6>
+              <h3>{{ stats.vaccination.unknown|default:0 }}</h3>
+            </div>
+          </div>
+        </div>
+
+        <!-- Immunization -->
+        <div class="col-12 mt-3">
+          <h6 class="fw-bold">Immunization</h6>
+        </div>
+
+        <div class="col-md-2">
+          <div class="card text-center kpi-card" data-type="immunization_yes">
+            <div class="card-body">
+              <h6 class="text-muted">Yes</h6>
+              <h3>{{ stats.immunization.yes|default:0 }}</h3>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-2">
+          <div class="card text-center kpi-card" data-type="immunization_no">
+            <div class="card-body">
+              <h6 class="text-muted">No</h6>
+              <h3 class="text-danger">{{ stats.immunization.no|default:0 }}</h3>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-2">
+          <div class="card text-center kpi-card" data-type="immunization_unknown">
+            <div class="card-body">
+              <h6 class="text-muted">Unknown</h6>
+              <h3>{{ stats.immunization.unknown|default:0 }}</h3>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+
   <!-- ================= ROW 3: BMI Distribution ================= -->
   <div class="card border-success border-2 bg-light mb-4">
   
