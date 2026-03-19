@@ -114,13 +114,12 @@
     </div>
   
   </div>
-  
-<!-- ================= ROW X: Vaccination & Immunization ================= -->
+  <!-- ================= ROW X: Vaccination & Deworming ================= -->
 <div class="card border-info border-2 bg-light mb-4">
 
   <!-- Header -->
   <div class="card-header" data-bs-toggle="collapse" data-bs-target="#vaccinationCards" style="cursor:pointer;">
-    <h5 class="mb-0">Vaccination & Immunization</h5>
+    <h5 class="mb-0">Vaccination & Deworming</h5>
   </div>
 
   <!-- Content -->
@@ -160,34 +159,34 @@
           </div>
         </div>
 
-        <!-- Immunization -->
+        <!-- Deworming -->
         <div class="col-12 mt-3">
-          <h6 class="fw-bold">Immunization</h6>
+          <h6 class="fw-bold">Deworming</h6>
         </div>
 
         <div class="col-md-2">
-          <div class="card text-center kpi-card" data-type="immunization_yes">
+          <div class="card text-center kpi-card" data-type="deworming_yes">
             <div class="card-body">
               <h6 class="text-muted">Yes</h6>
-              <h3>{{ stats.immunization.yes|default:0 }}</h3>
+              <h3>{{ stats.deworming.yes|default:0 }}</h3>
             </div>
           </div>
         </div>
 
         <div class="col-md-2">
-          <div class="card text-center kpi-card" data-type="immunization_no">
+          <div class="card text-center kpi-card" data-type="deworming_no">
             <div class="card-body">
               <h6 class="text-muted">No</h6>
-              <h3 class="text-danger">{{ stats.immunization.no|default:0 }}</h3>
+              <h3 class="text-danger">{{ stats.deworming.no|default:0 }}</h3>
             </div>
           </div>
         </div>
 
         <div class="col-md-2">
-          <div class="card text-center kpi-card" data-type="immunization_unknown">
+          <div class="card text-center kpi-card" data-type="deworming_unknown">
             <div class="card-body">
               <h6 class="text-muted">Unknown</h6>
-              <h3>{{ stats.immunization.unknown|default:0 }}</h3>
+              <h3>{{ stats.deworming.unknown|default:0 }}</h3>
             </div>
           </div>
         </div>
@@ -196,7 +195,6 @@
     </div>
   </div>
 </div>
-
 
   <!-- ================= ROW 3: BMI Distribution ================= -->
   <div class="card border-success border-2 bg-light mb-4">
