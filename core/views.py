@@ -5,7 +5,7 @@ import os
 import time
 from pathlib import Path
 import logging
-
+from django.db.models import Q
 # Third-party
 import pandas as pd
 
@@ -116,27 +116,51 @@ def stat_students_ajax(request):
         )
         screenings = screenings.filter(weight_height__iexact=wh_category)
 
-    # ---- VACCINATION / IMMUNIZATION ----
-    elif type_filter.startswith("vaccination_") or type_filter.startswith("immunization_"):
+
+    # ---- DEWORMING ----
+    elif type_filter.startswith("deworming_"):
+        val = type_filter.split("_")[-1].lower()
+
+        if val == "yes":
+            screenings = screenings.filter(
+                checklist__deworming__iexact="yes"
+            )
+
+        elif val == "no":
+            screenings = screenings.filter(
+                checklist__deworming__iexact="no"
+            )
+
+        elif val == "unknown":
+            screenings = screenings.filter(
+                Q(checklist__deworming__isnull=True) |
+                Q(checklist__deworming="") |
+                Q(checklist__deworming__iexact="unknown")
+            )
+
+
+# ---- VACCINATION ----
+    elif type_filter.startswith("vaccination_"):
         val = type_filter.split("_")[-1].lower()
 
         if val == "yes":
             screenings = screenings.filter(
                 checklist__vaccination__iexact="yes"
             )
+
         elif val == "no":
             screenings = screenings.filter(
                 checklist__vaccination__iexact="no"
             )
+
         elif val == "unknown":
             screenings = screenings.filter(
-                checklist__vaccination__isnull=True
-            ) | screenings.filter(
-                checklist__vaccination=""
+                Q(checklist__vaccination__isnull=True) |
+                Q(checklist__vaccination="") |
+                Q(checklist__vaccination__iexact="unknown")
             )
-
-    elif type_filter == "total":
-        pass
+        elif type_filter == "total":
+            pass
 
     # ---- STUDENT DATA ----
     students_list = [

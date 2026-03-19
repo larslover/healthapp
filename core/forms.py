@@ -153,9 +153,9 @@ class ScreeningForm(forms.ModelForm):
 # -------------------------------
 class ScreeningCheckForm(forms.ModelForm):
     CHOICES = [
-        ('Unknown', 'Unknown'),
-        ('Yes', 'Yes'),
-        ('No', 'No'),
+        ('unknown', 'Unknown'),
+        ('yes', 'Yes'),
+        ('no', 'No'),
     ]
 
     deworming = forms.ChoiceField(

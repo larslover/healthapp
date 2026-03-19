@@ -1,6 +1,7 @@
 # core/services/statistics.py
-from django.db.models import Count, Case, When, IntegerField, Value
+from django.db.models import Count, Case, When, IntegerField, Value, Q
 from core.models import Screening, ScreeningCheck
+
 
 def get_screening_statistics(
     *,
@@ -58,7 +59,7 @@ def get_screening_statistics(
         muac_sam__iexact="severe acute malnutrition"
     ).count()
 
-    # ---- WEIGHT FOR HEIGHT (LOGICAL ORDER, NO N/A) ----
+    # ---- WEIGHT FOR HEIGHT ----
     weight_height_order = Case(
         When(weight_height="Severe Acute Malnutrition", then=Value(1)),
         When(weight_height="Moderate Acute Malnutrition", then=Value(2)),
@@ -87,26 +88,36 @@ def get_screening_statistics(
 
     # ---- SCREENING CHECKS ----
     checklist_qs = ScreeningCheck.objects.filter(screening__in=qs)
-    # ---- VACCINATION ----
+
+    # ==============================
+    # VACCINATION (ROBUST)
+    # ==============================
     vaccination_yes = checklist_qs.filter(vaccination__iexact="yes").count()
 
     vaccination_no = checklist_qs.filter(vaccination__iexact="no").count()
 
     vaccination_unknown = checklist_qs.filter(
-        vaccination__isnull=True
-    ).count() + checklist_qs.filter(
-        vaccination=""
+        Q(vaccination__iexact="unknown") |
+        Q(vaccination__isnull=True) |
+        Q(vaccination="") |
+        ~Q(vaccination__iexact="yes") & ~Q(vaccination__iexact="no")
     ).count()
-    # ---- DEWORMING ----
+
+    # ==============================
+    # DEWORMING (ROBUST)
+    # ==============================
     deworming_yes = checklist_qs.filter(deworming__iexact="yes").count()
 
     deworming_no = checklist_qs.filter(deworming__iexact="no").count()
 
     deworming_unknown = checklist_qs.filter(
-        deworming__isnull=True
-    ).count() + checklist_qs.filter(
-        deworming=""
+        Q(deworming__iexact="unknown") |
+        Q(deworming__isnull=True) |
+        Q(deworming="") |
+        ~Q(deworming__iexact="yes") & ~Q(deworming__iexact="no")
     ).count()
+
+    # ---- CHECKLIST BOOLEAN STATS ----
     checklist_fields = [
         f.name
         for f in ScreeningCheck._meta.get_fields()
@@ -120,30 +131,28 @@ def get_screening_statistics(
 
     # ---- FINAL STRUCTURE ----
     return {
-    "totals": {
-        "screenings": total_screenings,
-        "students": total_students,
-        "schools": total_schools,
-    },
-    "bmi": list(bmi_counts),
-    "muac": list(muac_counts),
-    "muac_total": muac_total,
-    "weight_height": list(weight_height_counts),
-    "vision": vision_total,
-    "age_groups": list(age_groups),
-    "checklist": checklist_stats,
+        "totals": {
+            "screenings": total_screenings,
+            "students": total_students,
+            "schools": total_schools,
+        },
+        "bmi": list(bmi_counts),
+        "muac": list(muac_counts),
+        "muac_total": muac_total,
+        "weight_height": list(weight_height_counts),
+        "vision": vision_total,
+        "age_groups": list(age_groups),
+        "checklist": checklist_stats,
 
-    # ✅ ADD THIS
-    "vaccination": {
-        "yes": vaccination_yes,
-        "no": vaccination_no,
-        "unknown": vaccination_unknown,
-    },
-    "deworming": {
-    "yes": deworming_yes,
-    "no": deworming_no,
-    "unknown": deworming_unknown,
-},
-
-   
-}
+        # ✅ CLEAN OUTPUT
+        "vaccination": {
+            "yes": vaccination_yes,
+            "no": vaccination_no,
+            "unknown": vaccination_unknown,
+        },
+        "deworming": {
+            "yes": deworming_yes,
+            "no": deworming_no,
+            "unknown": deworming_unknown,
+        },
+    }
