@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="container my-4">
-
+ 
   <!-- ================= HEADER ================= -->
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h2 class="fw-bold mb-0">Screening Statistics</h2>
@@ -52,47 +52,68 @@
     </div>
 
   </form>
-  <div class="row g-3 mb-4">
+  <!-- ================= TOTALS SECTION ================= -->
+<div class="card border-primary border-2 bg-light mb-4">
 
-    <!-- Total -->
-    <div class="col-md-3">
-      <div class="card border-primary border-2 shadow-sm text-center h-100 kpi-card" data-type="total">
-        <div class="card-body">
+  <!-- Header -->
+  <div class="card-header">
+    <h5 class="mb-0">Screening Overview</h5>
+  </div>
+
+  <!-- Body -->
+  <div class="card-body">
+    <div class="row g-3 text-center">
+
+      <!-- Total -->
+      <div class="col-md-4">
+        <div class="kpi-card" data-type="total">
           <h6 class="text-muted">Total Screened</h6>
           <h2 class="fw-bold">{{ stats.totals.screenings|default:0 }}</h2>
         </div>
       </div>
-    </div>
-  <!-- Age 2-5 -->
-<div class="col-md-3">
-  <div class="card border-success border-2 shadow-sm text-center h-100 kpi-card" data-type="age_2_5">
-    <div class="card-body">
-      <h6 class="text-muted">Age 2–5 Years</h6>
-      <h2 class="fw-bold">{{ stats.age_groups_summary.age_2_5|default:0 }}</h2>
+
+      <!-- Age 2–5 -->
+      <div class="col-md-4">
+        <div class="kpi-card" data-type="age_2_5">
+          <h6 class="text-muted">Age 2–5 Years</h6>
+          <h2 class="fw-bold text-dark">
+            {{ stats.age_2_5|default:0 }}
+          </h2>
+        </div>
+      </div>
+
+      <!-- Age 5–19 -->
+      <div class="col-md-4">
+        <div class="kpi-card" data-type="age_5_19">
+          <h6 class="text-muted">Age 5–19 Years</h6>
+          <h2 class="fw-bold text-dark">
+            {{ stats.age_5_19|default:0 }}
+          </h2>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
 
-<!-- Age 5-19 -->
-<div class="col-md-3">
-  <div class="card border-dark border-2 shadow-sm text-center h-100 kpi-card" data-type="age_5_19">
-    <div class="card-body">
-      <h6 class="text-muted">Age 5–19 Years</h6>
-      <h2 class="fw-bold">{{ stats.age_groups_summary.age_5_19|default:0 }}</h2>
+
+<!-- ================= VISION SECTION ================= -->
+<div class="card border-info border-2 bg-light mb-4">
+
+  <!-- Header -->
+  <div class="card-header">
+    <h5 class="mb-0">Vision</h5>
+  </div>
+
+  <!-- Body -->
+  <div class="card-body text-center">
+    <div class="kpi-card" data-type="vision">
+      <h6 class="text-muted">Vision Problems</h6>
+      <h2 class="fw-bold text-danger">{{ stats.vision|default:0 }}</h2>
     </div>
   </div>
-</div>
-    <!-- Vision -->
-    <div class="col-md-3">
-      <div class="card border-info border-2 shadow-sm text-center h-100 kpi-card" data-type="vision">
-        <div class="card-body">
-          <h6 class="text-muted">Vision Problems</h6>
-          <h2 class="fw-bold text-danger">{{ stats.vision|default:0 }}</h2>
-        </div>
-      </div>
-    </div>
-  
-  </div>  
+
+</div>  
   <!-- ================= ROW 2: Screening Checks (Checklist KPIs) ================= -->
 <div class="card border-primary border-2 bg-light mb-4">
 

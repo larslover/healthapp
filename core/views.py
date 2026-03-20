@@ -271,7 +271,7 @@ def statistics(request):
         for field, count in stats.get("checklist", {}).items()
         if count > 0
     ]
-
+  
     return render(
         request,
         "core/statistics.html",

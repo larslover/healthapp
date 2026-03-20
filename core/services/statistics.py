@@ -1,7 +1,4 @@
-from django.db.models import Count, Case, When, IntegerField, Value, Q, F
-from django.db.models.functions import ExtractYear
-from datetime import date
-
+from django.db.models import Count, Case, When, IntegerField, Value, Q
 from core.models import Screening, ScreeningCheck
 
 
@@ -13,41 +10,59 @@ def get_screening_statistics(
 ):
     """
     Centralized statistics engine for dashboard & reports.
-    Combines Screening and ScreeningCheck data.
     """
 
-    # ---- BASE QUERYSET ----
-    qs = Screening.objects.filter(academic_year=academic_year)
+    # =====================================
+    # BASE QUERYSET (DB)
+    # =====================================
+    base_qs = Screening.objects.filter(academic_year=academic_year)
 
     if school_id:
-        qs = qs.filter(student__school_id=school_id)
+        base_qs = base_qs.filter(student__school_id=school_id)
 
     if class_section:
-        qs = qs.filter(class_section=class_section)
+        base_qs = base_qs.filter(class_section=class_section)
 
-    qs = qs.select_related("student", "student__school")
-
-    # =====================================
-    # ✅ DYNAMIC AGE (FROM DOB)
-    # =====================================
-    today = date.today()
-
-    qs = qs.annotate(
-        age_years=ExtractYear(Value(today)) - ExtractYear(F("student__date_of_birth"))
-    )
-
-    # ---- HEADLINE NUMBERS ----
-    total_screenings = qs.count()
-    total_students = qs.values("student_id").distinct().count()
-    total_schools = qs.values("student__school_id").distinct().count()
+    base_qs = base_qs.select_related("student", "student__school")
 
     # =====================================
-    # ✅ AGE KPIs (FIXED)
+    # PYTHON COPY (for accurate age calc)
     # =====================================
-    age_2_5 = qs.filter(age_years__gte=2, age_years__lt=5).count()
-    age_5_19 = qs.filter(age_years__gte=5, age_years__lte=19).count()
+    rows = list(base_qs)
 
-    # ---- BMI ----
+    # =====================================
+    # HEADLINE TOTALS
+    # =====================================
+    total_screenings = len(rows)
+    total_students = len({s.student_id for s in rows})
+    total_schools = len({s.student.school_id for s in rows if s.student and s.student.school})
+
+    # =====================================
+    # AGE GROUPS (FIXED)
+    # =====================================
+    age_2_5 = 0
+    age_5_19 = 0
+
+    for s in rows:
+        dob = s.student.date_of_birth
+        screen_date = s.screen_date
+
+        if not dob or not screen_date:
+            continue
+
+        age = (
+            screen_date.year - dob.year
+            - ((screen_date.month, screen_date.day) < (dob.month, dob.day))
+        )
+
+        if 2 <= age < 5:
+            age_2_5 += 1
+        elif 5 <= age <= 19:
+            age_5_19 += 1
+
+    # =====================================
+    # BMI DISTRIBUTION
+    # =====================================
     bmi_order = Case(
         When(bmi_category="severe underweight", then=Value(1)),
         When(bmi_category="underweight", then=Value(2)),
@@ -60,20 +75,24 @@ def get_screening_statistics(
     )
 
     bmi_counts = (
-        qs.exclude(bmi_category="N/A")
+        base_qs.exclude(bmi_category="N/A")
         .values("bmi_category")
         .annotate(count=Count("id"), sort_order=bmi_order)
         .order_by("sort_order")
     )
 
-    # ---- MUAC ----
-    muac_counts = qs.values("muac_sam").annotate(count=Count("id"))
+    # =====================================
+    # MUAC
+    # =====================================
+    muac_counts = base_qs.values("muac_sam").annotate(count=Count("id"))
 
-    muac_total = qs.filter(
+    muac_total = base_qs.filter(
         muac_sam__iexact="severe acute malnutrition"
     ).count()
 
-    # ---- WEIGHT FOR HEIGHT ----
+    # =====================================
+    # WEIGHT FOR HEIGHT
+    # =====================================
     weight_height_order = Case(
         When(weight_height="Severe Acute Malnutrition", then=Value(1)),
         When(weight_height="Moderate Acute Malnutrition", then=Value(2)),
@@ -85,28 +104,24 @@ def get_screening_statistics(
     )
 
     weight_height_counts = (
-        qs.exclude(weight_height="N/A")
+        base_qs.exclude(weight_height="N/A")
         .values("weight_height")
         .annotate(count=Count("id"), sort_order=weight_height_order)
         .order_by("sort_order")
     )
 
-    # ---- VISION ----
-    vision_total = qs.filter(vision_problem__iexact="Yes").count()
-
-    # ---- AGE SEGMENTS (LEGACY FIELD) ----
-    age_groups = qs.values("age_screening").annotate(count=Count("id"))
-
-    # ---- SCREENING CHECKS ----
-    checklist_qs = ScreeningCheck.objects.filter(screening__in=qs)
+    # =====================================
+    # VISION
+    # =====================================
+    vision_total = base_qs.filter(vision_problem__iexact="Yes").count()
 
     # =====================================
-    # VACCINATION
+    # CHECKLIST
     # =====================================
+    checklist_qs = ScreeningCheck.objects.filter(screening__in=base_qs)
+
     vaccination_yes = checklist_qs.filter(vaccination__iexact="yes").count()
-
     vaccination_no = checklist_qs.filter(vaccination__iexact="no").count()
-
     vaccination_unknown = checklist_qs.filter(
         Q(vaccination__iexact="unknown") |
         Q(vaccination__isnull=True) |
@@ -114,13 +129,8 @@ def get_screening_statistics(
         (~Q(vaccination__iexact="yes") & ~Q(vaccination__iexact="no"))
     ).count()
 
-    # =====================================
-    # DEWORMING
-    # =====================================
     deworming_yes = checklist_qs.filter(deworming__iexact="yes").count()
-
     deworming_no = checklist_qs.filter(deworming__iexact="no").count()
-
     deworming_unknown = checklist_qs.filter(
         Q(deworming__iexact="unknown") |
         Q(deworming__isnull=True) |
@@ -128,7 +138,6 @@ def get_screening_statistics(
         (~Q(deworming__iexact="yes") & ~Q(deworming__iexact="no"))
     ).count()
 
-    # ---- CHECKLIST BOOLEAN STATS ----
     checklist_fields = [
         f.name
         for f in ScreeningCheck._meta.get_fields()
@@ -154,9 +163,7 @@ def get_screening_statistics(
         "muac_total": muac_total,
         "weight_height": list(weight_height_counts),
         "vision": vision_total,
-        "age_groups": list(age_groups),
         "checklist": checklist_stats,
-
         "vaccination": {
             "yes": vaccination_yes,
             "no": vaccination_no,
@@ -167,10 +174,6 @@ def get_screening_statistics(
             "no": deworming_no,
             "unknown": deworming_unknown,
         },
-
-        # ✅ THIS MUST MATCH TEMPLATE
-       "age_groups_summary": {
-        "age_2_5": age_2_5,
-        "age_5_19": age_5_19,
-}
+      "age_2_5": age_2_5,
+"age_5_19": age_5_19,
     }
