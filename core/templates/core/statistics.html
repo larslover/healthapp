@@ -75,18 +75,6 @@
       </div>
     </div>
   
-    <!-- SAM (MUAC) -->
-    <div class="col-md-3">
-      <div class="card border-warning border-2 shadow-sm text-center h-100 kpi-card" data-type="muac">
-        <div class="card-body">
-          <h6 class="text-muted">SAM (MUAC)</h6>
-          <h2 class="fw-bold text-danger">{{ stats.muac_total|default:0 }}</h2>
-        </div>
-      </div>
-    </div>
-  
-  </div>
-  
   <!-- ================= ROW 2: Screening Checks (Checklist KPIs) ================= -->
 <div class="card border-primary border-2 bg-light mb-4">
 
@@ -229,6 +217,26 @@
     </div>
   
   </div>
+
+
+
+    <!-- SAM (MUAC) -->
+    <div class="card border-warning border-2 bg-light mb-4">
+      <div class="card-header" data-bs-toggle="collapse" data-bs-target="#whCards" style="cursor:pointer;">
+        <h5 class="mb-0">SAM (MUAC)</h5>
+      </div>
+    <div class="col-md-3">
+      <div class="card border-warning border-2 shadow-sm text-center h-100 kpi-card" data-type="muac">
+        <div class="card-body">
+          <h6 class="text-muted">SAM (MUAC)</h6>
+          <h2 class="fw-bold text-danger">{{ stats.muac_total|default:0 }}</h2>
+        </div>
+      </div>
+    </div>
+  
+  </div>
+</div>
+  
   
   <!-- ================= ROW 4: Weight-for-Height ================= -->
   <div class="card border-warning border-2 bg-light mb-4">
