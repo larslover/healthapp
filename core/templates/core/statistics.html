@@ -52,29 +52,47 @@
     </div>
 
   </form>
+  <div class="row g-3 mb-4">
 
-  <!-- ================= ROW 1: Total Screened, Vision, SAM ================= -->
-<div class="row g-3 mb-4">
-
+    <!-- Total -->
     <div class="col-md-3">
-        <div class="card border-primary border-2 shadow-sm text-center h-100 kpi-card" data-type="total">
-          <div class="card-body">
-            <h6 class="text-muted">Total Screened</h6>
-            <h2 class="fw-bold">{{ stats.totals.screenings|default:0 }}</h2>
-          </div>
+      <div class="card border-primary border-2 shadow-sm text-center h-100 kpi-card" data-type="total">
+        <div class="card-body">
+          <h6 class="text-muted">Total Screened</h6>
+          <h2 class="fw-bold">{{ stats.totals.screenings|default:0 }}</h2>
         </div>
       </div>
-      
-    <!-- Vision Problems -->
+    </div>
+  <!-- Age 2-5 -->
+<div class="col-md-3">
+  <div class="card border-success border-2 shadow-sm text-center h-100 kpi-card" data-type="age_2_5">
+    <div class="card-body">
+      <h6 class="text-muted">Age 2–5 Years</h6>
+      <h2 class="fw-bold">{{ stats.age_groups_summary.age_2_5|default:0 }}</h2>
+    </div>
+  </div>
+</div>
+
+<!-- Age 5-19 -->
+<div class="col-md-3">
+  <div class="card border-dark border-2 shadow-sm text-center h-100 kpi-card" data-type="age_5_19">
+    <div class="card-body">
+      <h6 class="text-muted">Age 5–19 Years</h6>
+      <h2 class="fw-bold">{{ stats.age_groups_summary.age_5_19|default:0 }}</h2>
+    </div>
+  </div>
+</div>
+    <!-- Vision -->
     <div class="col-md-3">
       <div class="card border-info border-2 shadow-sm text-center h-100 kpi-card" data-type="vision">
         <div class="card-body">
           <h6 class="text-muted">Vision Problems</h6>
-          <h2 class="fw-bold text-danger">{{ stats.vision|length|default:0 }}</h2>
+          <h2 class="fw-bold text-danger">{{ stats.vision|default:0 }}</h2>
         </div>
       </div>
     </div>
   
+  </div>  
   <!-- ================= ROW 2: Screening Checks (Checklist KPIs) ================= -->
 <div class="card border-primary border-2 bg-light mb-4">
 

@@ -8,7 +8,8 @@ import logging
 from django.db.models import Q
 # Third-party
 import pandas as pd
-
+from django.db.models import F, ExpressionWrapper, IntegerField
+from django.db.models.functions import ExtractYear
 # DJANGO
 
 from django.utils.safestring import mark_safe
@@ -56,6 +57,9 @@ from django.http import JsonResponse
 from django.core.paginator import Paginator
 from core.models import Screening, ScreeningCheck
 
+from django.db.models import Q
+from django.core.paginator import Paginator
+from django.http import JsonResponse
 
 def stat_students_ajax(request):
     type_filter = (request.GET.get("type") or "").strip()
@@ -64,7 +68,6 @@ def stat_students_ajax(request):
     selected_class = request.GET.get("student_class") or request.GET.get("class")
     page_number = int(request.GET.get("page", 1))
 
-    # ---- BASE QUERYSET ----
     screenings = Screening.objects.select_related(
         "student__school", "checklist"
     )
@@ -79,7 +82,7 @@ def stat_students_ajax(request):
     if selected_class:
         screenings = screenings.filter(class_section=selected_class)
 
-    # ---- CHECKLIST BOOLEAN FIELDS ----
+    # ---- BOOLEAN CHECKLIST ----
     checklist_fields = [
         f.name for f in ScreeningCheck._meta.get_fields()
         if f.get_internal_type() == "BooleanField"
@@ -92,6 +95,28 @@ def stat_students_ajax(request):
             **{f"checklist__{type_filter}": True}
         )
 
+    # ---- AGE GROUPS (DYNAMIC) ----
+    elif type_filter == "age_2_5":
+        screenings = screenings.annotate(
+            age_years=ExpressionWrapper(
+                ExtractYear(F("screen_date")) - ExtractYear(F("student__date_of_birth")),
+                output_field=IntegerField()
+            )
+        ).filter(
+            age_years__gte=2,
+            age_years__lt=5
+        )
+
+    elif type_filter == "age_5_19":
+        screenings = screenings.annotate(
+            age_years=ExpressionWrapper(
+                ExtractYear(F("screen_date")) - ExtractYear(F("student__date_of_birth")),
+                output_field=IntegerField()
+            )
+        ).filter(
+            age_years__gte=5,
+            age_years__lte=19
+        )
     elif type_filter == "vision":
         screenings = screenings.filter(vision_problem__iexact="Yes")
 
@@ -116,20 +141,15 @@ def stat_students_ajax(request):
         )
         screenings = screenings.filter(weight_height__iexact=wh_category)
 
-
     # ---- DEWORMING ----
     elif type_filter.startswith("deworming_"):
         val = type_filter.split("_")[-1].lower()
 
         if val == "yes":
-            screenings = screenings.filter(
-                checklist__deworming__iexact="yes"
-            )
+            screenings = screenings.filter(checklist__deworming__iexact="yes")
 
         elif val == "no":
-            screenings = screenings.filter(
-                checklist__deworming__iexact="no"
-            )
+            screenings = screenings.filter(checklist__deworming__iexact="no")
 
         elif val == "unknown":
             screenings = screenings.filter(
@@ -138,20 +158,15 @@ def stat_students_ajax(request):
                 Q(checklist__deworming__iexact="unknown")
             )
 
-
-# ---- VACCINATION ----
+    # ---- VACCINATION ----
     elif type_filter.startswith("vaccination_"):
         val = type_filter.split("_")[-1].lower()
 
         if val == "yes":
-            screenings = screenings.filter(
-                checklist__vaccination__iexact="yes"
-            )
+            screenings = screenings.filter(checklist__vaccination__iexact="yes")
 
         elif val == "no":
-            screenings = screenings.filter(
-                checklist__vaccination__iexact="no"
-            )
+            screenings = screenings.filter(checklist__vaccination__iexact="no")
 
         elif val == "unknown":
             screenings = screenings.filter(
@@ -159,8 +174,10 @@ def stat_students_ajax(request):
                 Q(checklist__vaccination="") |
                 Q(checklist__vaccination__iexact="unknown")
             )
-        elif type_filter == "total":
-            pass
+
+    # ---- TOTAL ----
+    elif type_filter == "total":
+        pass
 
     # ---- STUDENT DATA ----
     students_list = [
@@ -187,8 +204,8 @@ def stat_students_ajax(request):
     elif type_filter.startswith("vaccination_"):
         title = f"Vaccination: {type_filter.split('_')[-1].title()}"
 
-    elif type_filter.startswith("immunization_"):
-        title = f"Immunization: {type_filter.split('_')[-1].title()}"
+    elif type_filter.startswith("deworming_"):
+        title = f"Deworming: {type_filter.split('_')[-1].title()}"
 
     elif type_filter == "vision":
         title = "Vision Problems"
@@ -202,7 +219,6 @@ def stat_students_ajax(request):
     else:
         title = type_filter.replace("_", " ").title() if type_filter else "All Students"
 
-    # ---- RESPONSE ----
     return JsonResponse({
         "title": title,
         "students": list(page_obj.object_list),

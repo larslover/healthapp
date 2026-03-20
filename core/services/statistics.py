@@ -1,5 +1,7 @@
-# core/services/statistics.py
-from django.db.models import Count, Case, When, IntegerField, Value, Q
+from django.db.models import Count, Case, When, IntegerField, Value, Q, F
+from django.db.models.functions import ExtractYear
+from datetime import date
+
 from core.models import Screening, ScreeningCheck
 
 
@@ -25,12 +27,27 @@ def get_screening_statistics(
 
     qs = qs.select_related("student", "student__school")
 
+    # =====================================
+    # ✅ DYNAMIC AGE (FROM DOB)
+    # =====================================
+    today = date.today()
+
+    qs = qs.annotate(
+        age_years=ExtractYear(Value(today)) - ExtractYear(F("student__date_of_birth"))
+    )
+
     # ---- HEADLINE NUMBERS ----
     total_screenings = qs.count()
     total_students = qs.values("student_id").distinct().count()
     total_schools = qs.values("student__school_id").distinct().count()
 
-    # ---- BMI (LOGICAL ORDER, NO N/A) ----
+    # =====================================
+    # ✅ AGE KPIs (FIXED)
+    # =====================================
+    age_2_5 = qs.filter(age_years__gte=2, age_years__lt=5).count()
+    age_5_19 = qs.filter(age_years__gte=5, age_years__lte=19).count()
+
+    # ---- BMI ----
     bmi_order = Case(
         When(bmi_category="severe underweight", then=Value(1)),
         When(bmi_category="underweight", then=Value(2)),
@@ -45,10 +62,7 @@ def get_screening_statistics(
     bmi_counts = (
         qs.exclude(bmi_category="N/A")
         .values("bmi_category")
-        .annotate(
-            count=Count("id"),
-            sort_order=bmi_order,
-        )
+        .annotate(count=Count("id"), sort_order=bmi_order)
         .order_by("sort_order")
     )
 
@@ -73,25 +87,22 @@ def get_screening_statistics(
     weight_height_counts = (
         qs.exclude(weight_height="N/A")
         .values("weight_height")
-        .annotate(
-            count=Count("id"),
-            sort_order=weight_height_order,
-        )
+        .annotate(count=Count("id"), sort_order=weight_height_order)
         .order_by("sort_order")
     )
 
     # ---- VISION ----
     vision_total = qs.filter(vision_problem__iexact="Yes").count()
 
-    # ---- AGE SEGMENTS ----
+    # ---- AGE SEGMENTS (LEGACY FIELD) ----
     age_groups = qs.values("age_screening").annotate(count=Count("id"))
 
     # ---- SCREENING CHECKS ----
     checklist_qs = ScreeningCheck.objects.filter(screening__in=qs)
 
-    # ==============================
-    # VACCINATION (ROBUST)
-    # ==============================
+    # =====================================
+    # VACCINATION
+    # =====================================
     vaccination_yes = checklist_qs.filter(vaccination__iexact="yes").count()
 
     vaccination_no = checklist_qs.filter(vaccination__iexact="no").count()
@@ -100,12 +111,12 @@ def get_screening_statistics(
         Q(vaccination__iexact="unknown") |
         Q(vaccination__isnull=True) |
         Q(vaccination="") |
-        ~Q(vaccination__iexact="yes") & ~Q(vaccination__iexact="no")
+        (~Q(vaccination__iexact="yes") & ~Q(vaccination__iexact="no"))
     ).count()
 
-    # ==============================
-    # DEWORMING (ROBUST)
-    # ==============================
+    # =====================================
+    # DEWORMING
+    # =====================================
     deworming_yes = checklist_qs.filter(deworming__iexact="yes").count()
 
     deworming_no = checklist_qs.filter(deworming__iexact="no").count()
@@ -114,7 +125,7 @@ def get_screening_statistics(
         Q(deworming__iexact="unknown") |
         Q(deworming__isnull=True) |
         Q(deworming="") |
-        ~Q(deworming__iexact="yes") & ~Q(deworming__iexact="no")
+        (~Q(deworming__iexact="yes") & ~Q(deworming__iexact="no"))
     ).count()
 
     # ---- CHECKLIST BOOLEAN STATS ----
@@ -129,7 +140,9 @@ def get_screening_statistics(
         for field in checklist_fields
     }
 
-    # ---- FINAL STRUCTURE ----
+    # =====================================
+    # FINAL RESPONSE
+    # =====================================
     return {
         "totals": {
             "screenings": total_screenings,
@@ -144,7 +157,6 @@ def get_screening_statistics(
         "age_groups": list(age_groups),
         "checklist": checklist_stats,
 
-        # ✅ CLEAN OUTPUT
         "vaccination": {
             "yes": vaccination_yes,
             "no": vaccination_no,
@@ -155,4 +167,10 @@ def get_screening_statistics(
             "no": deworming_no,
             "unknown": deworming_unknown,
         },
+
+        # ✅ THIS MUST MATCH TEMPLATE
+       "age_groups_summary": {
+        "age_2_5": age_2_5,
+        "age_5_19": age_5_19,
+}
     }
