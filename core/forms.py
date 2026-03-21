@@ -80,6 +80,13 @@ from django.utils import timezone
 from .models import Screening
 
 class ScreeningForm(forms.ModelForm):
+    screening_type = forms.ChoiceField(
+    choices=[
+        ("full", "Full Screening"),
+        ("partial", "Partial Screening (Weight monitoring only)"),
+    ],
+    widget=forms.Select(attrs={"class": "form-select"})
+)
 
     academic_year = forms.ChoiceField(
         choices=academic_year_choices,   # your dynamic function
@@ -115,6 +122,7 @@ class ScreeningForm(forms.ModelForm):
         model = Screening
         fields = [
              'academic_year',
+             'screening_type',
             'screen_date',
             'class_section',
             'age_screening',

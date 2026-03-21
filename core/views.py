@@ -69,8 +69,8 @@ def stat_students_ajax(request):
     page_number = int(request.GET.get("page", 1))
 
     screenings = Screening.objects.select_related(
-        "student__school", "checklist"
-    )
+    "student__school", "checklist"
+    ).filter(screening_type="full")   # 🔥 SAME RULE
 
     # ---- BASIC FILTERS ----
     if academic_year:

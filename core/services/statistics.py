@@ -15,7 +15,10 @@ def get_screening_statistics(
     # =====================================
     # BASE QUERYSET (DB)
     # =====================================
-    base_qs = Screening.objects.filter(academic_year=academic_year)
+    base_qs = Screening.objects.filter(
+    academic_year=academic_year,
+    screening_type="full"   # ✅ EXCLUDE PARTIAL
+)
 
     if school_id:
         base_qs = base_qs.filter(student__school_id=school_id)

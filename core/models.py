@@ -80,6 +80,14 @@ class Student(models.Model):
 
 
 class Screening(models.Model):
+    screening_type = models.CharField(
+    max_length=10,
+    choices=[
+        ("full", "Full Screening"),
+        ("partial", "Partial Screening"),
+    ],
+    default="full"
+)
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='screenings')
     screen_date = models.DateField(null=True, blank=True)
     class_section = models.CharField(max_length=50, null=True, blank=True)
