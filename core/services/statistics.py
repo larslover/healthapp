@@ -40,8 +40,9 @@ def get_screening_statistics(
     total_students = len({s.student_id for s in rows})
     total_schools = len({s.student.school_id for s in rows if s.student and s.student.school})
 
-    # =====================================
-    # AGE GROUPS (FIXED)
+
+        # =====================================
+    # AGE GROUPS (FIXED - MONTH BASED)
     # =====================================
     age_2_5 = 0
     age_5_19 = 0
@@ -53,16 +54,15 @@ def get_screening_statistics(
         if not dob or not screen_date:
             continue
 
-        age = (
-            screen_date.year - dob.year
-            - ((screen_date.month, screen_date.day) < (dob.month, dob.day))
+        age_months = (
+            (screen_date.year - dob.year) * 12 +
+            (screen_date.month - dob.month)
         )
 
-        if 2 <= age < 5:
+        if 24 <= age_months <= 60:
             age_2_5 += 1
-        elif 5 <= age <= 19:
+        elif 61 <= age_months <= 228:
             age_5_19 += 1
-
     # =====================================
     # BMI DISTRIBUTION
     # =====================================

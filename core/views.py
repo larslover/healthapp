@@ -11,7 +11,7 @@ import pandas as pd
 from django.db.models import F, ExpressionWrapper, IntegerField
 from django.db.models.functions import ExtractYear
 # DJANGO
-
+from django.db.models.functions import ExtractYear, ExtractMonth
 from django.utils.safestring import mark_safe
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, HttpResponse
@@ -96,27 +96,30 @@ def stat_students_ajax(request):
         )
 
     # ---- AGE GROUPS (DYNAMIC) ----
-    elif type_filter == "age_2_5":
+    
+
+    
+
+    elif type_filter in ["age_2_5", "age_5_19"]:
         screenings = screenings.annotate(
-            age_years=ExpressionWrapper(
-                ExtractYear(F("screen_date")) - ExtractYear(F("student__date_of_birth")),
+            age_months=ExpressionWrapper(
+                (ExtractYear(F("screen_date")) - ExtractYear(F("student__date_of_birth"))) * 12 +
+                (ExtractMonth(F("screen_date")) - ExtractMonth(F("student__date_of_birth"))),
                 output_field=IntegerField()
             )
-        ).filter(
-            age_years__gte=2,
-            age_years__lt=5
         )
 
-    elif type_filter == "age_5_19":
-        screenings = screenings.annotate(
-            age_years=ExpressionWrapper(
-                ExtractYear(F("screen_date")) - ExtractYear(F("student__date_of_birth")),
-                output_field=IntegerField()
+        if type_filter == "age_2_5":
+            screenings = screenings.filter(
+                age_months__gte=24,
+                age_months__lte=60   # ✅ inclusive
             )
-        ).filter(
-            age_years__gte=5,
-            age_years__lte=19
-        )
+
+        elif type_filter == "age_5_19":
+            screenings = screenings.filter(
+                age_months__gte=61,   # ✅ starts AFTER 60
+                age_months__lte=228   # 19 years
+            )
     elif type_filter == "vision":
         screenings = screenings.filter(vision_problem__iexact="Yes")
 
