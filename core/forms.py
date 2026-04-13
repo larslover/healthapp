@@ -1,6 +1,8 @@
 from django import forms
 from .models import Student, Screening, School, ScreeningCheck
 from django import forms
+from datetime import datetime
+from django.utils import timezone
 from .models import academic_year_choices
 CLASS_CHOICES = [
     ('Playgroup', 'Playgroup'),
@@ -79,25 +81,29 @@ from django import forms
 from django.utils import timezone
 from .models import Screening
 
+from datetime import datetime
+from django import forms
+from django.utils import timezone
+
 class ScreeningForm(forms.ModelForm):
+
     screening_type = forms.ChoiceField(
-    choices=[
-        ("full", "Full Screening"),
-        ("partial", "Partial Screening (Weight monitoring only)"),
-    ],
-    widget=forms.Select(attrs={"class": "form-select"})
-)
+        choices=[
+            ("full", "Full Screening"),
+            ("partial", "Partial Screening (Weight monitoring only)"),
+        ],
+        widget=forms.Select(attrs={"class": "form-select"})
+    )
 
     academic_year = forms.ChoiceField(
-        choices=academic_year_choices,   # your dynamic function
         required=True,
         widget=forms.Select(attrs={'class': 'form-select'})
     )
 
     class_section = forms.ChoiceField(
-    choices=CLASS_CHOICES,
-    required=False,
-    widget=forms.Select(attrs={'class': 'form-select'})
+        choices=CLASS_CHOICES,
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-select'})
     )
 
     vision_left = forms.ChoiceField(
@@ -121,8 +127,8 @@ class ScreeningForm(forms.ModelForm):
     class Meta:
         model = Screening
         fields = [
-             'academic_year',
-             'screening_type',
+            'academic_year',
+            'screening_type',
             'screen_date',
             'class_section',
             'age_screening',
@@ -138,7 +144,7 @@ class ScreeningForm(forms.ModelForm):
                 'type': 'date',
                 'class': 'form-control',
             }),
-            'class_section': forms.TextInput(attrs={'class': 'form-control'}),
+            # ❌ Removed conflicting class_section TextInput
             'weight': forms.NumberInput(attrs={'step': '0.1', 'class': 'form-control'}),
             'height': forms.NumberInput(attrs={'step': '0.1', 'class': 'form-control'}),
             'muac': forms.NumberInput(attrs={'step': '0.1', 'class': 'form-control'}),
@@ -152,10 +158,45 @@ class ScreeningForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # ⛔ Block future dates instantly in date picker
+        # ⛔ Block future dates
         self.fields['screen_date'].widget.attrs['max'] = (
             timezone.localdate().isoformat()
         )
+
+        current_year = datetime.now().year
+
+        # 🔹 Detect EDIT mode
+        is_edit = self.instance and self.instance.pk
+
+        # ✅ NEW → only 2 years
+        if not is_edit:
+            choices = [
+                (f"{current_year}-{current_year+1}", f"{current_year}-{current_year+1}"),
+                (f"{current_year-1}-{current_year}", f"{current_year-1}-{current_year}")
+            ]
+
+        # ✅ EDIT → last 5 years
+        else:
+            choices = [
+                (f"{y}-{y+1}", f"{y}-{y+1}")
+                for y in range(current_year-5, current_year+1)
+            ]
+
+        # ✅ Ensure existing value is always present
+        existing = None
+
+        if is_edit:
+            existing = self.instance.academic_year
+        elif self.data.get("academic_year"):
+            existing = self.data.get("academic_year")
+
+        if existing and existing not in [c[0] for c in choices]:
+            choices.append((existing, existing))
+
+        # ✅ Sort latest first
+        choices = sorted(choices, reverse=True)
+
+        self.fields['academic_year'].choices = choices
 # -------------------------------
 # Screening Check Form
 # -------------------------------
