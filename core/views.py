@@ -218,6 +218,11 @@ def stat_students_ajax(request):
 
     elif type_filter == "total":
         title = "Total Screened"
+    elif type_filter == "age_2_5":
+        title = "Age less than 5 years (24–60 months)"
+
+    elif type_filter == "age_5_19":
+        title = "Age 5–19 years (61–228 months)"
 
     else:
         title = type_filter.replace("_", " ").title() if type_filter else "All Students"
