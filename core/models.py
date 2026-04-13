@@ -96,7 +96,7 @@ class Screening(models.Model):
 
     academic_year = models.CharField(
     max_length=9,
-    choices=academic_year_choices,
+   
     db_index=True,
     null=True,
     blank=True,
