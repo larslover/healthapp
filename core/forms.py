@@ -165,39 +165,37 @@ class ScreeningForm(forms.ModelForm):
 
         current_year = datetime.now().year
 
-        # 🔹 Detect EDIT mode
         is_edit = self.instance and self.instance.pk
 
-        # ✅ NEW → only 2 years
+        # NEW → 2 years only
         if not is_edit:
             choices = [
                 (f"{current_year}-{current_year+1}", f"{current_year}-{current_year+1}"),
                 (f"{current_year-1}-{current_year}", f"{current_year-1}-{current_year}")
             ]
-
-        # ✅ EDIT → last 5 years
         else:
+            # EDIT → last 5 years
             choices = [
                 (f"{y}-{y+1}", f"{y}-{y+1}")
                 for y in range(current_year-5, current_year+1)
             ]
 
-        # ✅ Ensure existing value is always present
+        # 🔥 FIXED SAFE VALUE HANDLING
         existing = None
 
         if is_edit:
             existing = self.instance.academic_year
-        elif self.data.get("academic_year"):
-            existing = self.data.get("academic_year")
+
+        posted_value = self.data.get(self.add_prefix("academic_year"))
+        if posted_value:
+            existing = posted_value
 
         if existing and existing not in [c[0] for c in choices]:
             choices.append((existing, existing))
 
-        # ✅ Sort latest first
         choices = sorted(choices, reverse=True)
 
         self.fields['academic_year'].choices = choices
-# -------------------------------
 # Screening Check Form
 # -------------------------------
 class ScreeningCheckForm(forms.ModelForm):

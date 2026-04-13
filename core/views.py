@@ -779,10 +779,12 @@ def screening_summary(request):
 
 logger = logging.getLogger(__name__)
 
-
+@login_required(login_url='login')
 @login_required(login_url='login')
 def screened_students(request):
+
     selected_school_id = request.GET.get("school")
+
     if selected_school_id in [None, "", "None"]:
         selected_school_id = None
     else:
@@ -795,62 +797,133 @@ def screened_students(request):
     screening_forms = []
     selected_student = None
 
+    current_year = datetime.now().year
+
+    # 🔥 CENTRALIZED ACADEMIC YEAR CHOICES (IMPORTANT FIX)
+    academic_year_choices = [
+        (f"{y}-{y+1}", f"{y}-{y+1}")
+        for y in range(current_year - 5, current_year + 1)
+    ]
+
     if selected_student_id:
         selected_student = get_object_or_404(Student, pk=selected_student_id)
 
-        # --- All screenings for this student ---
-        screenings = Screening.objects.filter(student=selected_student).order_by('-screen_date')
+        screenings = Screening.objects.filter(
+            student=selected_student
+        ).order_by('-screen_date')
 
-        # If POST, save student info first
+        # ======================
+        # POST
+        # ======================
         if request.method == "POST":
+
             student_form = StudentForm(request.POST, instance=selected_student)
+
             if student_form.is_valid():
                 student = student_form.save(commit=False)
+
                 school_id = request.POST.get("school")
                 if school_id:
                     try:
                         student.school = School.objects.get(pk=int(school_id))
                     except School.DoesNotExist:
                         student.school = None
+
                 student.save()
 
-            # Save all screenings
+            # ======================
+            # SAVE SCREENINGS
+            # ======================
             for screening in screenings:
                 prefix = f'screening_{screening.id}'
-                screening_form = ScreeningForm(request.POST, instance=screening, prefix=prefix)
-                checklist, _ = ScreeningCheck.objects.get_or_create(screening=screening)
-                checklist_form = ScreeningCheckForm(request.POST, instance=checklist, prefix=prefix)
-                if screening_form.is_valid() and checklist_form.is_valid():
+
+                screening_form = ScreeningForm(
+                    request.POST,
+                    instance=screening,
+                    prefix=prefix
+                )
+
+                # 🔥 CRITICAL FIX: FORCE CHOICES BEFORE VALIDATION
+                screening_form.fields["academic_year"].choices = academic_year_choices
+
+                checklist, _ = ScreeningCheck.objects.get_or_create(
+                    screening=screening
+                )
+
+                checklist_form = ScreeningCheckForm(
+                    request.POST,
+                    instance=checklist,
+                    prefix=prefix
+                )
+
+                if not screening_form.is_valid():
+                    print("❌ Screening errors:", screening_form.errors)
+
+                if not checklist_form.is_valid():
+                    print("❌ Checklist errors:", checklist_form.errors)
+
+                if screening_form.is_valid():
                     screening_form.save()
+                    print("✔ Saved screening:", screening.id)
+
+                if checklist_form.is_valid():
                     checklist_form.save()
 
-            return redirect(f"{request.path}?selected_student={selected_student.id}&school={selected_school_id}&name={name_query}")
+            return redirect(
+                f"{request.path}?selected_student={selected_student.id}"
+                f"&school={selected_school_id}&name={name_query}"
+            )
 
+        # ======================
+        # GET
+        # ======================
         else:
-            # GET: prepare forms for all screenings with unique prefixes
             student_form = StudentForm(instance=selected_student)
+
             for screening in screenings:
                 prefix = f'screening_{screening.id}'
-                screening_form = ScreeningForm(instance=screening, prefix=prefix)
-                checklist, _ = ScreeningCheck.objects.get_or_create(screening=screening)
-                checklist_form = ScreeningCheckForm(instance=checklist, prefix=prefix)
+
+                screening_form = ScreeningForm(
+                    instance=screening,
+                    prefix=prefix
+                )
+
+                # 🔥 FIX FOR DISPLAY ALSO
+                screening_form.fields["academic_year"].choices = academic_year_choices
+
+                checklist, _ = ScreeningCheck.objects.get_or_create(
+                    screening=screening
+                )
+
+                checklist_form = ScreeningCheckForm(
+                    instance=checklist,
+                    prefix=prefix
+                )
+
                 screening_forms.append({
                     "screening_form": screening_form,
                     "checklist_form": checklist_form
                 })
 
-    # --- Student filtering & pagination ---
-    students = Student.objects.select_related("school").only("id", "name", "school_id").order_by("name")
+    # ======================
+    # STUDENT LIST
+    # ======================
+    students = Student.objects.select_related(
+        "school"
+    ).only("id", "name", "school_id").order_by("name")
+
     if name_query:
         students = students.filter(name__icontains=name_query)
+
     if selected_school_id:
         students = students.filter(school_id=selected_school_id)
+
     paginator = Paginator(students, 20)
     page_number = request.GET.get("page", 1)
     students_page = paginator.get_page(page_number)
 
     context = {
-        "selected_school_id": int(selected_school_id) if selected_school_id else None,
+        "selected_school_id": selected_school_id,
         "selected_student": selected_student,
         "student_form": student_form,
         "screening_forms": screening_forms,
@@ -860,7 +933,6 @@ def screened_students(request):
     }
 
     return render(request, "core/screened_students.html", context)
-
 def format_age(dob, current_date):
     """Return formatted string like '5y 3m'."""
     months = calculate_age_in_months(dob, current_date)
