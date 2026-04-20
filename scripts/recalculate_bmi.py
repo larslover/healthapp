@@ -1,8 +1,14 @@
 import os
+import sys
 import django
 
 # ==============================
-# Django setup (IMPORTANT)
+# Add project root to path (IMPORTANT for PythonAnywhere)
+# ==============================
+sys.path.append("/home/LarsLover/healthapp")
+
+# ==============================
+# Django setup
 # ==============================
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "healthapp.settings.prod")
 django.setup()
