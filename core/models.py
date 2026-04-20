@@ -1,14 +1,13 @@
 from django.db import models
-from core.utils.processor import bmi_category
-from datetime import datetime,date
-
-from .utils.processor import calculate_age_in_months, calculate_bmi, bmi_category, muac_category
-# ------------------------------
-# New system tables
-# ------------------------------
-
 from datetime import date
 
+from core.utils.processor import (
+    calculate_age_in_months,
+    calculate_bmi,
+    bmi_category,
+    muac_category,
+    weight_height_category,
+)
 def academic_year_choices():
     today = date.today()
 
@@ -81,26 +80,29 @@ class Student(models.Model):
 
 class Screening(models.Model):
     screening_type = models.CharField(
-    max_length=10,
-    choices=[
-        ("full", "Full Screening"),
-        ("partial", "Partial Screening"),
-    ],
-    default="full"
-)
-    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='screenings')
+        max_length=10,
+        choices=[
+            ("full", "Full Screening"),
+            ("partial", "Partial Screening"),
+        ],
+        default="full"
+    )
+
+    student = models.ForeignKey(
+        Student,
+        on_delete=models.CASCADE,
+        related_name='screenings'
+    )
+
     screen_date = models.DateField(null=True, blank=True)
     class_section = models.CharField(max_length=50, null=True, blank=True)
-   
-   
 
     academic_year = models.CharField(
-    max_length=9,
-   
-    db_index=True,
-    null=True,
-    blank=True,
-)
+        max_length=9,
+        db_index=True,
+        null=True,
+        blank=True,
+    )
 
     # Measurements
     weight = models.FloatField(null=True, blank=True)
@@ -121,7 +123,7 @@ class Screening(models.Model):
     vision_right = models.CharField(max_length=10, blank=True, null=True)
     vision_problem = models.TextField(null=True, blank=True)
 
-    # Meta data
+    # Meta
     age_in_month = models.IntegerField(null=True, blank=True)
     covid = models.CharField(max_length=50, null=True, blank=True)
     age_screening = models.CharField(max_length=50, null=True, blank=True)
@@ -132,53 +134,60 @@ class Screening(models.Model):
     def __str__(self):
         return f"{self.student.name} - {self.screen_date} ({self.class_section})"
 
+    # ==============================
+    # METRICS
+    # ==============================
     def calculate_metrics(self):
-        from core.utils.processor import weight_height_category, evaluate_vision
-        """Calculate WHO metrics safely."""
-        if not self.student:
+        if not self.student or not self.screen_date:
             self.age_in_month = None
             self.bmi = None
-            self.bmi_category = "N/A"
-            self.muac_sam = "N/A"
-            self.weight_height = "N/A"
-            self.vision_problem = "N/A"
+            self.bmi_category = None
+            self.muac_sam = None
+            self.weight_height = None
+            self.vision_problem = None
             return
 
-        dob = getattr(self.student, "date_of_birth", None)
-        if dob and self.screen_date:
-            from core.utils.processor import calculate_age_in_months, calculate_bmi, bmi_category, muac_category
-            self.age_in_month = calculate_age_in_months(dob, self.screen_date)
-        else:
-            self.age_in_month = None
+        dob = self.student.date_of_birth
 
-        weight = float(self.weight) if self.weight else None
-        height = float(self.height) if self.height else None
-
-        self.bmi = calculate_bmi(weight, height)
-        self.bmi_category = (
-            bmi_category(getattr(self.student, "gender", ""), self.age_in_month, self.bmi)
-            if self.bmi is not None and self.age_in_month is not None
-            else "N/A"
+        self.age_in_month = (
+            calculate_age_in_months(dob, self.screen_date)
+            if dob else None
         )
+
+        weight = self.weight if self.weight is not None else None
+        height = self.height if self.height is not None else None
+
+        self.bmi = (
+            calculate_bmi(weight, height)
+            if weight and height else None
+        )
+
+        gender = getattr(self.student, "gender", "")
+
+        self.bmi_category = (
+            bmi_category(gender, self.age_in_month, self.bmi)
+            if self.bmi is not None and self.age_in_month is not None
+            else None
+        )
+
         self.muac_sam = (
             muac_category(self.muac, self.age_in_month)
             if self.muac is not None and self.age_in_month is not None
-            else "N/A"
+            else None
         )
-        gender = getattr(self.student, "gender", "")
+
         self.weight_height = (
             weight_height_category(weight, height, self.age_in_month, gender)
-            if weight is not None and height is not None and self.age_in_month is not None
-            else "N/A"
+            if weight and height and self.age_in_month is not None
+            else None
         )
 
+    # ==============================
+    # SAVE OVERRIDE
+    # ==============================
     def save(self, *args, **kwargs):
-    # Auto-calculate screening year
-       
-
         self.calculate_metrics()
         super().save(*args, **kwargs)
-
 class ScreeningCheck(models.Model):
     screening = models.OneToOneField(Screening, on_delete=models.CASCADE, related_name="checklist")
 
