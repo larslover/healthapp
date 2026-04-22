@@ -190,7 +190,7 @@ def stat_students_ajax(request):
 
     elif type_filter == "total":
         pass
-
+    screenings = screenings.order_by("student__name")
     # ---- STUDENT DATA ----
     students_list = [
         {
