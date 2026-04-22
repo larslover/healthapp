@@ -34,6 +34,11 @@ urlpatterns = [
     path('get_student_card/', views.get_student_card, name='get_student_card'),
     path('get_student_growth_chart_partial/', views.get_student_growth_chart_partial, name='get_student_growth_chart_partial'),
     path('get_last_remarks/', views.get_last_remarks, name='get_last_remarks'),
+    path(
+    "screening/<int:pk>/toggle-other/",
+    views.toggle_other,
+    name="toggle_other"
+),
 
     # Reports
     path('screening-summary/', views.screening_summary, name='screening_summary'),

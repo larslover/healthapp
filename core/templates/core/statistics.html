@@ -114,6 +114,22 @@
   </div>
 
 </div>  
+<div class="card border-danger border-2 bg-light mb-4">
+
+  <div class="card-header">
+    <h5 class="mb-0">Doctor's Remarks</h5>
+  </div>
+
+  <div class="card-body text-center">
+    <div class="kpi-card" data-type="doctor_remarks">
+      <h6 class="text-muted">Flagged Remarks</h6>
+      <h2 class="fw-bold text-danger">
+        {{ stats.doctor_remarks|default:0 }}
+      </h2>
+    </div>
+  </div>
+
+</div>
   <!-- ================= ROW 2: Screening Checks (Checklist KPIs) ================= -->
 <div class="card border-primary border-2 bg-light mb-4">
 

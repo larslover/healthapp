@@ -16,9 +16,9 @@ def get_screening_statistics(
     # BASE QUERYSET (DB)
     # =====================================
     base_qs = Screening.objects.filter(
-    academic_year=academic_year,
-    screening_type="full"   # ✅ EXCLUDE PARTIAL
-)
+        academic_year=academic_year,
+        screening_type="full"
+    )
 
     if school_id:
         base_qs = base_qs.filter(student__school_id=school_id)
@@ -38,11 +38,12 @@ def get_screening_statistics(
     # =====================================
     total_screenings = len(rows)
     total_students = len({s.student_id for s in rows})
-    total_schools = len({s.student.school_id for s in rows if s.student and s.student.school})
+    total_schools = len(
+        {s.student.school_id for s in rows if s.student and s.student.school}
+    )
 
-
-        # =====================================
-    # AGE GROUPS (FIXED - MONTH BASED)
+    # =====================================
+    # AGE GROUPS
     # =====================================
     age_2_5 = 0
     age_5_19 = 0
@@ -63,6 +64,7 @@ def get_screening_statistics(
             age_2_5 += 1
         elif 61 <= age_months <= 228:
             age_5_19 += 1
+
     # =====================================
     # BMI DISTRIBUTION
     # =====================================
@@ -116,15 +118,30 @@ def get_screening_statistics(
     # =====================================
     # VISION
     # =====================================
-    vision_total = base_qs.filter(vision_problem__iexact="Yes").count()
+    vision_total = base_qs.filter(
+        vision_problem__iexact="Yes"
+    ).count()
+
+    # =====================================
+    # ✅ DOCTOR REMARKS (NEW)
+    # =====================================
+    doctor_remarks = base_qs.filter(
+    checklist__show_in_stats=True
+    ).count()
 
     # =====================================
     # CHECKLIST
     # =====================================
     checklist_qs = ScreeningCheck.objects.filter(screening__in=base_qs)
 
-    vaccination_yes = checklist_qs.filter(vaccination__iexact="yes").count()
-    vaccination_no = checklist_qs.filter(vaccination__iexact="no").count()
+    vaccination_yes = checklist_qs.filter(
+        vaccination__iexact="yes"
+    ).count()
+
+    vaccination_no = checklist_qs.filter(
+        vaccination__iexact="no"
+    ).count()
+
     vaccination_unknown = checklist_qs.filter(
         Q(vaccination__iexact="unknown") |
         Q(vaccination__isnull=True) |
@@ -132,8 +149,14 @@ def get_screening_statistics(
         (~Q(vaccination__iexact="yes") & ~Q(vaccination__iexact="no"))
     ).count()
 
-    deworming_yes = checklist_qs.filter(deworming__iexact="yes").count()
-    deworming_no = checklist_qs.filter(deworming__iexact="no").count()
+    deworming_yes = checklist_qs.filter(
+        deworming__iexact="yes"
+    ).count()
+
+    deworming_no = checklist_qs.filter(
+        deworming__iexact="no"
+    ).count()
+
     deworming_unknown = checklist_qs.filter(
         Q(deworming__iexact="unknown") |
         Q(deworming__isnull=True) |
@@ -161,22 +184,32 @@ def get_screening_statistics(
             "students": total_students,
             "schools": total_schools,
         },
+
+        "age_2_5": age_2_5,
+        "age_5_19": age_5_19,
+
         "bmi": list(bmi_counts),
+
         "muac": list(muac_counts),
         "muac_total": muac_total,
+
         "weight_height": list(weight_height_counts),
+
         "vision": vision_total,
+
+        "doctor_remarks": doctor_remarks,   # ✅ NEW
+
         "checklist": checklist_stats,
+
         "vaccination": {
             "yes": vaccination_yes,
             "no": vaccination_no,
             "unknown": vaccination_unknown,
         },
+
         "deworming": {
             "yes": deworming_yes,
             "no": deworming_no,
             "unknown": deworming_unknown,
         },
-      "age_2_5": age_2_5,
-"age_5_19": age_5_19,
     }

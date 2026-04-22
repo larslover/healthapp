@@ -229,6 +229,7 @@ class ScreeningCheck(models.Model):
     E7_discharge = models.BooleanField(default=False)
     E8_menstrual_pain = models.BooleanField(default=False)
     E9_remarks = models.TextField(blank=True, null=True)
+    show_in_stats = models.BooleanField(default=False)
 
 
     class Meta:

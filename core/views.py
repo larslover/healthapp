@@ -60,7 +60,23 @@ from core.models import Screening, ScreeningCheck
 from django.db.models import Q
 from django.core.paginator import Paginator
 from django.http import JsonResponse
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
+from .models import Screening
 
+def toggle_other(request, pk):
+    screening = get_object_or_404(Screening, pk=pk)
+
+    checklist, created = ScreeningCheck.objects.get_or_create(
+        screening=screening
+    )
+
+    checklist.show_in_stats = not checklist.show_in_stats
+    checklist.save()
+
+    return JsonResponse({
+        "status": "on" if checklist.show_in_stats else "off"
+    })
 def stat_students_ajax(request):
     type_filter = (request.GET.get("type") or "").strip()
     school = request.GET.get("school")
@@ -69,8 +85,8 @@ def stat_students_ajax(request):
     page_number = int(request.GET.get("page", 1))
 
     screenings = Screening.objects.select_related(
-    "student__school", "checklist"
-    ).filter(screening_type="full")   # 🔥 SAME RULE
+        "student__school", "checklist"
+    ).filter(screening_type="full")
 
     # ---- BASIC FILTERS ----
     if academic_year:
@@ -95,11 +111,6 @@ def stat_students_ajax(request):
             **{f"checklist__{type_filter}": True}
         )
 
-    # ---- AGE GROUPS (DYNAMIC) ----
-    
-
-    
-
     elif type_filter in ["age_2_5", "age_5_19"]:
         screenings = screenings.annotate(
             age_months=ExpressionWrapper(
@@ -110,16 +121,11 @@ def stat_students_ajax(request):
         )
 
         if type_filter == "age_2_5":
-            screenings = screenings.filter(
-                age_months__gte=24,
-                age_months__lte=60   # ✅ inclusive
-            )
+            screenings = screenings.filter(age_months__gte=24, age_months__lte=60)
 
         elif type_filter == "age_5_19":
-            screenings = screenings.filter(
-                age_months__gte=61,   # ✅ starts AFTER 60
-                age_months__lte=228   # 19 years
-            )
+            screenings = screenings.filter(age_months__gte=61, age_months__lte=228)
+
     elif type_filter == "vision":
         screenings = screenings.filter(vision_problem__iexact="Yes")
 
@@ -127,6 +133,12 @@ def stat_students_ajax(request):
         screenings = screenings.filter(
             muac_sam__iexact="severe acute malnutrition"
         )
+
+    # ✅ NEW: DOCTOR REMARKS
+    elif type_filter == "doctor_remarks":
+        screenings = screenings.filter(
+        checklist__show_in_stats=True
+)
 
     elif type_filter.startswith("bmi_"):
         bmi_category = (
@@ -144,7 +156,6 @@ def stat_students_ajax(request):
         )
         screenings = screenings.filter(weight_height__iexact=wh_category)
 
-    # ---- DEWORMING ----
     elif type_filter.startswith("deworming_"):
         val = type_filter.split("_")[-1].lower()
 
@@ -161,7 +172,6 @@ def stat_students_ajax(request):
                 Q(checklist__deworming__iexact="unknown")
             )
 
-    # ---- VACCINATION ----
     elif type_filter.startswith("vaccination_"):
         val = type_filter.split("_")[-1].lower()
 
@@ -178,7 +188,6 @@ def stat_students_ajax(request):
                 Q(checklist__vaccination__iexact="unknown")
             )
 
-    # ---- TOTAL ----
     elif type_filter == "total":
         pass
 
@@ -189,6 +198,11 @@ def stat_students_ajax(request):
             "name": s.student.name,
             "class": s.class_section,
             "school": s.student.school.name if s.student.school else "",
+            "remark": s.checklist.E9_remarks if (
+                type_filter == "doctor_remarks"
+                and s.checklist
+                and s.checklist.E9_remarks
+            ) else "",
         }
         for s in screenings
     ]
@@ -216,8 +230,12 @@ def stat_students_ajax(request):
     elif type_filter == "muac":
         title = "Severe Acute Malnutrition"
 
+    elif type_filter == "doctor_remarks":
+        title = "Doctor's Remarks"
+
     elif type_filter == "total":
         title = "Total Screened"
+
     elif type_filter == "age_2_5":
         title = "Age less than 5 years (24–60 months)"
 
