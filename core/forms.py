@@ -217,9 +217,26 @@ class ScreeningCheckForm(forms.ModelForm):
         widget=forms.Select(attrs={'class': 'form-select'})
     )
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Move Others before Doctor's Remarks
+        if 'show_in_stats' in self.fields and 'E9_remarks' in self.fields:
+            ordered = {}
+
+            for name, field in self.fields.items():
+                if name == 'E9_remarks':
+                    ordered['show_in_stats'] = self.fields['show_in_stats']
+                    ordered['E9_remarks'] = self.fields['E9_remarks']
+                elif name != 'show_in_stats':
+                    ordered[name] = field
+
+            self.fields = ordered
+
     class Meta:
         model = ScreeningCheck
         exclude = ['screening']
+
         widgets = {
             # -------- Nutritional Conditions --------
             'B1_severe_anemia': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
@@ -253,6 +270,7 @@ class ScreeningCheckForm(forms.ModelForm):
             'E6_UTI_STI': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'E7_discharge': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'E8_menstrual_pain': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'show_in_stats': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'E9_remarks': forms.Textarea(attrs={
                 'class': 'form-control',
                 'rows': 3,
@@ -277,9 +295,9 @@ class ScreeningCheckForm(forms.ModelForm):
             'C6_others_TB_asthma': 'C6: Respiratory Problem (Suggestive of Asthma/TB)',
 
             # -------- Developmental --------
-            'D1_difficulty_seeing': 'D1: Vision problem (night vision or day vision),',
+            'D1_difficulty_seeing': 'D1: Vision problem (night vision or day vision)',
             'D2_delay_in_walking': 'D2: Delay in walking',
-            'D3_stiffness_floppiness': 'D3: Stiffness / Floppiness/reduced strengthin in arms/legs',
+            'D3_stiffness_floppiness': 'D3: Stiffness / Floppiness / reduced strength in arms/legs',
             'D5_reading_writing_calculatory_difficulty': 'D5: Reading / writing / calculatory difficulties',
             'D6_speaking_difficulty': 'D6: Difficulty in speaking',
             'D7_hearing_problems': 'D7: Difficulty in hearing',
@@ -293,10 +311,9 @@ class ScreeningCheckForm(forms.ModelForm):
             'E6_UTI_STI': 'E6: Pain/burning while urinating?',
             'E7_discharge': 'E7: Discharge/foul smell from genito/urinary area?',
             'E8_menstrual_pain': 'E8: Menstrual Pain',
-            
+            'show_in_stats': 'Others',
             'E9_remarks': 'Doctor’s Remarks',
         }
-
 # -------------------------------
 # School Form
 # -------------------------------
